@@ -1,0 +1,339 @@
+/* ---------------------------------------------------------------------
+   Design tokens
+   Single source of truth for colors and type scale used across the app.
+------------------------------------------------------------------------ */
+:root {
+  --ink: #0a0e1a;
+  --blue: #1466ff;
+  --blue-deep: #0a33ff;
+  --cyan: #2ec8ff;
+  --bg: #f4f5f9;
+
+  --text: #0a0e1a;
+  --text-muted: #4a5169;
+  --text-faint: #6b7388;
+  --text-subtle: #a1a8bd;
+
+  --border: rgba(10, 14, 26, 0.08);
+  --border-strong: rgba(10, 14, 26, 0.14);
+  --border-hover: rgba(10, 14, 26, 0.32);
+
+  --ok-bg: #e0f7f4;
+  --ok-fg: #006b60;
+  --ok-dot: #00c2a8;
+
+  --warn-bg: #fff6db;
+  --warn-fg: #7a5c00;
+  --warn-soft-bg: #fffbee;
+  --warn-dot: #ffbf00;
+
+  --bad-bg: #ffe8ea;
+  --bad-fg: #a00e1c;
+  --bad-soft-bg: #fff1f2;
+  --bad-strong-fg: #8a0f1a;
+  --bad-dot: #ff4d5e;
+
+  --info-bg: #eaf3ff;
+  --info-fg: #0b5d96;
+
+  --neutral-bg: #eff0f5;
+  --neutral-fg: #4a5169;
+
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --shadow-card: 0 1px 2px rgba(10, 14, 26, 0.04);
+  --shadow-card-hover: 0 4px 14px rgba(10, 14, 26, 0.07);
+  --shadow-pop: 0 18px 40px -12px rgba(10, 14, 26, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-pt-sans), "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--blue-deep);
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+button:disabled {
+  cursor: default;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--blue);
+  outline-offset: -1px;
+}
+::placeholder {
+  color: var(--text-subtle);
+}
+
+@keyframes cs-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-toast {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.cs-animate-in {
+  animation: cs-in 0.22s cubic-bezier(0.2, 0, 0, 1);
+}
+.cs-animate-toast {
+  animation: cs-toast 0.24s cubic-bezier(0.2, 0.7, 0, 1);
+}
+
+/* ---------------------------------------------------------------------
+   Typography helpers
+------------------------------------------------------------------------ */
+.eyebrow {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.section-heading {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.display-number {
+  font-family: var(--font-work-sans), sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: var(--blue-deep);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------
+   Buttons
+------------------------------------------------------------------------ */
+.btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.btn-sm {
+  height: 30px;
+  font-size: 12px;
+  padding: 0 12px;
+}
+.btn-primary {
+  background: var(--ink);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--blue);
+}
+.btn-ghost {
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+.btn-danger {
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  color: var(--bad-fg);
+}
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--bad-dot);
+  background: var(--bad-soft-bg);
+}
+.btn-muted {
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  cursor: default;
+}
+.btn-block {
+  width: 100%;
+}
+.btn:disabled {
+  opacity: 0.6;
+}
+
+/* ---------------------------------------------------------------------
+   Form controls
+------------------------------------------------------------------------ */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.text-input,
+.select-input,
+.textarea-input {
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.text-input,
+.select-input {
+  height: 40px;
+}
+.textarea-input {
+  padding: 11px 12px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.error-text {
+  font-size: 12px;
+  color: var(--bad-fg);
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.checkbox-row input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue);
+}
+
+/* ---------------------------------------------------------------------
+   Cards, pills, dots
+------------------------------------------------------------------------ */
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pill-sm {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.dot {
+  border-radius: 999px;
+  flex: none;
+  display: inline-block;
+}
+
+.callout {
+  padding: 10px 12px;
+  border-radius: 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.callout-danger {
+  background: var(--bad-soft-bg);
+  border-left: 3px solid var(--bad-dot);
+  color: var(--bad-strong-fg);
+}
+.callout-warn {
+  background: var(--warn-soft-bg);
+  border-left: 3px solid var(--warn-dot);
+  color: #6b4e00;
+}
+
+.progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e4e7f0;
+  overflow: hidden;
+}
+.progress-track-thin {
+  height: 5px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.empty-state {
+  padding: 36px 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-subtle);
+  line-height: 1.6;
+}

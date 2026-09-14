@@ -1,0 +1,81 @@
+.hero {
+  flex: 1.05;
+  min-width: 0;
+  padding: 52px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--ink);
+}
+
+.logo {
+  font-family: var(--font-work-sans), sans-serif;
+  font-weight: 300;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1;
+}
+.logoStrong {
+  font-family: var(--font-open-sans), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.tagline {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 9px;
+}
+
+.pitch {
+  max-width: 480px;
+}
+.headline {
+  font-family: var(--font-open-sans), sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-wrap: pretty;
+}
+.subhead {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-subtle);
+  margin-top: 20px;
+  text-wrap: pretty;
+}
+
+.stats {
+  display: flex;
+  gap: 36px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+.statNumber {
+  font-family: var(--font-work-sans), sans-serif;
+  font-weight: 300;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 8px;
+}
+
+.footer {
+  font-size: 11.5px;
+  color: #4a5169;
+}

@@ -1,0 +1,29 @@
+import { VENUES } from "./data";
+import type { EventRecord } from "./types";
+
+/** Title + subtitle shown in the top bar, per route. Some subtitles are data-dependent. */
+export function getPageMeta(pathname: string, events: EventRecord[]): { title: string; subtitle: string } {
+  const actionable = events.filter((e) => e.status === "submitted" || e.status === "under_review").length;
+  const pendingBookings = events.filter((e) => e.bookingState === "pending").length;
+
+  switch (true) {
+    case pathname.startsWith("/queue"):
+      return { title: "Review queue", subtitle: `${actionable} requests need a decision from you` };
+    case pathname.startsWith("/board"):
+      return { title: "Pipeline", subtitle: "Every event by stage, across all coordinators" };
+    case pathname.startsWith("/my-events"):
+      return { title: "My events", subtitle: "Drafts, submitted requests, and events in planning" };
+    case pathname.startsWith("/new-request"):
+      return { title: "New event request", subtitle: "Three steps. You can save a draft at any point." };
+    case pathname.startsWith("/bookings"):
+      return { title: "Booking requests", subtitle: `${pendingBookings} requests pending · conflicts flagged automatically` };
+    case pathname.startsWith("/catalogue"):
+      return { title: "Venue catalogue", subtitle: `${VENUES.length} venues, with layouts, facilities and accessibility` };
+    case pathname.startsWith("/equipment"):
+      return { title: "Equipment", subtitle: "Availability is calculated against overlapping reservations" };
+    case pathname.startsWith("/browse"):
+      return { title: "Events open for registration", subtitle: "Register or withdraw at any time before registration closes" };
+    default:
+      return { title: "ConnectSphere", subtitle: "" };
+  }
+}

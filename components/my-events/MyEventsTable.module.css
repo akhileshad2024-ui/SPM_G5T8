@@ -1,0 +1,51 @@
+.card {
+  overflow: hidden;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.headTitle {
+  font-weight: 700;
+  font-size: 14px;
+  flex: 1;
+}
+.columns {
+  display: grid;
+  grid-template-columns: 2.2fr 1.1fr 0.7fr 1.1fr 1.1fr;
+  gap: 14px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.row {
+  display: grid;
+  grid-template-columns: 2.2fr 1.1fr 0.7fr 1.1fr 1.1fr;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(10, 14, 26, 0.06);
+  align-items: center;
+}
+.eventName {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.eventId {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.cell {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.actionsCell {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+}

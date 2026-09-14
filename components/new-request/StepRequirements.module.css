@@ -1,0 +1,66 @@
+.chipRow {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text-muted);
+}
+.chipOn {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.equipRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(10, 14, 26, 0.1);
+  border-radius: var(--radius);
+  background: #fafafb;
+}
+.equipName {
+  font-size: 13.5px;
+  font-weight: 700;
+  flex: 1;
+}
+.equipPool {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.stepperButton {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+.stepperButton:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.stepperValue {
+  width: 34px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

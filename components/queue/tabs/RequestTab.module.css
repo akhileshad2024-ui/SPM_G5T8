@@ -1,0 +1,86 @@
+.layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.main {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card {
+  padding: 18px 20px;
+}
+.purpose {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 8px;
+  text-wrap: pretty;
+}
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px 22px;
+}
+.fieldLabel {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.fieldValue {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.side {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sideCard {
+  padding: 16px 18px;
+}
+.sideHeading {
+  margin-bottom: 12px;
+}
+.coordinatorName {
+  font-size: 14px;
+  font-weight: 700;
+}
+.assignButton {
+  margin-top: 12px;
+  width: 100%;
+  height: 34px;
+  justify-content: center;
+}
+
+.readinessRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.readinessLabel {
+  font-size: 13px;
+  flex: 1;
+}
+.readinessValue {
+  font-size: 12px;
+  font-weight: 700;
+}

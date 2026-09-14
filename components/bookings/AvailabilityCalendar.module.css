@@ -1,0 +1,84 @@
+.card {
+  overflow: hidden;
+}
+.head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.headTitle {
+  font-weight: 700;
+  font-size: 14px;
+  flex: 1;
+}
+.legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  flex-wrap: wrap;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendSwatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.body {
+  padding: 16px 20px 20px;
+  overflow-x: auto;
+}
+.grid {
+  min-width: 660px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.headerRow {
+  display: grid;
+  grid-template-columns: 150px repeat(5, 1fr);
+  gap: 5px;
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.row {
+  display: grid;
+  grid-template-columns: 150px repeat(5, 1fr);
+  gap: 5px;
+  align-items: stretch;
+}
+.venueCell {
+  padding: 6px 0;
+}
+.venueName {
+  font-size: 13px;
+  font-weight: 700;
+}
+.venueMeta {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.cell {
+  border-radius: 3px;
+  min-height: 46px;
+  padding: 7px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+}

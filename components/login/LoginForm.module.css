@@ -1,0 +1,105 @@
+.panel {
+  width: 520px;
+  flex: none;
+  background: #fff;
+  padding: 52px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title {
+  font-family: var(--font-open-sans), sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.025em;
+}
+.subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+}
+.input {
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 15px;
+}
+.submit {
+  height: 46px;
+  margin-top: 4px;
+}
+
+.dividerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 18px;
+}
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(10, 14, 26, 0.1);
+}
+.dividerLabel {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.accountActive {
+  background: #f2f7ff;
+  border-color: var(--blue);
+}
+.accountBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.accountPerson {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.accountEmail {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--text-subtle);
+  line-height: 1.5;
+  margin-top: 14px;
+}
