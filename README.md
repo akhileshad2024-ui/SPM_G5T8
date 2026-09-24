@@ -75,3 +75,8 @@ directory. No environment variables or backend are required.
 - `npm run dev` — start the dev server
 - `npm run build` — production build
 - `npm run start` — run the production build locally
+## Architecture
+[Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio)
+The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**, not the current frontend-only implementation: Next.js / React, a Python monolith, and Supabase DB.
+The Python framework, Supabase Auth usage, database connection method, and email provider remain TBD. Component boundaries and API connections are proposed and should be aligned with the implementation as it develops.
+To edit, download the file and open it in draw.io / diagrams.net using **File > Open From > Device**. Use this `.drawio` file as the primary editable source.
