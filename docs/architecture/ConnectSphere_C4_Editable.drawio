@@ -1,0 +1,273 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="c4-1" name="C1 - System Context">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="s1" parent="1" vertex="1" value="C1 | ConnectSphere - System Context" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=20;strokeColor=none;">
+          <mxGeometry as="geometry" x="50.0" y="20.0" width="1500.0" height="60.0" />
+        </mxCell>
+        <mxCell id="s2" parent="1" vertex="1" value="ConnectSphere&#10;[Software System]&#10;Event planning, venue bookings,&#10;equipment reservations and registrations" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#1168BD;fontColor=#FFFFFF;fontSize=14;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="590.0" y="459.99999999999994" width="420.0" height="200.0" />
+        </mxCell>
+        <mxCell id="s3" parent="1" vertex="1" value="Event Organiser&#10;[Person]&#10;Submits event requirements" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="64.99999999999999" y="227.50000000000003" width="350.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s4" parent="1" vertex="1" value="Event Coordinator&#10;[Person]&#10;Coordinates event arrangements" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="625.0" y="207.49999999999994" width="350.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s5" parent="1" vertex="1" value="Venue Staff&#10;[Person]&#10;Manages venues and bookings" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1185.0" y="227.50000000000003" width="350.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s6" parent="1" vertex="1" value="Technical Support Staff&#10;[Person]&#10;Manages equipment arrangements" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="64.99999999999999" y="777.5" width="350.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s7" parent="1" vertex="1" value="Attendee&#10;[Person]&#10;Registers for events" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1185.0" y="777.5" width="350.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s8" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s3" target="s2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s9" parent="1" vertex="1" value="Requests, clarifications and changes" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="394.477285300866" y="363.25" width="173.26765162049017" height="50.0" />
+        </mxCell>
+        <mxCell id="s10" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s4" target="s2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s11" parent="1" vertex="1" value="Reviews, coordinates and confirms" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="715.0" y="353.2499999999999" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s12" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s13" parent="1" vertex="1" value="Maintains venues and reviews bookings" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1032.255063078644" y="363.25" width="173.26765162049017" height="50.0" />
+        </mxCell>
+        <mxCell id="s14" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s6" target="s2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s15" parent="1" vertex="1" value="Checks and reserves equipment" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="390.5417044253211" y="675.75" width="183.91659114935774" height="50.0" />
+        </mxCell>
+        <mxCell id="s16" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s7" target="s2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s17" parent="1" vertex="1" value="Browses, registers and withdraws" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1025.5417044253213" y="675.75" width="183.9165911493577" height="50.0" />
+        </mxCell>
+        <mxCell id="s18" parent="1" vertex="1" value="Email Service&#10;[External Software System - TBD]&#10;Delivers registration confirmations" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#666666;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="600.0" y="967.5000000000001" width="400.0" height="125.0" />
+        </mxCell>
+        <mxCell id="s19" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;dashed=1;" source="s2" target="s18">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s20" parent="1" vertex="1" value="Requests confirmation emails&#10;Proposed integration" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="692.375" y="770.75" width="215.25" height="50.0" />
+        </mxCell>
+        <mxCell id="s21" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;dashed=1;" source="s18" target="s7">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s22" parent="1" vertex="1" value="Delivers email" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="999.6052631578946" y="890.4375" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s23" parent="1" vertex="1" value="Draft design | Solid: core interaction | Dashed: proposed email integration | TBD: decision pending" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=10;strokeColor=none;">
+          <mxGeometry as="geometry" x="50.0" y="1137.5" width="1500.0" height="45.0" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c4-2" name="C2 - Containers">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="s1" parent="1" vertex="1" value="C2 | ConnectSphere - Containers" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=20;strokeColor=none;">
+          <mxGeometry as="geometry" x="50.0" y="20.0" width="1500.0" height="60.0" />
+        </mxCell>
+        <mxCell id="s2" parent="1" vertex="1" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#EFF6FC;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="300.0" y="184.99999999999997" width="1000.0" height="690.0" />
+        </mxCell>
+        <mxCell id="s3" parent="1" vertex="1" value="ConnectSphere - Software System Boundary" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#EFF6FC;fontColor=#102A43;fontSize=13;strokeColor=none;">
+          <mxGeometry as="geometry" x="350.0" y="194.99999999999994" width="900.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s4" parent="1" vertex="1" value="ConnectSphere Users&#10;[Person]&#10;Organiser / Coordinator / Venue Staff / Technical Support Staff / Attendee" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#08427B;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="200.0" y="102.50000000000003" width="1200.0" height="75.0" />
+        </mxCell>
+        <mxCell id="s5" parent="1" vertex="1" value="Web Application&#10;[Container: Next.js / React]&#10;Role-specific pages, forms and status views" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#438DD5;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="500.0" y="270.0" width="600.0" height="120.0" />
+        </mxCell>
+        <mxCell id="s6" parent="1" vertex="1" value="Backend Application&#10;[Container: Python / Monolith]&#10;Permissions, business rules and operations&#10;Python framework: TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#438DD5;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="500.0" y="480.0" width="600.0" height="140.0" />
+        </mxCell>
+        <mxCell id="s7" parent="1" vertex="1" value="Application Database&#10;[Container: Supabase DB]&#10;Users, events, bookings, equipment, registrations,&#10;notifications and audit records" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#438DD5;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="500.0" y="710.0" width="600.0" height="140.0" />
+        </mxCell>
+        <mxCell id="s8" parent="1" vertex="1" value="Email Service&#10;[External System]&#10;Provider: TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#666666;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1315.0" y="480.0" width="250.0" height="140.0" />
+        </mxCell>
+        <mxCell id="s9" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s4" target="s5">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s10" parent="1" vertex="1" value="Uses application / HTTPS" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="715.0" y="180.7500000000001" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s11" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s6">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s12" parent="1" vertex="1" value="Business API / HTTPS + JSON&#10;Proposed" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="715.0" y="392.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s13" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s6" target="s7">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s14" parent="1" vertex="1" value="Reads and writes data&#10;Connection protocol: TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="715.0" y="622.0000000000001" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s15" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;dashed=1;" source="s6" target="s8">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s16" parent="1" vertex="1" value="Email request&#10;Protocol: TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1122.5" y="507.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s17" parent="1" vertex="1" value="Draft design | Supabase Auth usage and deployment details are unconfirmed.&#10;Email Service delivers registration confirmations to attendees (US29)." style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=11;strokeColor=none;">
+          <mxGeometry as="geometry" x="100.0" y="940.0" width="1400.0" height="80.0" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c4-3" name="C3 - Backend Components">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="s1" parent="1" vertex="1" value="C3 | Python Backend Components - Proposed" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=20;strokeColor=none;">
+          <mxGeometry as="geometry" x="50.0" y="20.0" width="2100.0" height="60.0" />
+        </mxCell>
+        <mxCell id="s2" parent="1" vertex="1" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#EFF6FC;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="75.0" y="215.00000000000003" width="1850.0" height="1170.0" />
+        </mxCell>
+        <mxCell id="s3" parent="1" vertex="1" value="Python Backend Application - Container Boundary" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#EFF6FC;fontColor=#102A43;fontSize=14;strokeColor=none;">
+          <mxGeometry as="geometry" x="150.0" y="234.99999999999997" width="1700.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s4" parent="1" vertex="1" value="Web Application&#10;[Container: Next.js / React]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#438DD5;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="750.0" y="110.00000000000001" width="500.0" height="80.0" />
+        </mxCell>
+        <mxCell id="s5" parent="1" vertex="1" value="API Controllers&#10;Validate requests and invoke operations&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="775.0" y="317.5" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s6" parent="1" vertex="1" value="Authentication &amp; Authorisation&#10;US01-02&#10;Identity, sessions and access checks&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="145.00000000000003" y="317.5" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s7" parent="1" vertex="1" value="Event Management&#10;US03-16&#10;Requests, reviews, assignments and confirmation&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="145.00000000000003" y="587.5" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s8" parent="1" vertex="1" value="Change Management&#10;US33-35&#10;Change decisions and impact reassessment&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="775.0" y="587.5" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s9" parent="1" vertex="1" value="Registration Management&#10;US29-32&#10;Capacity, registration, withdrawal and lists&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1385.0000000000002" y="587.5" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s10" parent="1" vertex="1" value="Venue &amp; Booking Management&#10;US17-24&#10;Catalogue, booking approval and conflicts&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="145.00000000000003" y="867.5000000000001" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s11" parent="1" vertex="1" value="Equipment Management&#10;US25-28&#10;Requests, availability and reservations&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="775.0" y="867.5000000000001" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s12" parent="1" vertex="1" value="Notification Management&#10;US36 / US29&#10;In-app notifications and confirmation emails&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1385.0000000000002" y="867.5000000000001" width="450.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s13" parent="1" vertex="1" value="Persistence &amp; Audit&#10;Supporting component&#10;Data access, transactions, history and audit&#10;[Component]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#85BBF0;fontColor=#102A43;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="700.0" y="1187.5" width="600.0" height="145.0" />
+        </mxCell>
+        <mxCell id="s14" parent="1" vertex="1" value="Application Database&#10;[Container: Supabase DB]" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#438DD5;fontColor=#FFFFFF;fontSize=11;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="700.0" y="1460.0" width="600.0" height="100.0" />
+        </mxCell>
+        <mxCell id="s15" parent="1" vertex="1" value="Email Service&#10;[External System]&#10;Provider: TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#666666;fontColor=#FFFFFF;fontSize=10;strokeColor=#23466B;">
+          <mxGeometry as="geometry" x="1925.0" y="870.0000000000001" width="250.0" height="140.0" />
+        </mxCell>
+        <mxCell id="s16" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s4" target="s5">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s17" parent="1" vertex="1" value="HTTPS / JSON" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="915.0" y="210.75000000000017" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s18" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s6">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s19" parent="1" vertex="1" value="Checks access" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="600.0" y="347.00000000000006" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s20" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s7">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s21" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s8">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s22" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s5" target="s9">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s23" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s7" target="s10">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s24" parent="1" vertex="1" value="Checks booking approval" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="285.0" y="757.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s25" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s7" target="s11">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s26" parent="1" vertex="1" value="Checks reservations" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="568.6603672162835" y="757.0" width="232.67926556743305" height="50.0" />
+        </mxCell>
+        <mxCell id="s27" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s8" target="s7">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s28" parent="1" vertex="1" value="Applies approved changes" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="600.0" y="617.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s29" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s8" target="s11">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s30" parent="1" vertex="1" value="Reassesses equipment" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="915.0" y="757.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s31" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s8" target="s9">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s32" parent="1" vertex="1" value="Reassesses registration" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1220.0" y="617.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s33" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s9" target="s12">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s34" parent="1" vertex="1" value="Requests confirmation" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1525.0000000000002" y="757.0" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s35" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;dashed=1;" source="s12" target="s15">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s36" parent="1" vertex="1" value="Email request" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="1795.0" y="897.0000000000001" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s37" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s10" target="s13">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s38" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s11" target="s13">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s39" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s12" target="s13">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s40" parent="1" edge="1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#42566B;strokeWidth=1.5;" source="s13" target="s14">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="s41" parent="1" vertex="1" value="Reads / writes; protocol TBD" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#FFFFFF;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="915.0" y="1353.25" width="170.0" height="50.0" />
+        </mxCell>
+        <mxCell id="s42" parent="1" vertex="1" value="Additional component dependencies (shown as text to reduce crossing lines):&#10;API Controllers also invokes Venue, Equipment and Notification operations.&#10;Change Management also reassesses Venue arrangements.&#10;Event, Venue, Equipment and Change modules request notifications.&#10;Authentication, Event, Change and Registration modules also use Persistence &amp; Audit.&#10;All components run within one backend application; component boundaries are proposed." style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;spacing=8;fontFamily=Calibri;fillColor=#EFF6FC;fontColor=#102A43;fontSize=9;strokeColor=none;">
+          <mxGeometry as="geometry" x="200.0" y="1067.5" width="1600.0" height="95.0" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
