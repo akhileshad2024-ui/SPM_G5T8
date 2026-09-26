@@ -4,12 +4,14 @@ import { useApp } from "@/lib/app-context";
 
 export function StepRegistration() {
   const app = useApp();
-  const { form } = app.state;
+  const { form, formErrors } = app.state;
 
   const summary: Array<[string, string]> = [
     ["Event", form.name.trim() || "—"],
+    ["Type", form.eventType || "—"],
     ["When", `${form.date || "—"} · ${form.start}–${form.end}`],
     ["Attendance", form.pax || "—"],
+    ["Venue", `${form.venueLocation || "—"} · capacity ${form.venueCapacity || "—"}`],
     ["Layout", form.layout.charAt(0).toUpperCase() + form.layout.slice(1)],
     ["Facilities", form.facilities.join(", ") || "None"],
     ["Accessibility", form.access.join(", ") || "None"],
@@ -61,6 +63,9 @@ export function StepRegistration() {
               value={form.regCap}
               onChange={(e) => app.setFormField("regCap", e.target.value)}
             />
+            {formErrors["registration.capacityLimit"] && (
+              <div className="error-text">{formErrors["registration.capacityLimit"]}</div>
+            )}
           </div>
           <div className="field">
             <label className="eyebrow">Registration closes</label>
@@ -70,6 +75,9 @@ export function StepRegistration() {
               value={form.regClose}
               onChange={(e) => app.setFormField("regClose", e.target.value)}
             />
+            {formErrors["registration.closingDate"] && (
+              <div className="error-text">{formErrors["registration.closingDate"]}</div>
+            )}
           </div>
         </div>
       )}
