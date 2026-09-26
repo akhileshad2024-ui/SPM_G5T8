@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { NAV_FOR } from "@/lib/data";
 import { useApp } from "@/lib/app-context";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import styles from "./Sidebar.module.css";
 
 /** Left-hand navigation: role-scoped links, unread-work badges, and the signed-in user. */
@@ -12,6 +14,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { role, events } = app.state;
   const me = app.me;
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const badges: Record<string, number> = {
     "/queue": events.filter((e) => e.status === "submitted" || e.status === "under_review").length,
@@ -59,10 +62,16 @@ export function Sidebar() {
             <span className={styles.whoEmail}>{me.email}</span>
           </span>
         </div>
-        <button className={styles.signOut} onClick={app.signOut}>
-          Sign out
-        </button>
+        <div className={styles.accountActions}>
+          <button className={styles.signOut} onClick={() => setChangingPassword(true)}>
+            Change password
+          </button>
+          <button className={styles.signOut} onClick={app.signOut}>
+            Sign out
+          </button>
+        </div>
       </div>
+      {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export default function LoginPage() {
     if (app.state.authed) router.replace(DEFAULT_ROUTE[app.state.role]);
   }, [app.state.authed, app.state.role, router]);
 
-  if (app.state.authed) return null;
+  if (!app.state.authChecked || app.state.authed) return null;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--ink)" }}>

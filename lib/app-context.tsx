@@ -3,25 +3,28 @@
 /**
  * Global application state for the ConnectSphere prototype.
  *
- * There is no backend — everything lives in memory here, seeded fresh on
- * every full page load (see README in /export for the original design
- * rationale). Routing is handled by real Next.js routes; this context only
- * owns state that needs to survive client-side navigation between them
- * (the signed-in user, the event list, notifications, in-progress forms…).
+ * Authentication is real: the session is an HttpOnly cookie issued by the
+ * FastAPI backend, restored on load via /auth/me. Most other data (events,
+ * notifications…) still lives in memory here, seeded fresh on every full
+ * page load. Routing is handled by real Next.js routes; this context only
+ * owns state that needs to survive client-side navigation between them.
  */
 
 import { useRouter } from "next/navigation";
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
+import { ApiError, apiFetch } from "./api";
 import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
+  AuthUser,
   EventRecord,
   EventTab,
   ModalKind,
@@ -38,7 +41,10 @@ import type {
 const REQUIRE_COORDINATOR = true;
 
 interface AppState {
+  /** False until the initial /auth/me check has finished — don't redirect before then. */
+  authChecked: boolean;
   authed: boolean;
+  user: AuthUser | null;
   role: Role;
   events: EventRecord[];
   notifs: ReturnType<typeof seedNotifs>;
@@ -75,12 +81,13 @@ function initialForm(): NewRequestForm {
   };
 }
 
-function initialState(): AppState {
+/**
+ * Per-user UI state (drafts, selections, filters, open dialogs). Reset whenever
+ * the signed-in user changes so nothing carries over to the next person on the
+ * same browser. `events`/`notifs` stand in for server data and are kept.
+ */
+function sessionUiState() {
   return {
-    authed: false,
-    role: "coordinator",
-    events: seedEvents(),
-    notifs: seedNotifs(),
     selectedId: "EVT-2041",
     tab: "request",
     queueFilter: "action",
@@ -92,8 +99,20 @@ function initialState(): AppState {
     modalText: "",
     step: 1,
     errName: false,
-    vf: { cap: "180", layout: "any", stepFree: true },
+    vf: { cap: "180", layout: "any", stepFree: true } as VenueFilter,
     form: initialForm(),
+  } satisfies Partial<AppState>;
+}
+
+function initialState(): AppState {
+  return {
+    authChecked: false,
+    authed: false,
+    user: null,
+    role: "coordinator",
+    events: seedEvents(),
+    notifs: seedNotifs(),
+    ...sessionUiState(),
   };
 }
 
@@ -145,8 +164,10 @@ export interface AppApi {
   suitability: (venue: Venue, event: EventRecord) => Suitability;
 
   // ---- auth ----
-  signIn: (email: string, password: string) => { ok: true } | { ok: false; error: string };
+  signIn: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => void;
+  /** Standard handling for a failed backend call: 401 ends the session, 403 explains, else shows the message. */
+  handleApiError: (err: unknown) => void;
 
   // ---- toast / notifications ----
   flash: (msg: string, kind?: ToastKind) => void;
@@ -225,8 +246,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }),
     }));
 
+  const startSession = (user: AuthUser) =>
+    patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role });
+
+  const endSession = () => patch({ ...sessionUiState(), authChecked: true, authed: false, user: null });
+
+  // Restore an existing session (the cookie survives reloads; in-memory state doesn't).
+  useEffect(() => {
+    apiFetch<AuthUser>("/auth/me").then(startSession, endSession);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const api = useMemo<AppApi>(() => {
-    const me = PEOPLE[state.role];
+    const me = state.user
+      ? { person: state.user.name, label: PEOPLE[state.role].label, email: state.user.email }
+      : PEOPLE[state.role];
 
     const buildEventFromForm = (status: "draft" | "submitted"): EventRecord => {
       const f = state.form;
@@ -284,20 +318,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
       reservedQty: (equipId, excludeEventId) => reservedQty(state.events, equipId, excludeEventId),
       suitability: (venue, event) => suitability(state.events, venue, event),
 
-      signIn: (email, password) => {
+      signIn: async (email, password) => {
         const trimmed = (email || "").trim().toLowerCase();
         if (!trimmed) return { ok: false, error: "Enter your work email to continue." };
-        if (!password) return { ok: false, error: "Enter a password. Any value works in this prototype." };
-        const key = (Object.keys(PEOPLE) as Role[]).find((k) => PEOPLE[k].email.toLowerCase() === trimmed);
-        if (!key) return { ok: false, error: `No account found for ${email}. Pick one of the demo accounts below.` };
-        patch({ authed: true, role: key, notifsOpen: false, step: 1 });
-        flash(`Signed in as ${PEOPLE[key].person} · ${PEOPLE[key].label}.`);
-        router.push(DEFAULT_ROUTE[key]);
-        return { ok: true };
+        if (!password) return { ok: false, error: "Enter your password." };
+        try {
+          const user = await apiFetch<AuthUser>("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email: trimmed, password }),
+          });
+          startSession(user);
+          flash(`Signed in as ${user.name} · ${PEOPLE[user.role].label}.`);
+          router.push(DEFAULT_ROUTE[user.role]);
+          return { ok: true };
+        } catch (err) {
+          if (err instanceof ApiError && (err.status === 401 || err.status === 429)) {
+            return { ok: false, error: err.message };
+          }
+          return { ok: false, error: "Couldn't reach the server. Please try again." };
+        }
       },
       signOut: () => {
-        patch({ authed: false, notifsOpen: false, modal: null, toast: null });
+        apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
+        endSession();
         router.push("/login");
+      },
+      handleApiError: (err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          endSession();
+          flash("Your session has expired. Please sign in again.", "warn");
+          router.push("/login");
+        } else if (err instanceof ApiError && err.status === 403) {
+          flash("You don't have permission to do that.", "bad");
+        } else {
+          flash(err instanceof Error ? err.message : "Something went wrong.", "bad");
+        }
       },
 
       flash,

@@ -1,5 +1,7 @@
-﻿fastapi
+fastapi
 uvicorn[standard]
 sqlalchemy
 python-dotenv
 psycopg[binary]
+pyjwt
+argon2-cffi

@@ -14,10 +14,17 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
-    const result = app.signIn(email, password);
-    if (!result.ok) setError(result.error);
+  const submit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    const result = await app.signIn(email, password);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error);
+      setPassword("");
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -26,7 +33,7 @@ export function LoginForm() {
 
   const pickAccount = (role: Role) => {
     setEmail(PEOPLE[role].email);
-    setPassword("demo1234");
+    setPassword("");
     setError(null);
   };
 
@@ -46,6 +53,8 @@ export function LoginForm() {
               setError(null);
             }}
             onKeyDown={onKeyDown}
+            type="email"
+            autoComplete="username"
             placeholder="you@connectsphere.edu"
           />
         </div>
@@ -54,6 +63,7 @@ export function LoginForm() {
           <input
             className={styles.input}
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -64,8 +74,8 @@ export function LoginForm() {
           />
         </div>
         {error && <div className="callout callout-danger">{error}</div>}
-        <button className={`btn btn-primary ${styles.submit}`} onClick={submit}>
-          Sign in
+        <button className={`btn btn-primary ${styles.submit}`} onClick={submit} disabled={submitting}>
+          {submitting ? "Signing in…" : "Sign in"}
         </button>
       </div>
 
@@ -96,7 +106,7 @@ export function LoginForm() {
           );
         })}
       </div>
-      <div className={styles.hint}>Pick an account to fill the form, or type an email. Any password is accepted in this prototype.</div>
+      <div className={styles.hint}>Pick an account to fill in its email, then enter the password set by the seed script.</div>
     </div>
   );
 }

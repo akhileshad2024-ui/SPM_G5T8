@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useApp } from "@/lib/app-context";
 import { Dot } from "@/components/ui/Dot";
 import { Tag } from "@/components/ui/Pill";
 import type { Venue } from "@/lib/types";
 import { VenueForm } from "./VenueForm";
 
 export function VenueCard({ venue, booked, onRefresh }: { venue: Venue; booked: number; onRefresh: () => void }) {
+  const app = useApp();
   const [isEditing, setIsEditing] = useState(false);
 
   const handleDeactivate = async () => {
@@ -12,16 +15,15 @@ export function VenueCard({ venue, booked, onRefresh }: { venue: Venue; booked: 
       alert("Cannot deactivate a venue with existing confirmed bookings.");
       return;
     }
-    
+
     try {
-      await fetch(`http://127.0.0.1:8000/venues/${venue.id}`, {
+      await apiFetch(`/venues/${venue.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: false, user_id: "staff_123" }),
+        body: JSON.stringify({ is_active: false }),
       });
       onRefresh();
     } catch (err) {
-      console.error("Failed to deactivate venue", err);
+      app.handleApiError(err);
     }
   };
 
