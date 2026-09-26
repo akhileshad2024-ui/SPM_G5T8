@@ -24,6 +24,14 @@ export type EquipmentState = "requested" | "reserved" | null;
 
 export type Layout = "banquet" | "theatre" | "standing" | "boardroom" | "classroom";
 
+/** The signed-in account, as returned by the backend's /auth/me. */
+export interface AuthUser {
+  id: number;
+  email: string;
+  name: string;
+  role: Role;
+}
+
 export interface Person {
   person: string;
   label: string;
@@ -33,7 +41,7 @@ export interface Person {
 export interface Venue {
   id: string;
   name: string;
-  location: string;
+  building: string;
   cap: number;
   layouts: Layout[];
   facilities: string[];

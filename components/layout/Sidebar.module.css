@@ -140,6 +140,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.accountActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .signOut {
   display: flex;
   align-items: center;
