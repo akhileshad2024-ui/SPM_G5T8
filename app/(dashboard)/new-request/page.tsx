@@ -8,11 +8,21 @@ import { StepRegistration } from "@/components/new-request/StepRegistration";
 
 export default function NewRequestPage() {
   const app = useApp();
-  const { step } = app.state;
+  const { step, formErrors } = app.state;
+  const outstanding = Object.entries(formErrors);
 
   return (
     <div style={{ padding: "24px 26px 40px", maxWidth: 920 }}>
       <WizardSteps step={step} />
+
+      {outstanding.length > 0 && (
+        <div className="card" role="alert" style={{ padding: "14px 18px", marginBottom: 14, borderColor: "var(--bad)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>Outstanding mandatory fields</div>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13 }}>
+            {outstanding.map(([field, message]) => <li key={field}>{message}</li>)}
+          </ul>
+        </div>
+      )}
 
       <div className="card" style={{ padding: "24px 26px" }}>
         {step === 1 && <StepBasics />}

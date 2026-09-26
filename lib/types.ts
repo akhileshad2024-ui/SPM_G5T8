@@ -11,6 +11,7 @@ export type EventStatus =
   | "draft"
   | "submitted"
   | "under_review"
+  | "pending_clarification"
   | "approved"
   | "planning"
   | "confirmed"
@@ -56,6 +57,7 @@ export interface EquipmentCatalogueItem {
 export interface EquipmentLine {
   id: string;
   qty: number;
+  technicalRequirements?: string;
 }
 
 export interface ActivityEntry {
@@ -92,6 +94,14 @@ export interface EventRecord {
   submittedAgo: string;
   activity: ActivityEntry[];
   changeNote?: string;
+  /** US03/US04 fields added by the event-request workflow. */
+  eventType?: string;
+  venueLocation?: string;
+  venueCapacity?: number;
+  regClose?: string | null;
+  submittedAt?: string;
+  /** Preserves unfinished form values so an organiser can continue a draft. */
+  draftForm?: NewRequestForm;
 }
 
 export interface NotificationRecord {
@@ -129,16 +139,75 @@ export interface VenueFilter {
 export interface NewRequestForm {
   name: string;
   purpose: string;
+  eventType: string;
   date: string;
   start: string;
   end: string;
   pax: string;
+  venueLocation: string;
+  venueCapacity: string;
   layout: Layout;
   facilities: string[];
   access: string[];
   /** equipment id -> quantity requested */
   equip: Record<string, number>;
+  /** equipment id -> technical requirements */
+  equipTechnical: Record<string, string>;
   reg: boolean;
   regCap: string;
   regClose: string;
 }
+
+/** Data entered while an organiser creates an event request. */
+export interface EventRequestDraft {
+  name: string;
+  description: string;
+  eventType: string;
+  expectedAttendance: number;
+  preferredDate: string;
+  startTime: string;
+  endTime: string;
+  venue: {
+    location: string;
+    capacity: number;
+    layout: string;
+    accessibility: string[];
+    facilities: string[];
+  };
+  equipment: Array<{
+    type: string;
+    quantity: number;
+    technicalRequirements: string;
+  }>;
+  registration: {
+    required: boolean;
+    capacityLimit: number | null;
+    closingDate: string | null;
+  };
+}
+
+/** Field name to human-readable validation message. */
+export type EventRequestErrors = Record<string, string>;
+
+/** Result returned by the US03 validation function. */
+export interface ValidationResult {
+  valid: boolean;
+  errors: EventRequestErrors;
+}
+
+/** A valid request after US04 has submitted it for review. */
+export interface SubmittedEventRequest extends EventRequestDraft {
+  status: "submitted";
+  submittedAt: string;
+}
+
+/** US04 either returns a submitted request or the fields blocking submission. */
+export type SubmissionResult =
+  | {
+      ok: true;
+      request: SubmittedEventRequest;
+    }
+  | {
+      ok: false;
+      outstandingFields: string[];
+    };

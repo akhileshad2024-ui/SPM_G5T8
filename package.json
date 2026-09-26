@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:us03": "vitest run tests/unit/event-request/validation.unit.test.ts",
+    "test:us04": "vitest run tests/unit/event-request/submission.unit.test.ts"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -17,6 +22,8 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.7.0"
+    "@vitest/coverage-v8": "^5.0.2",
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.2"
   }
 }
