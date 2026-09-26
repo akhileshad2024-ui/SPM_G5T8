@@ -19,7 +19,6 @@ backend/login/
   schemas.py       Request/response bodies for the auth endpoints
   security.py      Password hashing, session cookie, get_current_user, require_roles
   auth.py          /auth/* endpoints: login, logout, me, change-password
-  seed_users.py    Script: create/reset the demo accounts
   set_password.py  Script: set one account's password
 ```
 
@@ -123,13 +122,15 @@ that uses them; only truly cross-page pieces sit in `components/layout` and
 cd backend
 cp .env.example .env               # then fill in DATABASE_URL and JWT_SECRET
 pip install -r requirements.txt
-python -m login.seed_users         # creates the demo accounts; prompts for their password
 ```
 
 Generate a `JWT_SECRET` with
 `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The backend
-refuses to start without one. The `users` table is created automatically the
-first time the backend starts.
+refuses to start without one.
+
+The user accounts already exist in the team's shared Supabase database (the
+`users` table), so there is nothing to seed. There is currently no script or
+page for creating new accounts.
 
 Start the backend with `uvicorn main:app --reload` (from `backend/`).
 
@@ -151,7 +152,8 @@ npm run dev
 ```
 
 Open http://localhost:3000 — you'll land on the sign-in screen. Sign in with
-one of these emails and the password you gave `login.seed_users`:
+one of these accounts (ask the team for the passwords — they are not stored in
+the repo):
 
 | Email | Role |
 |---|---|

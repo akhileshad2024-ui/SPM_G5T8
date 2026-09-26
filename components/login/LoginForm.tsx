@@ -1,14 +1,10 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { PEOPLE } from "@/lib/data";
 import { useApp } from "@/lib/app-context";
-import type { Role } from "@/lib/types";
 import styles from "./LoginForm.module.css";
 
-const ROLE_KEYS = Object.keys(PEOPLE) as Role[];
-
-/** Right-hand sign-in panel: email/password form plus demo account shortcuts. */
+/** Right-hand sign-in panel: email/password form. */
 export function LoginForm() {
   const app = useApp();
   const [email, setEmail] = useState("");
@@ -29,12 +25,6 @@ export function LoginForm() {
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") submit();
-  };
-
-  const pickAccount = (role: Role) => {
-    setEmail(PEOPLE[role].email);
-    setPassword("");
-    setError(null);
   };
 
   return (
@@ -78,35 +68,6 @@ export function LoginForm() {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </div>
-
-      <div className={styles.dividerRow}>
-        <div className={styles.dividerLine} />
-        <div className={styles.dividerLabel}>Demo accounts</div>
-        <div className={styles.dividerLine} />
-      </div>
-
-      <div className={styles.accounts}>
-        {ROLE_KEYS.map((role) => {
-          const p = PEOPLE[role];
-          const active = email === p.email;
-          return (
-            <button
-              key={role}
-              onClick={() => pickAccount(role)}
-              className={`${styles.account} ${active ? styles.accountActive : ""}`}
-            >
-              <span className={styles.accountBody}>
-                <span className={styles.accountPerson}>{p.person}</span>
-                <span className={styles.accountEmail}>{p.email}</span>
-              </span>
-              <span className="pill-sm" style={{ background: "#F4F5F9", color: "#4A5169" }}>
-                {p.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div className={styles.hint}>Pick an account to fill in its email, then enter the password set by the seed script.</div>
     </div>
   );
 }
