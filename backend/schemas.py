@@ -4,7 +4,7 @@ from datetime import datetime
 
 class VenueBase(BaseModel):
     name: str
-    location: str
+    building: str
     # Validates US17 requirement for non-positive capacity
     cap: int = Field(..., gt=0, description="Capacity must be > 0")
     layouts: List[str] = []
@@ -21,7 +21,7 @@ class VenueCreate(VenueBase):
 
 class VenueUpdate(BaseModel):
     name: Optional[str] = None
-    location: Optional[str] = None
+    building: Optional[str] = None
     cap: Optional[int] = Field(None, gt=0)
     layouts: Optional[List[str]] = None
     facilities: Optional[List[str]] = None

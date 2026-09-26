@@ -39,7 +39,7 @@ export function VenueCard({ venue, booked, onRefresh }: { venue: Venue; booked: 
     <div className="card" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <div style={{ fontSize: 16, fontWeight: 700 }}>{venue.name}</div>
-        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}>{venue.location}</div>
+        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}>{venue.building}</div>
       </div>
 
       <div style={{ display: "flex", gap: 20 }}>

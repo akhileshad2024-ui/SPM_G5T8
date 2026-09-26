@@ -28,11 +28,11 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
 };
 
 export const VENUES: Venue[] = [
-  { id: "V1", name: "Grand Hall", location: "Central campus · Level 1", cap: 300, layouts: ["banquet", "theatre", "standing"], facilities: ["Stage", "PA system", "Projector", "Hearing loop"], stepFree: true },
-  { id: "V2", name: "The Atrium", location: "Central campus · Ground", cap: 220, layouts: ["standing", "banquet"], facilities: ["PA system", "Natural light"], stepFree: true },
-  { id: "V3", name: "Lecture Theatre 1", location: "North wing · Level 2", cap: 150, layouts: ["theatre"], facilities: ["Projector", "PA system", "Hearing loop"], stepFree: true },
-  { id: "V4", name: "Seminar Room 4-2", location: "East block · Level 4", cap: 40, layouts: ["boardroom", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: true },
-  { id: "V5", name: "Innovation Studio", location: "West annex · Level 3", cap: 80, layouts: ["standing", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: false },
+  { id: "V1", name: "Grand Hall", building: "Central campus · Level 1", cap: 300, layouts: ["banquet", "theatre", "standing"], facilities: ["Stage", "PA system", "Projector", "Hearing loop"], stepFree: true },
+  { id: "V2", name: "The Atrium", building: "Central campus · Ground", cap: 220, layouts: ["standing", "banquet"], facilities: ["PA system", "Natural light"], stepFree: true },
+  { id: "V3", name: "Lecture Theatre 1", building: "North wing · Level 2", cap: 150, layouts: ["theatre"], facilities: ["Projector", "PA system", "Hearing loop"], stepFree: true },
+  { id: "V4", name: "Seminar Room 4-2", building: "East block · Level 4", cap: 40, layouts: ["boardroom", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: true },
+  { id: "V5", name: "Innovation Studio", building: "West annex · Level 3", cap: 80, layouts: ["standing", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: false },
 ];
 
 export const EQUIP: EquipmentCatalogueItem[] = [

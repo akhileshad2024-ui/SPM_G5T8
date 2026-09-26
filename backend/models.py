@@ -7,7 +7,7 @@ class Venue(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    location = Column(String, nullable=False)
+    building = Column("location", String, nullable=False)
     
     # Updated to match frontend type names
     cap = Column(Integer, nullable=False)

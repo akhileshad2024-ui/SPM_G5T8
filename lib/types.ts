@@ -32,7 +32,7 @@ export interface Person {
 export interface Venue {
   id: string;
   name: string;
-  location: string;
+  building: string;
   cap: number;
   layouts: Layout[];
   facilities: string[];

@@ -18,7 +18,7 @@ export function VenueForm({
 }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
-    location: initialData?.location || "",
+    building: initialData?.building || "",
     cap: initialData?.cap || 0,
     layouts: initialData?.layouts || [],
     facilities: initialData?.facilities || [],
@@ -108,7 +108,7 @@ export function VenueForm({
 
       <div style={{ display: "flex", gap: 10 }}>
         <input placeholder="Venue Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", flex: 2 }} />
-        <input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", flex: 1.5 }} />
+        <input placeholder="Building" value={formData.building} onChange={(e) => setFormData({...formData, building: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", flex: 1.5 }} />
         <input placeholder="Capacity" type="number" value={formData.cap || ""} onChange={(e) => setFormData({...formData, cap: parseInt(e.target.value) || 0})} style={{ padding: 8, border: "1px solid var(--border)", flex: 1 }} />
       </div>
 
