@@ -6,15 +6,17 @@ from dotenv import load_dotenv
 
 # 1. Force python to look for the .env file in the exact same folder as this script
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
+# utf-8-sig tolerates the BOM that Windows editors often add
+load_dotenv(BASE_DIR / ".env", encoding="utf-8-sig")
 
 # 2. Get the URL
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 3. Failsafe bypass: If the .env file is STILL failing due to Windows encoding, use your string directly
+# 3. Never hardcode credentials here — fail loudly instead
 if not SQLALCHEMY_DATABASE_URL:
-    print("⚠️ WARNING: Could not read .env file. Using fallback connection string.")
-    SQLALCHEMY_DATABASE_URL = "postgresql://postgres.frpmzwjpdcprvstoairm:0RVnecoWERTpqxcr@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+    raise RuntimeError(
+        f"DATABASE_URL is not set. Create {BASE_DIR / '.env'} (copy .env.example) with your Supabase connection string."
+    )
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
