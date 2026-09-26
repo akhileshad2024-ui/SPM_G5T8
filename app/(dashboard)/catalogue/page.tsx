@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/lib/app-context";
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { VenueCard } from "@/components/catalogue/VenueCard";
 import { VenueForm } from "@/components/catalogue/VenueForm";
@@ -16,11 +17,9 @@ export default function CataloguePage() {
   // Fetch real data from FastAPI
   const fetchVenues = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/venues/");
-      const data = await response.json();
-      setVenues(data);
+      setVenues(await apiFetch<Venue[]>("/venues"));
     } catch (err) {
-      console.error("Failed to load venues", err);
+      app.handleApiError(err);
     }
   };
 

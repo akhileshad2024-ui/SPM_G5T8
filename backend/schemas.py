@@ -16,8 +16,9 @@ class VenueBase(BaseModel):
     operatingDays: List[str] = []
 
 
+# The editor is taken from the login session, never from the request body.
 class VenueCreate(VenueBase):
-    user_id: str
+    pass
 
 class VenueUpdate(BaseModel):
     name: Optional[str] = None
@@ -27,7 +28,6 @@ class VenueUpdate(BaseModel):
     facilities: Optional[List[str]] = None
     stepFree: Optional[bool] = None
     is_active: Optional[bool] = None
-    user_id: str
     operatingHours: Optional[str] = None
     unavailableDates: Optional[List[str]] = None
     characteristics: Optional[List[str]] = None

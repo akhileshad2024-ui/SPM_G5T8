@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useApp } from "@/lib/app-context";
 import type { Venue } from "@/lib/types";
 
 // 1. Predefined standard options for clean backend data
@@ -16,6 +18,7 @@ export function VenueForm({
   onSuccess: () => void; 
   onCancel: () => void; 
 }) {
+  const app = useApp();
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     building: initialData?.building || "",
@@ -64,20 +67,14 @@ export function VenueForm({
   };
 
   const handleSave = async () => {
-    const url = initialData?.id ? `http://127.0.0.1:8000/venues/${initialData.id}` : "http://127.0.0.1:8000/venues/";
+    const path = initialData?.id ? `/venues/${initialData.id}` : "/venues";
     const method = initialData?.id ? "PUT" : "POST";
-    const payload = { ...formData, user_id: "staff_123" };
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) onSuccess();
-      else console.error("Failed to save venue", await res.text());
+      await apiFetch(path, { method, body: JSON.stringify(formData) });
+      onSuccess();
     } catch (err) {
-      console.error("Error saving venue:", err);
+      app.handleApiError(err);
     }
   };
 

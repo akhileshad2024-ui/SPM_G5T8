@@ -23,6 +23,14 @@ export type EquipmentState = "requested" | "reserved" | null;
 
 export type Layout = "banquet" | "theatre" | "standing" | "boardroom" | "classroom";
 
+/** The signed-in account, as returned by the backend's /auth/me. */
+export interface AuthUser {
+  id: number;
+  email: string;
+  name: string;
+  role: Role;
+}
+
 export interface Person {
   person: string;
   label: string;
