@@ -20,13 +20,9 @@ import {
   type ReactNode,
 } from "react";
 import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
-import { eventRequestFromForm } from "./event-request/form-adapter";
-import { submitEventRequest } from "./event-request/submission";
-import { validateEventRequest } from "./event-request/validation";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
   EventRecord,
-  EventRequestErrors,
   EventTab,
   ModalKind,
   ModalState,
@@ -40,69 +36,6 @@ import type {
 
 /** Business rule: a request can't be approved until a coordinator owns it. */
 const REQUIRE_COORDINATOR = true;
-
-const BASIC_FIELDS = new Set([
-  "name",
-  "description",
-  "eventType",
-  "expectedAttendance",
-  "preferredDate",
-  "startTime",
-  "endTime",
-]);
-
-/** Keeps only the errors belonging to the current wizard step. */
-function errorsForStep(
-  errors: EventRequestErrors,
-  step: 1 | 2 | 3,
-): EventRequestErrors {
-  return Object.fromEntries(
-    Object.entries(errors).filter(([field]) => {
-      if (step === 1) return BASIC_FIELDS.has(field);
-      if (step === 2) {
-        return field.startsWith("venue.") || field.startsWith("equipment.");
-      }
-      return field.startsWith("registration.");
-    }),
-  );
-}
-
-/** Converts an existing saved event back into editable HTML form values. */
-function formFromEvent(event: EventRecord): NewRequestForm {
-  if (event.draftForm) return structuredClone(event.draftForm);
-
-  const parsedDate = new Date(event.date);
-  const date = Number.isNaN(parsedDate.getTime())
-    ? ""
-    : [
-        parsedDate.getFullYear(),
-        String(parsedDate.getMonth() + 1).padStart(2, "0"),
-        String(parsedDate.getDate()).padStart(2, "0"),
-      ].join("-");
-
-  return {
-    name: event.name,
-    purpose: event.purpose,
-    eventType: event.eventType ?? "",
-    date,
-    start: event.start,
-    end: event.end,
-    pax: event.pax ? String(event.pax) : "",
-    venueLocation:
-      event.venueLocation ?? (event.venue ? getVenue(event.venue)?.location ?? "" : ""),
-    venueCapacity: event.venueCapacity ? String(event.venueCapacity) : "",
-    layout: event.layout,
-    facilities: [...event.facilities],
-    access: [...event.access],
-    equip: Object.fromEntries(event.equip.map((item) => [item.id, item.qty])),
-    equipTechnical: Object.fromEntries(
-      event.equip.map((item) => [item.id, item.technicalRequirements ?? ""]),
-    ),
-    reg: event.reg,
-    regCap: event.regCap ? String(event.regCap) : "",
-    regClose: event.regClose ?? "",
-  };
-}
 
 interface AppState {
   authed: boolean;
@@ -119,8 +52,7 @@ interface AppState {
   modal: ModalState | null;
   modalText: string;
   step: 1 | 2 | 3;
-  formErrors: EventRequestErrors;
-  editingEventId: string | null;
+  errName: boolean;
   vf: VenueFilter;
   form: NewRequestForm;
 }
@@ -129,21 +61,17 @@ function initialForm(): NewRequestForm {
   return {
     name: "",
     purpose: "",
-    eventType: "",
-    date: "",
+    date: "2026-04-18",
     start: "18:00",
     end: "21:00",
     pax: "",
-    venueLocation: "",
-    venueCapacity: "",
     layout: "banquet",
     facilities: ["PA system"],
     access: ["Step-free access"],
     equip: {},
-    equipTechnical: {},
     reg: true,
     regCap: "150",
-    regClose: "",
+    regClose: "2026-04-11",
   };
 }
 
@@ -163,8 +91,7 @@ function initialState(): AppState {
     modal: null,
     modalText: "",
     step: 1,
-    formErrors: {},
-    editingEventId: null,
+    errName: false,
     vf: { cap: "180", layout: "any", stepFree: true },
     form: initialForm(),
   };
@@ -258,7 +185,7 @@ export interface AppApi {
 
   // ---- organiser / new request form ----
   submitDraft: (eventId: string) => void;
-  beginNewRequest: (eventId?: string) => void;
+  beginNewRequest: () => void;
   setFormField: <K extends keyof NewRequestForm>(key: K, value: NewRequestForm[K]) => void;
   toggleFormList: (key: "facilities" | "access", value: string) => void;
   bumpEquip: (id: string, delta: number) => void;
@@ -301,24 +228,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const api = useMemo<AppApi>(() => {
     const me = PEOPLE[state.role];
 
-    const buildEventFromForm = (
-      status: "draft" | "submitted",
-      submittedAt?: string,
-    ): EventRecord => {
+    const buildEventFromForm = (status: "draft" | "submitted"): EventRecord => {
       const f = state.form;
       const d = f.date ? new Date(`${f.date}T00:00:00`) : null;
       const dateLabel = d
         ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
         : "Date to confirm";
-      const equip = EQUIP.filter((item) => (f.equip[item.id] ?? 0) > 0).map(
-        (item) => ({
-          id: item.id,
-          qty: f.equip[item.id],
-          technicalRequirements: f.equipTechnical[item.id] ?? "",
-        }),
-      );
+      const equip = Object.keys(f.equip)
+        .filter((k) => f.equip[k] > 0)
+        .map((k) => ({ id: k, qty: f.equip[k] }));
       return {
-        id: state.editingEventId ?? `EVT-${2050 + state.events.length + 1}`,
+        id: `EVT-${2050 + state.events.length + 1}`,
         name: f.name.trim() || "Untitled request",
         organiser: PEOPLE.organiser.person,
         status,
@@ -350,12 +270,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : "Submitted for coordinator review.",
           },
         ],
-        eventType: f.eventType,
-        venueLocation: f.venueLocation,
-        venueCapacity: parseInt(f.venueCapacity, 10) || 0,
-        regClose: f.reg ? f.regClose : null,
-        submittedAt,
-        draftForm: status === "draft" ? structuredClone(f) : undefined,
       };
     };
 
@@ -550,49 +464,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       submitDraft: (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
-        const form = formFromEvent(e);
-        const result = submitEventRequest(eventRequestFromForm(form, EQUIP), new Date());
-        if (!result.ok) {
-          const validation = validateEventRequest(
-            eventRequestFromForm(form, EQUIP),
-            new Date().toISOString().slice(0, 10),
-          );
-          const firstStep = Object.keys(errorsForStep(validation.errors, 1)).length
-            ? 1
-            : Object.keys(errorsForStep(validation.errors, 2)).length
-              ? 2
-              : 3;
-          patch({
-            form,
-            formErrors: validation.errors,
-            editingEventId: eventId,
-            step: firstStep,
-          });
-          flash("Complete the outstanding fields before submission.", "warn");
-          router.push("/new-request");
-          return;
-        }
         patchEvent(
           eventId,
-          {
-            status: "submitted",
-            submittedAgo: "submitted just now",
-            submittedAt: result.request.submittedAt,
-            draftForm: undefined,
-          },
+          { status: "submitted", submittedAgo: "submitted just now" },
           { title: "Request submitted", body: `${e.organiser} submitted the request for review.` }
         );
         notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
         flash(`${e.name} submitted for review.`);
       },
-      beginNewRequest: (eventId) => {
-        const draft = eventId ? getEvent(state.events, eventId) : undefined;
-        patch({
-          step: 1,
-          form: draft ? formFromEvent(draft) : initialForm(),
-          formErrors: {},
-          editingEventId: draft?.id ?? null,
-        });
+      beginNewRequest: () => {
+        patch({ step: 1 });
         router.push("/new-request");
       },
       setFormField: (key, value) => patch((s) => ({ form: { ...s.form, [key]: value } })),
@@ -610,39 +491,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { form: { ...s.form, equip: { ...s.form.equip, [id]: next } } };
         }),
       nextStep: () => {
-        const draft = eventRequestFromForm(state.form, EQUIP);
-        const today = new Date().toISOString().slice(0, 10);
-        const validation = validateEventRequest(draft, today);
-
         if (state.step < 3) {
-          const stepErrors = errorsForStep(validation.errors, state.step);
-          if (Object.keys(stepErrors).length) {
-            patch({ formErrors: stepErrors });
-            flash("Complete the highlighted fields before continuing.", "warn");
-            return;
-          }
-          patch({
-            step: (state.step + 1) as 1 | 2 | 3,
-            formErrors: {},
-          });
+          patch({ step: (state.step + 1) as 1 | 2 | 3 });
           return;
         }
-
-        const result = submitEventRequest(draft, new Date());
-        if (!result.ok) {
-          patch({ formErrors: validation.errors });
-          flash("Complete the outstanding fields before submission.", "warn");
+        if (!state.form.name.trim()) {
+          patch({ errName: true });
+          flash("An event name is required before submission.", "warn");
           return;
         }
-        const e = buildEventFromForm("submitted", result.request.submittedAt);
+        const e = buildEventFromForm("submitted");
         patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
+          events: [e, ...s.events],
           step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
+          errName: false,
+          form: { ...s.form, name: "", purpose: "", pax: "" },
         }));
         notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
         flash(`${e.name} submitted for review.`);
@@ -651,15 +514,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       backStep: () => patch((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 })),
       saveDraft: () => {
         const e = buildEventFromForm("draft");
-        patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
-          step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
-        }));
+        patch((s) => ({ events: [e, ...s.events], step: 1, form: { ...s.form, name: "", purpose: "", pax: "" } }));
         flash("Draft saved. You can finish it later.");
         router.push("/my-events");
       },

@@ -19,7 +19,6 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
   draft: { label: "Draft", bg: "#EFF0F5", fg: "#4A5169" },
   submitted: { label: "Submitted", bg: "#E7EEFF", fg: "#0A33FF" },
   under_review: { label: "Under review", bg: "#FFF6DB", fg: "#7A5C00" },
-  pending_clarification: { label: "Pending clarification", bg: "#FFF6DB", fg: "#7A5C00" },
   approved: { label: "Approved", bg: "#E0F7F4", fg: "#006B60" },
   planning: { label: "Planning", bg: "#EAF3FF", fg: "#0B5D96" },
   confirmed: { label: "Confirmed", bg: "#0A0E1A", fg: "#FFFFFF" },

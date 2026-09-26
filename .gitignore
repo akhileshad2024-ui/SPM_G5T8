@@ -8,9 +8,6 @@
 # production
 /build
 
-# test coverage reports
-/coverage/
-
 # misc
 .DS_Store
 *.pem

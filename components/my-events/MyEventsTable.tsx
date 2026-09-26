@@ -2,7 +2,6 @@
 
 import { useApp } from "@/lib/app-context";
 import { StatusPill } from "@/components/ui/Pill";
-import { canDirectlyEditEventRequest } from "@/lib/event-request/submission";
 import type { EventRecord } from "@/lib/types";
 import styles from "./MyEventsTable.module.css";
 
@@ -13,7 +12,7 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
     <div className={`card ${styles.card}`}>
       <div className={styles.head}>
         <div className={styles.headTitle}>My event requests</div>
-        <button className="btn btn-primary" onClick={() => app.beginNewRequest()}>
+        <button className="btn btn-primary" onClick={app.beginNewRequest}>
           New event request
         </button>
       </div>
@@ -39,9 +38,9 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
             <StatusPill status={e.status} />
           </div>
           <div className={styles.actionsCell}>
-            {canDirectlyEditEventRequest(e.status) ? (
+            {e.status === "draft" ? (
               <>
-                <button className="btn btn-ghost btn-sm" onClick={() => app.beginNewRequest(e.id)}>
+                <button className="btn btn-ghost btn-sm" onClick={app.beginNewRequest}>
                   Continue
                 </button>
                 <button className="btn btn-primary btn-sm" onClick={() => app.submitDraft(e.id)}>
