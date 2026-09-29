@@ -21,10 +21,14 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, apiFetch } from "./api";
-import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
+import { COORDINATORS, DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
 import { eventRequestFromForm } from "./event-request/form-adapter";
 import { submitEventRequest } from "./event-request/submission";
 import { validateEventRequest } from "./event-request/validation";
+import { assignCoordinator } from "./event-review/assignment";
+import { requestClarification } from "./event-review/clarification";
+import { approveRequest, rejectRequest } from "./event-review/decision";
+import { startReview } from "./event-review/review";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
   AuthUser,
@@ -39,10 +43,8 @@ import type {
   ToastKind,
   Venue,
   VenueFilter,
+  WorkflowResult,
 } from "./types";
-
-/** Business rule: a request can't be approved until a coordinator owns it. */
-const REQUIRE_COORDINATOR = true;
 
 const BASIC_FIELDS = new Set([
   "name",
@@ -193,15 +195,31 @@ const MODAL_CONTENT: Record<ModalKind, Omit<ModalState, "id">> = {
   clarify: {
     kind: "clarify",
     title: "Request clarification",
-    body: "The organiser will be notified and the event moves to under review until they reply.",
+    body: "The organiser will be notified. The request stays on hold as pending clarification until they reply.",
     label: "What do you need from the organiser?",
     placeholder: "Can the 320 attendees be split across two rooms?",
     confirm: "Send request",
   },
+  amend: {
+    kind: "amend",
+    title: "Request an amendment",
+    body: "Ask the organiser to change part of their request. It stays on hold as pending clarification until they reply.",
+    label: "What should the organiser amend?",
+    placeholder: "Please move the start time to 18:00 — the venue closes at 22:00.",
+    confirm: "Send request",
+  },
+  approve: {
+    kind: "approve",
+    title: "Approve this request",
+    body: "The organiser will be notified and the event can proceed to venue booking.",
+    label: "Note to the organiser (optional)",
+    placeholder: "Approved — I'll be in touch about venue options this week.",
+    confirm: "Approve request",
+  },
   reject: {
     kind: "reject",
     title: "Reject this request",
-    body: "Rejecting is visible to the organiser. Give a reason so they can decide what to do next.",
+    body: "Rejecting is final and visible to the organiser. Give a reason so they can decide what to do next.",
     label: "Reason for rejection",
     placeholder: "No venue can accommodate this attendance on the proposed date.",
     confirm: "Reject request",
@@ -253,10 +271,10 @@ export interface AppApi {
   setTab: (tab: EventTab) => void;
   setQueueFilter: (f: QueueFilter) => void;
   setSearch: (q: string) => void;
-  assignSelf: (id: string) => void;
+  assignCoordinator: (id: string, coordinator: string) => void;
 
   // ---- review workflow ----
-  approve: (id: string) => void;
+  startReview: (id: string) => void;
   confirmEvent: (id: string) => void;
   openModal: (kind: ModalKind, id: string) => void;
   closeModal: () => void;
@@ -319,6 +337,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }),
     }));
 
+  /**
+   * Commits the outcome of a review-workflow step (see lib/event-review):
+   * stores the updated event, sends its notifications, and tells the user.
+   * Returns false when the step was refused, after flashing the reason.
+   */
+  const applyResult = (result: WorkflowResult, success: string, kind: ToastKind = "ok"): boolean => {
+    if (!result.ok) {
+      flash(result.error, "warn");
+      return false;
+    }
+    patch((s) => ({ events: s.events.map((e) => (e.id === result.event.id ? result.event : e)) }));
+    result.notifications.forEach((n) => notify(n.to, n.title, n.body));
+    flash(success, kind);
+    return true;
+  };
+
   const startSession = (user: AuthUser) =>
     patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role });
 
@@ -334,6 +368,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const me = state.user
       ? { person: state.user.name, label: PEOPLE[state.role].label, email: state.user.email }
       : PEOPLE[state.role];
+    /** Who is performing a workflow action — always from the session. */
+    const actor = { name: me.person, role: state.role };
 
     const buildEventFromForm = (
       status: "draft" | "submitted",
@@ -455,38 +491,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setQueueFilter: (queueFilter) => patch({ queueFilter }),
       setSearch: (search) => patch({ search }),
 
-      assignSelf: (id) => {
+      assignCoordinator: (id, coordinator) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        if (e.coordinator === me.person) {
-          patchEvent(id, { coordinator: null }, { title: "Coordinator removed", body: "Event is unassigned." });
-          flash("Unassigned.");
-          return;
-        }
-        patchEvent(
-          id,
-          { coordinator: me.person },
-          { title: "Coordinator assigned", body: `${me.person} is now the main internal point of contact.` }
+        applyResult(
+          assignCoordinator(e, actor, { coordinator, coordinators: COORDINATORS }),
+          `${coordinator} is now coordinating ${e.name}.`,
         );
-        notify("organiser", "Coordinator assigned", `${me.person} is coordinating ${e.name}.`);
-        flash(`${me.person} assigned to ${e.name}.`);
       },
 
-      approve: (id) => {
+      startReview: (id) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        if (REQUIRE_COORDINATOR && !e.coordinator) {
-          flash("Assign a coordinator before approving this request.", "warn");
-          return;
-        }
-        patchEvent(
-          id,
-          { status: "approved" },
-          { title: "Request approved", body: `${me.person} approved the request. It can now proceed to venue booking.` }
-        );
-        notify("organiser", "Request approved", `${e.name} has been approved and moved into planning.`);
-        flash(`${e.name} approved.`);
-        patch({ tab: "venue" });
+        applyResult(startReview(e, actor), `Reviewing ${e.name}.`);
       },
       confirmEvent: (id) => {
         const e = getEvent(state.events, id);
@@ -504,25 +521,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const m = state.modal;
         if (!m) return;
         const text = (state.modalText || "").trim();
+        const e = getEvent(state.events, m.id);
+        if (!e) return;
+
+        // Review-workflow modals: the domain functions validate the text.
+        const now = new Date();
+        let done: boolean | null = null;
+        if (m.kind === "clarify" || m.kind === "amend") {
+          const kind = m.kind === "clarify" ? "clarification" : "amendment";
+          done = applyResult(
+            requestClarification(e, actor, { kind, message: text }, now),
+            `${kind === "clarification" ? "Clarification" : "Amendment"} request sent to ${e.organiser}.`,
+          );
+        } else if (m.kind === "approve") {
+          done = applyResult(approveRequest(e, actor, text, now), `${e.name} approved.`);
+          if (done) patch({ tab: "venue" });
+        } else if (m.kind === "reject") {
+          done = applyResult(rejectRequest(e, actor, text, now), `${e.name} rejected.`, "bad");
+        }
+        if (done !== null) {
+          if (done) patch({ modal: null, modalText: "" });
+          return;
+        }
+
         if (!text) {
           flash("Add a short note before sending.", "warn");
           return;
         }
-        const e = getEvent(state.events, m.id);
-        if (!e) return;
-        if (m.kind === "clarify") {
-          patchEvent(
-            m.id,
-            { status: "under_review", submittedAgo: "awaiting organiser reply" },
-            { title: "Clarification requested", body: text }
-          );
-          notify("organiser", "Clarification requested", `${e.name}: ${text}`);
-          flash(`Clarification sent to ${e.organiser}.`);
-        } else if (m.kind === "reject") {
-          patchEvent(m.id, { status: "rejected" }, { title: "Request rejected", body: text });
-          notify("organiser", "Request rejected", `${e.name}: ${text}`);
-          flash(`${e.name} rejected.`, "bad");
-        } else if (m.kind === "rejectBooking") {
+        if (m.kind === "rejectBooking") {
           patchEvent(m.id, { bookingState: "rejected", venue: null }, { title: "Venue booking rejected", body: text });
           notify("coordinator", "Venue booking rejected", `${e.name}: ${text}`);
           flash("Booking rejected. Coordinator notified.", "bad");

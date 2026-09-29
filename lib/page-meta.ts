@@ -1,9 +1,10 @@
 import { VENUES } from "./data";
+import { needsCoordinatorAction } from "./event-review/review";
 import type { EventRecord } from "./types";
 
 /** Title + subtitle shown in the top bar, per route. Some subtitles are data-dependent. */
 export function getPageMeta(pathname: string, events: EventRecord[]): { title: string; subtitle: string } {
-  const actionable = events.filter((e) => e.status === "submitted" || e.status === "under_review").length;
+  const actionable = events.filter(needsCoordinatorAction).length;
   const pendingBookings = events.filter((e) => e.bookingState === "pending").length;
 
   switch (true) {

@@ -28,6 +28,13 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
   cancelled: { label: "Cancelled", bg: "#EFF0F5", fg: "#4A5169" },
 };
 
+/**
+ * Staff holding the Event Coordinator role, who can be assigned to events
+ * (US11). Only Priya Tan has a login in the demo; the others show that a
+ * request can be given to a coordinator other than the person assigning it.
+ */
+export const COORDINATORS: readonly string[] = [PEOPLE.coordinator.person, "Marcus Lee", "Aisha Noor"];
+
 export const VENUES: Venue[] = [
   { id: "V1", name: "Grand Hall", building: "Central campus · Level 1", cap: 300, layouts: ["banquet", "theatre", "standing"], facilities: ["Stage", "PA system", "Projector", "Hearing loop"], stepFree: true },
   { id: "V2", name: "The Atrium", building: "Central campus · Ground", cap: 220, layouts: ["standing", "banquet"], facilities: ["PA system", "Natural light"], stepFree: true },
@@ -86,7 +93,8 @@ export function seedEvents(): EventRecord[] {
   return [
     { id: "EVT-2041", name: "Alumni Homecoming Dinner", organiser: "Maya Rahman", status: "submitted", date: "14 Mar 2026", start: "19:00", end: "23:00", pax: 180, day: 3, purpose: "An annual reunion dinner for alumni of the last twenty cohorts, with a short address from the Dean and table-side networking over a seated meal.", layout: "banquet", facilities: ["Stage", "PA system", "Projector"], access: ["Step-free access", "Hearing loop"], coordinator: null, venue: null, bookingState: null, equip: [{ id: "E1", qty: 2 }, { id: "E2", qty: 1 }, { id: "E3", qty: 1 }], equipState: "requested", reg: true, regCap: 200, registered: 0, submittedAgo: "submitted 2 days ago",
       activity: [{ title: "Request submitted", when: "2 days ago", body: "Maya Rahman submitted the request for review." }, { title: "Draft saved", when: "4 days ago", body: "Draft created with venue and equipment requirements." }] },
-    { id: "EVT-2038", name: "Research Symposium — Day 1", organiser: "Lin Chen", status: "under_review", date: "02 Apr 2026", start: "09:00", end: "17:00", pax: 320, day: null, purpose: "A full-day symposium presenting funded research across four faculties, with parallel poster sessions and an external keynote.", layout: "theatre", facilities: ["Projector", "PA system", "Hearing loop"], access: ["Step-free access"], coordinator: "Priya Tan", venue: null, bookingState: null, equip: [{ id: "E2", qty: 2 }, { id: "E1", qty: 4 }, { id: "E5", qty: 1 }], equipState: "requested", reg: true, regCap: 300, registered: 46, submittedAgo: "awaiting organiser reply · 2 days",
+    { id: "EVT-2038", name: "Research Symposium — Day 1", organiser: "Lin Chen", status: "pending_clarification", date: "02 Apr 2026", start: "09:00", end: "17:00", pax: 320, day: null, purpose: "A full-day symposium presenting funded research across four faculties, with parallel poster sessions and an external keynote.", layout: "theatre", facilities: ["Projector", "PA system", "Hearing loop"], access: ["Step-free access"], coordinator: "Priya Tan", venue: null, bookingState: null, equip: [{ id: "E2", qty: 2 }, { id: "E1", qty: 4 }, { id: "E5", qty: 1 }], equipState: "requested", reg: true, regCap: 300, registered: 46, submittedAgo: "awaiting organiser reply · 2 days",
+      clarification: { kind: "clarification", message: "Can the 320 attendees be split across two rooms? No single venue meets that capacity.", requestedBy: "Priya Tan", requestedAt: "2026-03-01T09:00:00.000Z" },
       activity: [{ title: "Clarification requested", when: "2 days ago", body: "Priya Tan asked whether 320 attendees can be split across two rooms, as no single venue meets that capacity." }, { title: "Assigned to Priya Tan", when: "3 days ago", body: "Coordinator assigned." }, { title: "Request submitted", when: "3 days ago", body: "Lin Chen submitted the request for review." }] },
     { id: "EVT-2044", name: "Startup Pitch Night", organiser: "Ana Silva", status: "submitted", date: "21 Mar 2026", start: "18:30", end: "21:00", pax: 95, day: null, purpose: "Eight student ventures pitch to a panel of investors, followed by an informal networking reception.", layout: "standing", facilities: ["Projector", "PA system"], access: ["Step-free access"], coordinator: null, venue: null, bookingState: null, equip: [{ id: "E2", qty: 1 }, { id: "E1", qty: 2 }], equipState: "requested", reg: true, regCap: 120, registered: 0, submittedAgo: "submitted 6 hours ago",
       activity: [{ title: "Request submitted", when: "6 hours ago", body: "Ana Silva submitted the request for review." }] },

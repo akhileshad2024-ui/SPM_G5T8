@@ -18,7 +18,13 @@ export default function BoardPage() {
     <div style={{ padding: "24px 26px 34px" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start", overflowX: "auto", paddingBottom: 8 }}>
         {COLUMNS.map(([key, label, color]) => {
-          const cards = events.filter((e) => (key === "planning" ? e.status === "planning" || e.status === "approved" : e.status === key));
+          const cards = events.filter((e) =>
+            key === "planning"
+              ? e.status === "planning" || e.status === "approved"
+              : key === "under_review"
+                ? e.status === "under_review" || e.status === "pending_clarification"
+                : e.status === key
+          );
           return <BoardColumn key={key} label={label} color={color} cards={cards} />;
         })}
       </div>
