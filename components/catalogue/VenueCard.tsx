@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useApp } from "@/lib/app-context";
-import { Dot } from "@/components/ui/Dot";
 import { Tag } from "@/components/ui/Pill";
 import type { Venue } from "@/lib/types";
 import { VenueForm } from "./VenueForm";
@@ -104,23 +103,42 @@ export function VenueCard({ venue, booked, onRefresh }: { venue: Venue; booked: 
         </div>
       </div>
 
-      {venue.characteristics && venue.characteristics.length > 0 && (
+      {venue.accessibility && venue.accessibility.length > 0 && (
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 7 }}>
-            Characteristics
+            Accessibility Needs
           </div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {venue.characteristics.map((c) => (
-              <Tag key={c} label={c} />
+            {venue.accessibility.map((a) => (
+              <Tag key={a} label={a} />
             ))}
           </div>
         </div>
       )}
 
-      <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 7 }}>
-        <Dot color={venue.stepFree ? "var(--ok-dot)" : "var(--bad-dot)"} />
-        {venue.stepFree ? "Step-free access throughout" : "Stair access only — not step-free"}
-      </div>
+      {venue.unavailableDates && venue.unavailableDates.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 7 }}>
+            Unavailable Dates
+          </div>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {venue.unavailableDates.map((date) => (
+              <span 
+                key={date} 
+                style={{ 
+                  fontSize: 11, 
+                  padding: "3px 8px", 
+                  background: "#ffeaea", 
+                  color: "var(--bad-dot)", 
+                  borderRadius: 4 
+                }}
+              >
+                {date}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ height: 1, background: "var(--border)", marginTop: 10 }} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 5 }}>

@@ -9,10 +9,9 @@ class VenueBase(BaseModel):
     cap: int = Field(..., gt=0, description="Capacity must be > 0")
     layouts: List[str] = []
     facilities: List[str] = []
-    stepFree: bool = False
     operatingHours: Optional[str] = None
     unavailableDates: List[str] = []
-    characteristics: List[str] = []
+    accessibility: List[str] = []
     operatingDays: List[str] = []
 
 
@@ -26,11 +25,10 @@ class VenueUpdate(BaseModel):
     cap: Optional[int] = Field(None, gt=0)
     layouts: Optional[List[str]] = None
     facilities: Optional[List[str]] = None
-    stepFree: Optional[bool] = None
     is_active: Optional[bool] = None
     operatingHours: Optional[str] = None
     unavailableDates: Optional[List[str]] = None
-    characteristics: Optional[List[str]] = None
+    accessibility: Optional[List[str]] = None
     operatingDays: List[str] = []
 
 

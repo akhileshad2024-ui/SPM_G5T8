@@ -3,10 +3,9 @@ import { apiFetch } from "@/lib/api";
 import { useApp } from "@/lib/app-context";
 import type { Venue } from "@/lib/types";
 
-// 1. Predefined standard options for clean backend data
 const LAYOUT_OPTIONS = ["U-Shape", "Boardroom", "Classroom", "Theatre", "Banquet", "Standing"];
 const FACILITY_OPTIONS = ["Projector", "Whiteboard", "Microphone", "Sound System", "Video Conferencing", "Wi-Fi"];
-const CHARACTERISTIC_OPTIONS = ["Natural Light", "Soundproof", "Blackout Blinds", "High Ceiling", "Premium Furnishings"];
+const ACCESSIBILITY_OPTIONS = ["Wheelchair Access", "Special Physical Seating", "Mobility/Facility Arrangements"];
 const DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function VenueForm({ 
@@ -25,16 +24,14 @@ export function VenueForm({
     cap: initialData?.cap || 0,
     layouts: initialData?.layouts || [],
     facilities: initialData?.facilities || [],
-    stepFree: initialData?.stepFree || false,
+    accessibility: initialData?.accessibility || [],
     operatingHours: initialData?.operatingHours || "08:00 - 22:00",
     unavailableDates: initialData?.unavailableDates || [],
-    characteristics: initialData?.characteristics || [],
     operatingDays: initialData?.operatingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
   });
 
   const [newDate, setNewDate] = useState("");
 
-  // Safely parse operating hours for the time inputs
   const times = formData.operatingHours ? formData.operatingHours.split(" - ") : ["08:00", "22:00"];
   const startHour = times[0] || "08:00";
   const endHour = times[1] || "22:00";
@@ -45,7 +42,7 @@ export function VenueForm({
     setFormData({ ...formData, operatingHours: `${s} - ${e}` });
   };
 
-  const toggleArrayItem = (field: "layouts" | "facilities" | "characteristics", item: string) => {
+  const toggleArrayItem = (field: "layouts" | "facilities" | "accessibility", item: string) => {
     setFormData((prev) => {
       const arr = prev[field];
       return arr.includes(item) 
@@ -78,8 +75,7 @@ export function VenueForm({
     }
   };
 
-  // Helper component for rendering checkbox groups
-  const CheckboxGroup = ({ title, options, field }: { title: string, options: string[], field: "layouts" | "facilities" | "characteristics" }) => (
+  const CheckboxGroup = ({ title, options, field }: { title: string, options: string[], field: "layouts" | "facilities" | "accessibility" }) => (
     <div style={{ marginTop: 8 }}>
       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{title}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -103,21 +99,20 @@ export function VenueForm({
         {initialData ? "Edit Venue" : "Add Venue"}
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <input placeholder="Venue Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", flex: 2 }} />
-        <input placeholder="Building" value={formData.building} onChange={(e) => setFormData({...formData, building: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", flex: 1.5 }} />
-        <input placeholder="Capacity" type="number" value={formData.cap || ""} onChange={(e) => setFormData({...formData, cap: parseInt(e.target.value) || 0})} style={{ padding: 8, border: "1px solid var(--border)", flex: 1 }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <input placeholder="Venue Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", width: "100%", boxSizing: "border-box" }} />
+        <input placeholder="Building" value={formData.building} onChange={(e) => setFormData({...formData, building: e.target.value})} style={{ padding: 8, border: "1px solid var(--border)", width: "100%", boxSizing: "border-box" }} />
+        <input placeholder="Capacity" type="number" value={formData.cap || ""} onChange={(e) => setFormData({...formData, cap: parseInt(e.target.value) || 0})} style={{ padding: 8, border: "1px solid var(--border)", width: "100%", boxSizing: "border-box" }} />
       </div>
 
       <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
 
       <CheckboxGroup title="Supported Layouts" options={LAYOUT_OPTIONS} field="layouts" />
       <CheckboxGroup title="Included Facilities" options={FACILITY_OPTIONS} field="facilities" />
-      <CheckboxGroup title="Venue Characteristics" options={CHARACTERISTIC_OPTIONS} field="characteristics" />
+      <CheckboxGroup title="Accessibility Needs" options={ACCESSIBILITY_OPTIONS} field="accessibility" />
 
       <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
 
-      {/* Structured Time Picker */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Operating Hours</div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -127,7 +122,6 @@ export function VenueForm({
         </div>
       </div>
 
-      {/* Structured Date Picker for Array */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Unavailable Dates</div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -146,13 +140,6 @@ export function VenueForm({
         )}
       </div>
 
-      <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-        <input type="checkbox" checked={formData.stepFree} onChange={(e) => setFormData({...formData, stepFree: e.target.checked})} />
-        Step-free access throughout
-      </label>
-      
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 5 }}>
         <button onClick={onCancel} style={{ fontSize: 12, padding: "6px 12px", background: "#f0f0f0", borderRadius: 4 }}>Cancel</button>
         <button onClick={handleSave} style={{ fontSize: 12, padding: "6px 12px", background: "#000", color: "#fff", borderRadius: 4 }}>Save Venue</button>

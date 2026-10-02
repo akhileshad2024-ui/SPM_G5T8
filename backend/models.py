@@ -13,11 +13,10 @@ class Venue(Base):
     cap = Column(Integer, nullable=False)
     layouts = Column(JSON, default=[])
     facilities = Column(JSON, default=[])
-    stepFree = Column(Boolean, default=False)
     operatingHours = Column(String, nullable=True)
     operatingDays = Column(JSON, default=[])
     unavailableDates = Column(JSON, default=[])
-    characteristics = Column(JSON, default=[])
+    accessibility = Column(JSON, default=[])
     
     is_active = Column(Boolean, default=True)
     last_updated_by = Column(String, nullable=False) 
