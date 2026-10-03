@@ -1,10 +1,10 @@
 import type {
   EventRecord,
   EquipmentCatalogueItem,
+  Layout,
   NotificationRecord,
   Person,
   Role,
-  Venue,
 } from "./types";
 
 export const PEOPLE: Record<Role, Person> = {
@@ -42,6 +42,18 @@ export const VENUES: Venue[] = [
   { id: "V4", name: "Seminar Room 4-2", building: "East block · Level 4", cap: 40, layouts: ["boardroom", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: true },
   { id: "V5", name: "Innovation Studio", building: "West annex · Level 3", cap: 80, layouts: ["standing", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: false },
 ];
+/**
+ * The sample events below refer to venues by these placeholder ids. Once the real
+ * catalogue loads from the backend, each is pointed at the venue with the same name
+ * (run `python -m seed_venues` in backend/ to add them).
+ */
+export const SEED_VENUE_NAMES: Record<string, string> = {
+  V1: "Grand Hall",
+  V2: "The Atrium",
+  V3: "Lecture Theatre 1",
+  V4: "Seminar Room 4-2",
+  V5: "Innovation Studio",
+};
 
 export const EQUIP: EquipmentCatalogueItem[] = [
   { id: "E1", name: "Wireless microphone", total: 12 },
@@ -53,6 +65,9 @@ export const EQUIP: EquipmentCatalogueItem[] = [
 
 export const FACILITY_OPTIONS = ["Stage", "PA system", "Projector", "Hearing loop", "Whiteboard", "Natural light"];
 export const ACCESS_OPTIONS = ["Step-free access", "Hearing loop", "Accessible restrooms", "Reserved seating"];
+/** Venue catalogue choices use the same words as event requests, so suitability checks can match them. */
+export const VENUE_FACILITY_OPTIONS = [...FACILITY_OPTIONS, "Microphone", "Video conferencing", "Wi-Fi"];
+export const LAYOUT_OPTIONS: Layout[] = ["banquet", "theatre", "standing", "boardroom", "classroom"];
 
 /** Route each role lands on immediately after signing in. */
 export const DEFAULT_ROUTE: Record<Role, string> = {

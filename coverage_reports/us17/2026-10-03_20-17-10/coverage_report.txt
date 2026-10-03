@@ -1,0 +1,15 @@
+Coverage report for US17
+Generated: 2026-10-03 20:17:10
+Tests: tests/integration/test_us17_venue_catalogue_integration.py, tests/unit/venue/test_us17_venue_audit.py, tests/unit/venue/test_us17_venue_validation.py
+Result: 137 tests, all passed
+Measured files: main.py, schemas.py, models.py, venue_audit.py, migrations.py
+
+Name                     Stmts   Miss  Cover   Missing
+------------------------------------------------------
+backend\main.py             60      0   100%
+backend\migrations.py       38      1    97%   40
+backend\models.py           28      0   100%
+backend\schemas.py         123      0   100%
+backend\venue_audit.py      21      0   100%
+------------------------------------------------------
+TOTAL                      270      1    99%
