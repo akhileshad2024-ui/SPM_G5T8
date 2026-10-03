@@ -1,9 +1,9 @@
 "use client";
 
-import { VENUES } from "@/lib/data";
 import { useApp } from "@/lib/app-context";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout } from "@/lib/types";
+import { bookingProblems, hasStepFreeAccess, venueHas } from "@/lib/venue-rules";
 import styles from "./VenueTab.module.css";
 
 const LAYOUTS: Array<[Layout | "any", string]> = [
@@ -19,13 +19,26 @@ export function VenueTab({ event }: { event: EventRecord }) {
   const app = useApp();
   const { vf } = app.state;
 
+  const venues = app.state.venues.filter((v) => v.isActive);
   const minCap = parseInt(vf.cap, 10) || 0;
-  const matches = VENUES.filter(
-    (v) => v.cap >= minCap && (vf.layout === "any" || v.layouts.indexOf(vf.layout) > -1) && (!vf.stepFree || v.stepFree)
+  const matches = venues.filter(
+    (v) => v.cap >= minCap && (vf.layout === "any" || venueHas(v.layouts, vf.layout)) && (!vf.stepFree || hasStepFreeAccess(v))
   );
+  // The current booking may have become unusable (venue deactivated/unavailable, or a setup/turnaround clash).
+  const currentVenue = app.venue(event.venue);
+  const problems = bookingProblems(app.state.events, app.state.venues)[event.id] ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {problems.length > 0 && (
+        <div className="callout callout-danger">
+          <strong>Alternative arrangements needed for {currentVenue?.name ?? "the booked venue"}.</strong> The event and its other details are kept;
+          request a replacement venue below.
+          <ul style={{ margin: "6px 0 0 16px" }}>
+            {problems.map((p, i) => <li key={i}>{p.text}</li>)}
+          </ul>
+        </div>
+      )}
       <div className={`card ${styles.filters}`}>
         <div className="field">
           <label className="eyebrow">Minimum capacity</label>
@@ -47,7 +60,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
         </label>
         <div style={{ flex: 1 }} />
         <div className={styles.count}>
-          {matches.length} of {VENUES.length} venues match
+          {matches.length} of {venues.length} venues match
         </div>
       </div>
 
@@ -103,7 +116,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
                     </span>
                   </div>
                   <div className={styles.resultMeta}>
-                    {v.building} · capacity {v.cap}
+                    {v.building} · capacity {v.cap} · {v.setupMinutes} min setup · {v.turnaroundMinutes} min turnaround
                   </div>
                   <div className={styles.tags}>
                     {v.layouts.map((l) => (
@@ -113,9 +126,9 @@ export function VenueTab({ event }: { event: EventRecord }) {
                       <Tag key={f} label={f} bg="#fff" fg="#4A5169" border="rgba(10,14,26,.14)" />
                     ))}
                     <Tag
-                      label={v.stepFree ? "Step-free" : "No step-free access"}
-                      bg={v.stepFree ? "var(--info-bg)" : "var(--bad-bg)"}
-                      fg={v.stepFree ? "var(--info-fg)" : "var(--bad-fg)"}
+                      label={hasStepFreeAccess(v) ? "Step-free" : "No step-free access"}
+                      bg={hasStepFreeAccess(v) ? "var(--info-bg)" : "var(--bad-bg)"}
+                      fg={hasStepFreeAccess(v) ? "var(--info-fg)" : "var(--bad-fg)"}
                     />
                   </div>
                   {su.reasons.length > 0 && (
