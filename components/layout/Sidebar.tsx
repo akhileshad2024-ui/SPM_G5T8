@@ -5,6 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { NAV_FOR } from "@/lib/data";
 import { useApp } from "@/lib/app-context";
+import { needsCoordinatorAction } from "@/lib/event-review/review";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import styles from "./Sidebar.module.css";
 
@@ -17,7 +18,7 @@ export function Sidebar() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   const badges: Record<string, number> = {
-    "/queue": events.filter((e) => e.status === "submitted" || e.status === "under_review").length,
+    "/queue": events.filter(needsCoordinatorAction).length,
     "/bookings": events.filter((e) => e.bookingState === "pending").length,
     "/equipment": events.filter(
       (e) => e.equipState === "requested" && (e.status === "planning" || e.status === "approved" || e.status === "confirmed")

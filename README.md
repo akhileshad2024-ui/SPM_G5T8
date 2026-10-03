@@ -123,6 +123,9 @@ lib/
   types.ts         Shared domain types (Role, EventRecord, Venue, ...)
   data.ts          Static reference data, seed data, per-role nav + route guard
   selectors.ts     Pure helpers (freeQty, suitability, lookups) — no React
+  event-request/   US03/US04: request validation + submission (pure, unit tested)
+  event-review/    US07/08/10/11: review queue, clarification, approve/reject,
+                   coordinator assignment — ACs in docs/user-stories/
   venue-rules.ts   Venue availability: occupied windows, conflicts, unavailability — no React
   venue-form.ts    Venue catalogue form state + client-side validation — no React
   api.ts           fetch wrapper for the backend (/api/*)

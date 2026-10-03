@@ -142,7 +142,45 @@ export interface EventRecord {
   submittedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
+  /** US08: the latest clarification / amendment request sent to the organiser. */
+  clarification?: ClarificationRequest;
+  /** US10: the coordinator's final review outcome, visible to the organiser. */
+  decision?: ReviewDecision;
 }
+
+/** The person performing a review action (taken from the session, never from input). */
+export interface Actor {
+  name: string;
+  role: Role;
+}
+
+export type ClarificationKind = "clarification" | "amendment";
+
+export interface ClarificationRequest {
+  kind: ClarificationKind;
+  message: string;
+  requestedBy: string;
+  requestedAt: string;
+}
+
+export interface ReviewDecision {
+  outcome: "approved" | "rejected";
+  by: string;
+  at: string;
+  /** Mandatory when rejected; optional note when approved. */
+  reason?: string;
+}
+
+/** A notification produced by a workflow step; the context adds id/when/read. */
+export type WorkflowNotification = Pick<NotificationRecord, "to" | "title" | "body">;
+
+/**
+ * Every review-workflow step either returns the updated event plus the
+ * notifications it triggers, or explains why the action is not allowed.
+ */
+export type WorkflowResult =
+  | { ok: true; event: EventRecord; notifications: WorkflowNotification[] }
+  | { ok: false; error: string };
 
 export interface NotificationRecord {
   id: number;
@@ -155,7 +193,13 @@ export interface NotificationRecord {
 
 export type ToastKind = "ok" | "warn" | "bad";
 
-export type ModalKind = "clarify" | "reject" | "rejectBooking" | "change";
+export type ModalKind =
+  | "clarify"
+  | "amend"
+  | "approve"
+  | "reject"
+  | "rejectBooking"
+  | "change";
 
 export interface ModalState {
   kind: ModalKind;
@@ -167,7 +211,7 @@ export interface ModalState {
   confirm: string;
 }
 
-export type QueueFilter = "action" | "mine" | "all";
+export type QueueFilter = "action" | "unassigned" | "mine" | "all";
 export type EventTab = "request" | "venue" | "equipment" | "registration" | "activity";
 
 export interface VenueFilter {

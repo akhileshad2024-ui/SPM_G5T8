@@ -1,9 +1,58 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/lib/app-context";
+import { COORDINATORS } from "@/lib/data";
+import { canAssignCoordinator } from "@/lib/event-review/assignment";
+import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/event-review/review";
 import { Dot } from "@/components/ui/Dot";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
+
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** US11: give an unassigned event a coordinator from the coordinator roster. */
+function CoordinatorCard({ event }: { event: EventRecord }) {
+  const app = useApp();
+  const me = app.me.person;
+  const [choice, setChoice] = useState(me);
+  const assignable = canAssignCoordinator(event);
+
+  return (
+    <div className={`card ${styles.sideCard}`}>
+      <div className={`eyebrow ${styles.sideHeading}`}>Coordinator</div>
+      <div className={styles.coordinatorName}>{event.coordinator || "Unassigned"}</div>
+      {event.coordinator ? null : assignable ? (
+        <>
+          <select
+            className={`select-input ${styles.assignSelect}`}
+            value={choice}
+            onChange={(e) => setChoice(e.target.value)}
+            aria-label="Coordinator to assign"
+          >
+            {COORDINATORS.map((c) => (
+              <option key={c} value={c}>
+                {c === me ? `${c} (me)` : c}
+              </option>
+            ))}
+          </select>
+          <button className={`btn btn-ghost ${styles.assignButton}`} onClick={() => app.assignCoordinator(event.id, choice)}>
+            Assign
+          </button>
+        </>
+      ) : (
+        <div className={styles.hint}>
+          {event.status === "draft" ? "Drafts can't be assigned until submitted." : "This event is closed."}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const OK = "#00C2A8";
 const WARN = "#FFBF00";
@@ -21,19 +70,11 @@ function readyColor(tone: "ok" | "warn" | "off") {
 
 export function RequestTab({ event }: { event: EventRecord }) {
   const app = useApp();
-  const me = app.me;
   const venue = event.venue ? app.venue(event.venue) : undefined;
-
-  const fields: Array<[string, string]> = [
-    ["Proposed date", event.date],
-    ["Time", `${event.start} – ${event.end}`],
-    ["Expected attendance", String(event.pax)],
-    ["Required layout", event.layout ? event.layout.charAt(0).toUpperCase() + event.layout.slice(1) : "Any"],
-    ["Facilities", event.facilities.join(", ") || "None specified"],
-    ["Accessibility", event.access.join(", ") || "None specified"],
-    ["Equipment", event.equip.map((it) => `${it.qty} × ${app.equipName(it.id)}`).join(", ") || "None requested"],
-    ["Registration", event.reg ? `Enabled · cap ${event.regCap}` : "Not enabled"],
-  ];
+  const fields = requestDetails(event, app.equipName);
+  // Clarity checks only matter while the request is still being reviewed.
+  const checks = IN_REVIEW_STATUSES.includes(event.status) ? reviewChecks(event, app.equipName) : [];
+  const { clarification, decision } = event;
 
   const readiness: Array<{ label: string; ok: boolean | "pending"; value: string; tone: "ok" | "warn" | "off" }> = [
     { label: "Coordinator", ok: !!event.coordinator, value: event.coordinator ? "Assigned" : "Not yet", tone: event.coordinator ? "ok" : "off" },
@@ -57,11 +98,51 @@ export function RequestTab({ event }: { event: EventRecord }) {
     },
   ];
 
-  const assignLabel = event.coordinator === me.person ? "Reassign" : event.coordinator ? "Take over as coordinator" : "Assign to me";
-
   return (
     <div className={styles.layout}>
       <div className={styles.main}>
+        {decision && (
+          <div
+            className={`card ${styles.card} ${decision.outcome === "approved" ? styles.decisionApproved : styles.decisionRejected}`}
+          >
+            <div className="eyebrow">{decision.outcome === "approved" ? "Approved" : "Rejected"}</div>
+            <div className={styles.messageMeta} style={{ marginTop: 8 }}>
+              {decision.by} · {formatTimestamp(decision.at)}
+            </div>
+            {decision.reason && <div className={styles.message}>{decision.reason}</div>}
+          </div>
+        )}
+
+        {checks.length > 0 && (
+          <div className={`card ${styles.card} ${styles.checks}`}>
+            <div className="eyebrow">Worth clarifying</div>
+            <ul className={styles.checkList}>
+              {checks.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {clarification && (
+          <div className={`card ${styles.card}`}>
+            <div className="eyebrow">
+              {clarification.kind === "amendment" ? "Amendment request" : "Clarification request"}
+            </div>
+            <div className={styles.thread}>
+              <div>
+                <div className={styles.messageMeta}>
+                  {clarification.requestedBy} · {formatTimestamp(clarification.requestedAt)}
+                </div>
+                <div className={styles.message}>{clarification.message}</div>
+              </div>
+              {event.status === "pending_clarification" && (
+                <div className={styles.hint}>Waiting for {event.organiser} to respond.</div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className={`card ${styles.card}`}>
           <div className="eyebrow">Purpose</div>
           <div className={styles.purpose}>{event.purpose}</div>
@@ -74,17 +155,14 @@ export function RequestTab({ event }: { event: EventRecord }) {
               </div>
             ))}
           </div>
+          {event.submittedAt && (
+            <div className={styles.hint}>Submitted {formatTimestamp(event.submittedAt)}</div>
+          )}
         </div>
       </div>
 
       <div className={styles.side}>
-        <div className={`card ${styles.sideCard}`}>
-          <div className={`eyebrow ${styles.sideHeading}`}>Coordinator</div>
-          <div className={styles.coordinatorName}>{event.coordinator || "Unassigned"}</div>
-          <button className={`btn btn-ghost ${styles.assignButton}`} onClick={() => app.assignSelf(event.id)}>
-            {assignLabel}
-          </button>
-        </div>
+        <CoordinatorCard key={`${event.id}:${event.coordinator}`} event={event} />
         <div className={`card ${styles.sideCard}`}>
           <div className={`eyebrow ${styles.sideHeading}`}>Readiness</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>

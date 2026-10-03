@@ -2,7 +2,7 @@
 
 import { useApp } from "@/lib/app-context";
 
-/** The single shared confirm/reason dialog used by clarify, reject, and change-request actions. */
+/** The single shared confirm/reason dialog used by review, booking, and change-request actions. */
 export function Modal() {
   const app = useApp();
   const modal = app.state.modal;
