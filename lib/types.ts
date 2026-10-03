@@ -1,8 +1,8 @@
 /**
  * Shared domain types for the ConnectSphere prototype.
  *
- * There is no backend: everything here describes the shape of the
- * in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
+ * Users and venues come from the FastAPI backend; everything else describes
+ * the in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
  */
 
 export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";
@@ -38,15 +38,55 @@ export interface Person {
   email: string;
 }
 
+export type UnavailabilityReason =
+  | "maintenance"
+  | "equipment_failure"
+  | "renovation"
+  | "safety"
+  | "internal_activity"
+  | "other";
+
+/** A period when a venue can't be used (Week 7 change #2). Times are local, "YYYY-MM-DDTHH:MM[:SS]". */
+export interface UnavailabilityPeriod {
+  start: string;
+  end: string;
+  reason: UnavailabilityReason;
+  note?: string | null;
+}
+
+/** A venue from the catalogue (backend /venues), with the id as a string to match `EventRecord.venue`. */
 export interface Venue {
   id: string;
   name: string;
   building: string;
   cap: number;
-  layouts: Layout[];
+  /** Lower case, matching `Layout` values ("banquet", "theatre", ...). */
+  layouts: string[];
   facilities: string[];
-  stepFree: boolean;
+  accessibility: string[];
+  /** "HH:MM - HH:MM", or null when not recorded. */
+  operatingHours: string | null;
+  /** Full day names, Monday first. */
+  operatingDays: string[];
+  unavailability: UnavailabilityPeriod[];
+  /** Minutes the room is occupied before / after every event (Week 7 change #1). */
+  setupMinutes: number;
+  turnaroundMinutes: number;
+  isActive: boolean;
+  lastUpdatedBy: string;
+  lastUpdatedAt: string;
 }
+
+/** The venue as the backend sends it. */
+export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy" | "lastUpdatedAt"> {
+  id: number;
+  is_active: boolean;
+  last_updated_by: string;
+  last_updated_at: string;
+}
+
+/** Body for POST /venues and PUT /venues/{id}. */
+export type VenueInput = Omit<Venue, "id" | "isActive" | "lastUpdatedBy" | "lastUpdatedAt">;
 
 export interface EquipmentCatalogueItem {
   id: string;

@@ -9,7 +9,7 @@ import styles from "./TopBar.module.css";
 export function TopBar() {
   const app = useApp();
   const pathname = usePathname();
-  const { title, subtitle } = getPageMeta(pathname, app.state.events);
+  const { title, subtitle } = getPageMeta(pathname, app.state.events, app.state.venues);
   const unread = app.state.notifs.filter((n) => n.to === app.state.role && !n.read).length;
 
   return (
