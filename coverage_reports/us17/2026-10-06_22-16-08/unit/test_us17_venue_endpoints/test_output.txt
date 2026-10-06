@@ -1,0 +1,17 @@
+test_creation_is_recorded_and_saved_in_the_right_order (tests.unit.venue.test_us17_venue_endpoints.TestCreateVenue.test_creation_is_recorded_and_saved_in_the_right_order) ... ok
+test_new_venue_has_the_details_given_and_the_editor_and_time (tests.unit.venue.test_us17_venue_endpoints.TestCreateVenue.test_new_venue_has_the_details_given_and_the_editor_and_time) ... ok
+test_existing_venue_is_refused_with_a_409_and_nothing_is_removed (tests.unit.venue.test_us17_venue_endpoints.TestDeleteVenue.test_existing_venue_is_refused_with_a_409_and_nothing_is_removed) ... ok
+test_unknown_venue_is_a_404 (tests.unit.venue.test_us17_venue_endpoints.TestDeleteVenue.test_unknown_venue_is_a_404) ... ok
+test_endpoints_are_protected_by_the_checks_above (tests.unit.venue.test_us17_venue_endpoints.TestRoleRules.test_endpoints_are_protected_by_the_checks_above) ... ok
+test_only_venue_staff_pass_the_venue_management_check (tests.unit.venue.test_us17_venue_endpoints.TestRoleRules.test_only_venue_staff_pass_the_venue_management_check) ... ok
+test_deactivating_and_reactivating_are_recorded_as_such (tests.unit.venue.test_us17_venue_endpoints.TestUpdateVenue.test_deactivating_and_reactivating_are_recorded_as_such) ... ok
+test_edit_changes_the_venue_and_records_who_what_and_when (tests.unit.venue.test_us17_venue_endpoints.TestUpdateVenue.test_edit_changes_the_venue_and_records_who_what_and_when) ... ok
+test_edit_that_changes_nothing_saves_and_records_nothing (tests.unit.venue.test_us17_venue_endpoints.TestUpdateVenue.test_edit_that_changes_nothing_saves_and_records_nothing) ... ok
+test_unknown_venue_is_a_404_and_nothing_is_saved (tests.unit.venue.test_us17_venue_endpoints.TestUpdateVenue.test_unknown_venue_is_a_404_and_nothing_is_saved) ... ok
+test_changes_come_back_oldest_first (tests.unit.venue.test_us17_venue_endpoints.TestVenueHistory.test_changes_come_back_oldest_first) ... ok
+test_unknown_venue_is_a_404 (tests.unit.venue.test_us17_venue_endpoints.TestVenueHistory.test_unknown_venue_is_a_404) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.026s
+
+OK

@@ -173,7 +173,6 @@ export type EventTab = "request" | "venue" | "equipment" | "registration" | "act
 export interface VenueFilter {
   cap: string;
   layout: Layout | "any";
-  stepFree: boolean;
 }
 
 export interface NewRequestForm {

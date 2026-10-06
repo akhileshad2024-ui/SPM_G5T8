@@ -5,6 +5,7 @@ stands in for the database session, so each test checks only what the function
 decides and what it asks the database to do.
 
 AC1: can create, edit and deactivate venue records; cannot delete (only deactivate)
+(Listing and viewing venues is US18; see test_us18_view_venue_details.py.)
 AC5: has each change recorded with the editing user and a timestamp
 RBAC: only Venue Staff may change or view the history of venues
 
@@ -36,7 +37,7 @@ import main
 import models
 import schemas
 from login.models import Role
-from login.security import get_current_user, require_roles
+from login.security import require_roles
 
 EDITOR = SimpleNamespace(email="daniel.ortiz@connectsphere.edu", role=Role.venue)
 
@@ -46,7 +47,7 @@ NEW_VENUE = {
     "cap": 150,
     "layouts": ["theatre"],
     "facilities": ["Projector"],
-    "accessibility": ["Step-free access"],
+    "accessibility": ["Wheelchair Access"],
     "operatingHours": "08:00 - 22:00",
     "operatingDays": ["Monday", "Tuesday"],
     "unavailability": [{"start": "2027-01-10T08:00", "end": "2027-01-11T08:00", "reason": "maintenance"}],
@@ -59,7 +60,7 @@ def make_venue(**overrides) -> models.Venue:
     """A venue as it would be loaded from the database (never saved anywhere)."""
     fields = dict(
         id=7, name="Lecture Theatre 1", building="North wing", cap=150,
-        layouts=["theatre"], facilities=["Projector"], accessibility=["Step-free access"],
+        layouts=["theatre"], facilities=["Projector"], accessibility=["Wheelchair Access"],
         operatingHours="08:00 - 22:00", operatingDays=["Monday", "Tuesday"],
         unavailability=[], setupMinutes=30, turnaroundMinutes=45, is_active=True,
         last_updated_by="someone.before@connectsphere.edu",
@@ -102,9 +103,6 @@ class TestRoleRules(unittest.TestCase):
                         check(user=user)
                     self.assertEqual(ctx.exception.status_code, 403)
 
-    def test_venue_staff_and_coordinators_may_see_deactivated_venues(self):
-        self.assertEqual(set(main.INACTIVE_VENUE_VIEWERS), {Role.venue, Role.coordinator})
-
     def test_endpoints_are_protected_by_the_checks_above(self):
         def dependencies(method, path):
             route = next(r for r in main.app.routes if getattr(r, "path", None) == path and method in r.methods)
@@ -116,48 +114,6 @@ class TestRoleRules(unittest.TestCase):
             with self.subTest(route=f"{method} {path}"):
                 names = [d.__qualname__ for d in dependencies(method, path)]
                 self.assertIn("require_roles.<locals>.dependency", names)
-        with self.subTest(route="GET /venues"):
-            self.assertIn(get_current_user, dependencies("GET", "/venues"))
-
-
-# ---------------------------------------------------------------- listing venues
-
-class TestGetVenues(unittest.TestCase):
-    def test_default_list_has_only_active_venues_in_id_order(self):
-        rows = [make_venue(id=1), make_venue(id=2)]
-        db = MagicMock()
-        query = db.query.return_value.filter.return_value
-        query.order_by.return_value.all.return_value = rows
-
-        result = main.get_venues(include_inactive=False, db=db, user=SimpleNamespace(role=Role.attendee))
-
-        self.assertEqual(result, rows)
-        db.query.return_value.filter.assert_called_once()
-        self.assertEqual(str(db.query.return_value.filter.call_args.args[0]), str(models.Venue.is_active == True))
-        self.assertEqual([str(a) for a in query.order_by.call_args.args], ["Venue.id"])
-
-    def test_staff_and_coordinators_can_include_deactivated_venues(self):
-        rows = [make_venue(id=1, is_active=False)]
-        for role in (Role.venue, Role.coordinator):
-            with self.subTest(role=role.value):
-                db = MagicMock()
-                db.query.return_value.order_by.return_value.all.return_value = rows
-
-                result = main.get_venues(include_inactive=True, db=db, user=SimpleNamespace(role=role))
-
-                self.assertEqual(result, rows)
-                db.query.return_value.filter.assert_not_called()  # no "active only" filter
-
-    def test_other_roles_are_refused_deactivated_venues(self):
-        for role in (Role.organiser, Role.tech, Role.attendee):
-            with self.subTest(role=role.value):
-                db = MagicMock()
-
-                with self.assertRaises(HTTPException) as ctx:
-                    main.get_venues(include_inactive=True, db=db, user=SimpleNamespace(role=role))
-
-                self.assertEqual(ctx.exception.status_code, 403)
-                db.query.return_value.order_by.return_value.all.assert_not_called()  # nothing was fetched
 
 
 # ---------------------------------------------------------------- AC1 + AC5: creating a venue

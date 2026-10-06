@@ -1,0 +1,13 @@
+test_the_response_carries_capacity_location_facilities_accessibility_and_layouts (tests.unit.venue.test_us18_view_venue_details.TestDetailsShown.test_the_response_carries_capacity_location_facilities_accessibility_and_layouts) ... ok
+test_an_active_venue_is_returned_in_full (tests.unit.venue.test_us18_view_venue_details.TestGetVenueDetails.test_an_active_venue_is_returned_in_full) ... ok
+test_an_unknown_or_deactivated_venue_is_a_404 (tests.unit.venue.test_us18_view_venue_details.TestGetVenueDetails.test_an_unknown_or_deactivated_venue_is_a_404) ... ok
+test_any_signed_in_user_may_view_venues_but_a_login_is_required (tests.unit.venue.test_us18_view_venue_details.TestGetVenueDetails.test_any_signed_in_user_may_view_venues_but_a_login_is_required) ... ok
+test_the_venue_view_has_no_editing_controls (tests.unit.venue.test_us18_view_venue_details.TestReadOnly.test_the_venue_view_has_no_editing_controls) ... ok
+test_default_list_has_only_active_venues_in_id_order (tests.unit.venue.test_us18_view_venue_details.TestVenueList.test_default_list_has_only_active_venues_in_id_order) ... ok
+test_other_roles_are_refused_deactivated_venues (tests.unit.venue.test_us18_view_venue_details.TestVenueList.test_other_roles_are_refused_deactivated_venues) ... ok
+test_staff_and_coordinators_can_ask_to_include_deactivated_venues (tests.unit.venue.test_us18_view_venue_details.TestVenueList.test_staff_and_coordinators_can_ask_to_include_deactivated_venues) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.016s
+
+OK

@@ -63,7 +63,22 @@ def _check_operating_days(days: List[str]) -> List[str]:
     return [d for d in WEEKDAYS if d in picked]  # week order, no repeats
 
 
+# The accessibility features Venue Staff can record. Kept the same as VENUE_ACCESSIBILITY_OPTIONS in
+# lib/data.ts (a unit test fails if the two lists differ).
+ACCESSIBILITY_FEATURES = ("Wheelchair Access", "Special Physical Seating", "Mobility/Facility Arrangements")
+
+
+def _check_accessibility(items: List[str]) -> List[str]:
+    lookup = {f.lower(): f for f in ACCESSIBILITY_FEATURES}
+    unknown = [i for i in items if i.lower() not in lookup]
+    if unknown:
+        raise ValueError(f"unknown accessibility feature(s): {', '.join(unknown)}; use {', '.join(ACCESSIBILITY_FEATURES)}")
+    picked = {lookup[i.lower()] for i in items}
+    return [f for f in ACCESSIBILITY_FEATURES if f in picked]  # fixed order, no repeats
+
+
 TextList = Annotated[List[RequiredText], AfterValidator(_dedupe)]
+AccessibilityList = Annotated[List[RequiredText], AfterValidator(_check_accessibility)]
 LayoutList = Annotated[List[RequiredText], AfterValidator(_lower_dedupe)]
 OperatingHours = Annotated[Optional[str], AfterValidator(_check_operating_hours)]
 OperatingDays = Annotated[List[str], AfterValidator(_check_operating_days)]
@@ -95,7 +110,7 @@ class VenueCreate(BaseModel):
     cap: int = Field(..., gt=0, description="Capacity must be > 0")
     layouts: LayoutList = []
     facilities: TextList = []
-    accessibility: TextList = []
+    accessibility: AccessibilityList = []
     operatingHours: OperatingHours = None
     operatingDays: OperatingDays = list(WEEKDAYS[:5])
     unavailability: List[UnavailabilityPeriod] = []
@@ -110,7 +125,7 @@ class VenueUpdate(BaseModel):
     cap: Optional[int] = Field(None, gt=0)
     layouts: Optional[LayoutList] = None
     facilities: Optional[TextList] = None
-    accessibility: Optional[TextList] = None
+    accessibility: Optional[AccessibilityList] = None
     operatingHours: OperatingHours = None
     operatingDays: Optional[OperatingDays] = None
     unavailability: Optional[List[UnavailabilityPeriod]] = None

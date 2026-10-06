@@ -42,7 +42,7 @@ backend/login/
 | Role | Lands on | Pages |
 |---|---|---|
 | Event Organiser | `/my-events` | My events, New request |
-| Event Coordinator | `/queue` | Review queue, Pipeline |
+| Event Coordinator | `/queue` | Review queue, Pipeline, Venues (read-only details) |
 | Venue Staff | `/bookings` | Booking requests, Venue catalogue |
 | Technical Support | `/equipment` | Equipment |
 | Attendee | `/browse` | Browse events |
@@ -67,6 +67,7 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `POST /auth/login`, `POST /auth/logout` | anyone |
 | `GET /auth/me`, `POST /auth/change-password` | any signed-in user |
 | `GET /venues` | any signed-in user (active venues only) |
+| `GET /venues/{id}` | any signed-in user (active venues only; a deactivated venue is a 404) |
 | `GET /venues?include_inactive=true` | Venue Staff, Event Coordinator |
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
@@ -78,6 +79,10 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
   operating hours and days, **setup and turnaround minutes**, and periods when
   it is **temporarily unavailable** (with a reason: maintenance, equipment
   failure, renovation, safety, internal activity, or other + note).
+- Accessibility features come from a fixed set (Wheelchair Access, Special Physical Seating,
+  Mobility/Facility Arrangements), enforced by both the form and the API. The set is
+  `ACCESSIBILITY_FEATURES` in `backend/schemas.py` and `VENUE_ACCESSIBILITY_OPTIONS` in
+  `lib/data.ts`; a unit test fails if the two differ.
 - Venues are never deleted, only deactivated and reactivated.
 - Every create, edit, deactivation and reactivation is written to the
   `venue_changes` table: who made the change, when, and each changed field's old
@@ -103,6 +108,7 @@ app/
   (dashboard)/layout.tsx     Signed-in shell: sidebar, top bar, modal, toast
   (dashboard)/queue/         Coordinator: review queue + event workspace (tabs)
   (dashboard)/board/         Coordinator: pipeline board
+  (dashboard)/venues/        Coordinator: read-only venue details (US18)
   (dashboard)/my-events/     Organiser: my requests + stats
   (dashboard)/new-request/   Organiser: 3-step new request wizard
   (dashboard)/bookings/      Venue staff: availability calendar + booking requests
@@ -213,6 +219,7 @@ set `COOKIE_SECURE=true` in the backend's environment when serving over HTTPS.
 npm test                # all frontend unit tests (vitest)
 python -m unittest discover -s tests -v     # all Python tests
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
+python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
                         # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
@@ -221,7 +228,7 @@ python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
 # coverage_reports/<story>/<date_time>/unit/<test_file>/ (htmlcov/index.html, coverage_report.txt, test_output.txt),
 # plus summary.txt, and adds one line per test file to coverage_reports/<story>/history_by_file.csv.
 # Integration tests are not part of this automation.
-python run_coverage.py us17
+python run_coverage.py us17      # or us18
 ```
 
 ## Scripts

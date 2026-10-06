@@ -1,0 +1,12 @@
+Coverage report for test_us18_view_venue_details  (unit tests)
+Generated: 2026-10-06 22:16:12
+Test file: tests/unit/venue/test_us18_view_venue_details.py
+Result: 8 tests, all passed
+Measured code: main.py:get_venues,get_venue, schemas.py:VenueResponse
+
+Name                          Stmts  Miss  Cover  Missing
+------------------------------------------------------------
+main.py:get_venues,get_venue     14     0   100%  
+schemas.py:VenueResponse         25     0   100%  
+------------------------------------------------------------
+TOTAL                            39     0   100%
