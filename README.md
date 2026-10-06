@@ -215,12 +215,13 @@ python -m unittest discover -s tests -v     # all Python tests
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
+                        # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
 
-# Coverage for one story (run from the project root). Saves a timestamped report under
-# coverage_reports/<story>/<date_time>/ (htmlcov/index.html, coverage_report.txt, test_output.txt)
-# and adds a line to coverage_reports/<story>/history.csv:
+# Coverage for one story: runs each UNIT test file on its own and saves a timestamped report per file under
+# coverage_reports/<story>/<date_time>/unit/<test_file>/ (htmlcov/index.html, coverage_report.txt, test_output.txt),
+# plus summary.txt, and adds one line per test file to coverage_reports/<story>/history_by_file.csv.
+# Integration tests are not part of this automation.
 python run_coverage.py us17
-                        # US17 integration tests: real API + in-memory SQLite, never touches Supabase
 ```
 
 ## Scripts
