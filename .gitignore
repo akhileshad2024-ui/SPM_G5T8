@@ -33,3 +33,12 @@ yarn-error.log*
 # python
 .venv/
 __pycache__/
+*.pyc
+*.pyc
+
+# python test coverage
+.coverage
+htmlcov/
+# per-story coverage reports (run_coverage.py): keep the text reports + history.csv, skip the bulky parts
+coverage_reports/**/htmlcov/
+coverage_reports/**/.coverage

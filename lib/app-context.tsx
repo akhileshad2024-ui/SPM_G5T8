@@ -4,7 +4,8 @@
  * Global application state for the ConnectSphere prototype.
  *
  * Authentication is real: the session is an HttpOnly cookie issued by the
- * FastAPI backend, restored on load via /auth/me. Most other data (events,
+ * FastAPI backend, restored on load via /auth/me. The venue catalogue is
+ * loaded from the backend after sign-in. Most other data (events,
  * notifications…) still lives in memory here, seeded fresh on every full
  * page load. Routing is handled by real Next.js routes; this context only
  * owns state that needs to survive client-side navigation between them.
@@ -21,13 +22,19 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, apiFetch } from "./api";
-import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
+import { COORDINATORS, DEFAULT_ROUTE, EQUIP, PEOPLE, SEED_VENUE_NAMES, seedEvents, seedNotifs } from "./data";
 import { eventRequestFromForm } from "./event-request/form-adapter";
 import { submitEventRequest } from "./event-request/submission";
 import { validateEventRequest } from "./event-request/validation";
+import { assignCoordinator } from "./event-review/assignment";
+import { requestClarification } from "./event-review/clarification";
+import { approveRequest, rejectRequest } from "./event-review/decision";
+import { startReview } from "./event-review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "./idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
+import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "./venue-rules";
 import type {
+  ApiVenue,
   AuthUser,
   EventRecord,
   EventRequestErrors,
@@ -40,10 +47,9 @@ import type {
   ToastKind,
   Venue,
   VenueFilter,
+  WorkflowResult,
+  VenueInput,
 } from "./types";
-
-/** Business rule: a request can't be approved until a coordinator owns it. */
-const REQUIRE_COORDINATOR = true;
 
 const BASIC_FIELDS = new Set([
   "name",
@@ -72,7 +78,7 @@ function errorsForStep(
 }
 
 /** Converts an existing saved event back into editable HTML form values. */
-function formFromEvent(event: EventRecord): NewRequestForm {
+function formFromEvent(event: EventRecord, venues: Venue[]): NewRequestForm {
   if (event.draftForm) return structuredClone(event.draftForm);
 
   const parsedDate = new Date(event.date);
@@ -93,7 +99,7 @@ function formFromEvent(event: EventRecord): NewRequestForm {
     end: event.end,
     pax: event.pax ? String(event.pax) : "",
     venueLocation:
-      event.venueLocation ?? (event.venue ? getVenue(event.venue)?.location ?? "" : ""),
+      event.venueLocation ?? (event.venue ? getVenue(venues, event.venue)?.building ?? "" : ""),
     venueCapacity: event.venueCapacity ? String(event.venueCapacity) : "",
     layout: event.layout,
     facilities: [...event.facilities],
@@ -117,6 +123,8 @@ interface AppState {
   signInNotice: string | null;
   role: Role;
   events: EventRecord[];
+  /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
+  venues: Venue[];
   notifs: ReturnType<typeof seedNotifs>;
   selectedId: string;
   tab: EventTab;
@@ -188,6 +196,7 @@ function initialState(): AppState {
     signInNotice: null,
     role: "coordinator",
     events: seedEvents(),
+    venues: [],
     notifs: seedNotifs(),
     ...sessionUiState(),
   };
@@ -197,15 +206,31 @@ const MODAL_CONTENT: Record<ModalKind, Omit<ModalState, "id">> = {
   clarify: {
     kind: "clarify",
     title: "Request clarification",
-    body: "The organiser will be notified and the event moves to under review until they reply.",
+    body: "The organiser will be notified. The request stays on hold as pending clarification until they reply.",
     label: "What do you need from the organiser?",
     placeholder: "Can the 320 attendees be split across two rooms?",
     confirm: "Send request",
   },
+  amend: {
+    kind: "amend",
+    title: "Request an amendment",
+    body: "Ask the organiser to change part of their request. It stays on hold as pending clarification until they reply.",
+    label: "What should the organiser amend?",
+    placeholder: "Please move the start time to 18:00 — the venue closes at 22:00.",
+    confirm: "Send request",
+  },
+  approve: {
+    kind: "approve",
+    title: "Approve this request",
+    body: "The organiser will be notified and the event can proceed to venue booking.",
+    label: "Note to the organiser (optional)",
+    placeholder: "Approved — I'll be in touch about venue options this week.",
+    confirm: "Approve request",
+  },
   reject: {
     kind: "reject",
     title: "Reject this request",
-    body: "Rejecting is visible to the organiser. Give a reason so they can decide what to do next.",
+    body: "Rejecting is final and visible to the organiser. Give a reason so they can decide what to do next.",
     label: "Reason for rejection",
     placeholder: "No venue can accommodate this attendance on the proposed date.",
     confirm: "Reject request",
@@ -234,7 +259,7 @@ export interface AppApi {
 
   // ---- lookups ----
   event: (id: string | null | undefined) => EventRecord | undefined;
-  venue: typeof getVenue;
+  venue: (id: string | null | undefined) => Venue | undefined;
   equipName: typeof equipName;
   freeQty: (equipId: string, excludeEventId?: string | null) => number;
   reservedQty: (equipId: string, excludeEventId?: string | null) => number;
@@ -257,15 +282,21 @@ export interface AppApi {
   setTab: (tab: EventTab) => void;
   setQueueFilter: (f: QueueFilter) => void;
   setSearch: (q: string) => void;
-  assignSelf: (id: string) => void;
+  assignCoordinator: (id: string, coordinator: string) => void;
 
   // ---- review workflow ----
-  approve: (id: string) => void;
+  startReview: (id: string) => void;
   confirmEvent: (id: string) => void;
   openModal: (kind: ModalKind, id: string) => void;
   closeModal: () => void;
   setModalText: (text: string) => void;
   confirmModal: () => void;
+
+  // ---- venue catalogue (US17) ----
+  reloadVenues: () => Promise<void>;
+  /** Create (id null) or edit a venue. Bookings the change puts in trouble are flagged, never removed. */
+  saveVenue: (id: string | null, input: Partial<VenueInput> & { is_active?: boolean }) => Promise<SaveVenueResult>;
+  setVenueActive: (id: string, active: boolean) => Promise<SaveVenueResult>;
 
   // ---- venue search / booking ----
   setVfCap: (cap: string) => void;
@@ -290,6 +321,19 @@ export interface AppApi {
   nextStep: () => void;
   backStep: () => void;
   saveDraft: () => void;
+}
+
+export type SaveVenueResult =
+  | { ok: true; venue: Venue; flagged: EventRecord[] }
+  | { ok: false; error: string; fields: Record<string, string> };
+
+/** Sample events use placeholder venue ids ("V1"...); point them at the real venue with the same name. */
+function resolveSeedVenues(events: EventRecord[], venues: Venue[]): EventRecord[] {
+  return events.map((e) => {
+    const name = e.venue ? SEED_VENUE_NAMES[e.venue] : undefined;
+    const real = name ? venues.find((v) => v.name === name) : undefined;
+    return real ? { ...e, venue: real.id } : e;
+  });
 }
 
 const AppContext = createContext<AppApi | null>(null);
@@ -323,15 +367,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }),
     }));
 
+  /**
+   * Commits the outcome of a review-workflow step (see lib/event-review):
+   * stores the updated event, sends its notifications, and tells the user.
+   * Returns false when the step was refused, after flashing the reason.
+   */
+  const applyResult = (result: WorkflowResult, success: string, kind: ToastKind = "ok"): boolean => {
+    if (!result.ok) {
+      flash(result.error, "warn");
+      return false;
+    }
+    patch((s) => ({ events: s.events.map((e) => (e.id === result.event.id ? result.event : e)) }));
+    result.notifications.forEach((n) => notify(n.to, n.title, n.body));
+    flash(success, kind);
+    return true;
+  };
+
   const startSession = (user: AuthUser) =>
     patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role, signInNotice: null });
 
   const endSession = (signInNotice: string | null = null) =>
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, signInNotice });
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
     router.push("/login");
+  };
+
+  const handleApiError = (err: unknown) => {
+    if (err instanceof ApiError && err.status === 401) {
+      expireSession();
+    } else if (err instanceof ApiError && err.status === 403) {
+      flash("You don't have permission to do that.", "bad");
+    } else {
+      flash(err instanceof Error ? err.message : "Something went wrong.", "bad");
+    }
+  };
+
+  const fetchVenues = async (role: Role): Promise<Venue[]> => {
+    // Venue Staff and Coordinators also see deactivated venues (to reactivate them / to see what their events were booked at).
+    const all = role === "venue" || role === "coordinator";
+    const rows = await apiFetch<ApiVenue[]>(all ? "/venues?include_inactive=true" : "/venues");
+    return rows.map(venueFromApi);
+  };
+
+  const applyVenues = (venues: Venue[]) => patch((s) => ({ venues, events: resolveSeedVenues(s.events, venues) }));
+
+  /** Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2). */
+  const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[]): EventRecord[] => {
+    const affected = newlyAffectedBookings(events, before, after);
+    for (const { event, issues } of affected) {
+      const summary = issues.map((i) => i.text).join(" ");
+      patchEvent(event.id, {}, { title: "Venue issue — alternative arrangements needed", body: summary });
+      notify("coordinator", "Alternative venue needed", `${event.name} (${event.date}): ${summary}`);
+    }
+    return affected.map((a) => a.event);
   };
 
   // Restore an existing session (the cookie survives reloads; in-memory state doesn't).
@@ -353,10 +443,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   );
 
+  // Load the venue catalogue whenever someone signs in.
+  useEffect(() => {
+    if (!state.authed) return;
+    fetchVenues(state.role).then(applyVenues, () => patch({ venues: [] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
+
   const api = useMemo<AppApi>(() => {
     const me = state.user
       ? { person: state.user.name, label: PEOPLE[state.role].label, email: state.user.email }
       : PEOPLE[state.role];
+    /** Who is performing a workflow action — always from the session. */
+    const actor = { name: me.person, role: state.role };
 
     const buildEventFromForm = (
       status: "draft" | "submitted",
@@ -416,12 +515,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     };
 
-    return {
+    const value: AppApi = {
       state,
       me,
 
       event: (id) => getEvent(state.events, id),
-      venue: getVenue,
+      venue: (id) => getVenue(state.venues, id),
       equipName,
       freeQty: (equipId, excludeEventId) => freeQty(state.events, equipId, excludeEventId),
       reservedQty: (equipId, excludeEventId) => reservedQty(state.events, equipId, excludeEventId),
@@ -452,15 +551,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         endSession();
         router.push("/login");
       },
-      handleApiError: (err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          expireSession();
-        } else if (err instanceof ApiError && err.status === 403) {
-          flash("You don't have permission to do that.", "bad");
-        } else {
-          flash(err instanceof Error ? err.message : "Something went wrong.", "bad");
-        }
-      },
+      handleApiError,
 
       flash,
       toggleNotifs: () => patch((s) => ({ notifsOpen: !s.notifsOpen })),
@@ -476,38 +567,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setQueueFilter: (queueFilter) => patch({ queueFilter }),
       setSearch: (search) => patch({ search }),
 
-      assignSelf: (id) => {
+      assignCoordinator: (id, coordinator) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        if (e.coordinator === me.person) {
-          patchEvent(id, { coordinator: null }, { title: "Coordinator removed", body: "Event is unassigned." });
-          flash("Unassigned.");
-          return;
-        }
-        patchEvent(
-          id,
-          { coordinator: me.person },
-          { title: "Coordinator assigned", body: `${me.person} is now the main internal point of contact.` }
+        applyResult(
+          assignCoordinator(e, actor, { coordinator, coordinators: COORDINATORS }),
+          `${coordinator} is now coordinating ${e.name}.`,
         );
-        notify("organiser", "Coordinator assigned", `${me.person} is coordinating ${e.name}.`);
-        flash(`${me.person} assigned to ${e.name}.`);
       },
 
-      approve: (id) => {
+      startReview: (id) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        if (REQUIRE_COORDINATOR && !e.coordinator) {
-          flash("Assign a coordinator before approving this request.", "warn");
-          return;
-        }
-        patchEvent(
-          id,
-          { status: "approved" },
-          { title: "Request approved", body: `${me.person} approved the request. It can now proceed to venue booking.` }
-        );
-        notify("organiser", "Request approved", `${e.name} has been approved and moved into planning.`);
-        flash(`${e.name} approved.`);
-        patch({ tab: "venue" });
+        applyResult(startReview(e, actor), `Reviewing ${e.name}.`);
       },
       confirmEvent: (id) => {
         const e = getEvent(state.events, id);
@@ -525,25 +597,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const m = state.modal;
         if (!m) return;
         const text = (state.modalText || "").trim();
+        const e = getEvent(state.events, m.id);
+        if (!e) return;
+
+        // Review-workflow modals: the domain functions validate the text.
+        const now = new Date();
+        let done: boolean | null = null;
+        if (m.kind === "clarify" || m.kind === "amend") {
+          const kind = m.kind === "clarify" ? "clarification" : "amendment";
+          done = applyResult(
+            requestClarification(e, actor, { kind, message: text }, now),
+            `${kind === "clarification" ? "Clarification" : "Amendment"} request sent to ${e.organiser}.`,
+          );
+        } else if (m.kind === "approve") {
+          done = applyResult(approveRequest(e, actor, text, now), `${e.name} approved.`);
+          if (done) patch({ tab: "venue" });
+        } else if (m.kind === "reject") {
+          done = applyResult(rejectRequest(e, actor, text, now), `${e.name} rejected.`, "bad");
+        }
+        if (done !== null) {
+          if (done) patch({ modal: null, modalText: "" });
+          return;
+        }
+
         if (!text) {
           flash("Add a short note before sending.", "warn");
           return;
         }
-        const e = getEvent(state.events, m.id);
-        if (!e) return;
-        if (m.kind === "clarify") {
-          patchEvent(
-            m.id,
-            { status: "under_review", submittedAgo: "awaiting organiser reply" },
-            { title: "Clarification requested", body: text }
-          );
-          notify("organiser", "Clarification requested", `${e.name}: ${text}`);
-          flash(`Clarification sent to ${e.organiser}.`);
-        } else if (m.kind === "reject") {
-          patchEvent(m.id, { status: "rejected" }, { title: "Request rejected", body: text });
-          notify("organiser", "Request rejected", `${e.name}: ${text}`);
-          flash(`${e.name} rejected.`, "bad");
-        } else if (m.kind === "rejectBooking") {
+        if (m.kind === "rejectBooking") {
           patchEvent(m.id, { bookingState: "rejected", venue: null }, { title: "Venue booking rejected", body: text });
           notify("coordinator", "Venue booking rejected", `${e.name}: ${text}`);
           flash("Booking rejected. Coordinator notified.", "bad");
@@ -555,17 +636,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
         patch({ modal: null, modalText: "" });
       },
 
+      reloadVenues: async () => {
+        try {
+          applyVenues(await fetchVenues(state.role));
+        } catch (err) {
+          handleApiError(err);
+        }
+      },
+      saveVenue: async (id, input) => {
+        try {
+          const saved = venueFromApi(
+            await apiFetch<ApiVenue>(id ? `/venues/${id}` : "/venues", {
+              method: id ? "PUT" : "POST",
+              body: JSON.stringify(input),
+            }),
+          );
+          const before = state.venues;
+          const after = before.some((v) => v.id === saved.id)
+            ? before.map((v) => (v.id === saved.id ? saved : v))
+            : [...before, saved];
+          applyVenues(after);
+          return { ok: true, venue: saved, flagged: flagAffectedBookings(state.events, before, after) };
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 422) {
+            return { ok: false, error: err.message, fields: err.fields };
+          }
+          handleApiError(err);
+          return { ok: false, error: err instanceof Error ? err.message : "Something went wrong.", fields: {} };
+        }
+      },
+      setVenueActive: (id, active) => value.saveVenue(id, { is_active: active }),
+
       setVfCap: (cap) => patch((s) => ({ vf: { ...s.vf, cap } })),
       setVfLayout: (layout) => patch((s) => ({ vf: { ...s.vf, layout } })),
       toggleVfStepFree: () => patch((s) => ({ vf: { ...s.vf, stepFree: !s.vf.stepFree } })),
       requestBooking: (eventId, venueId) => {
         const e = getEvent(state.events, eventId);
-        const v = getVenue(venueId);
+        const v = getVenue(state.venues, venueId);
         if (!e || !v) return;
+        // Asking for a replacement keeps every other detail of the event (Week 7 change #2).
+        const previous = e.venue && e.venue !== venueId ? getVenue(state.venues, e.venue) : undefined;
         patchEvent(
           eventId,
           { venue: venueId, bookingState: "pending", status: e.status === "approved" ? "planning" : e.status },
-          { title: "Venue booking requested", body: `${v.name} requested for ${e.date}, ${e.start}–${e.end}.` }
+          {
+            title: previous ? "Replacement venue requested" : "Venue booking requested",
+            body: `${v.name} requested for ${e.date}, ${e.start}–${e.end}${previous ? `, replacing ${previous.name}` : ""}.`,
+          }
         );
         notify("venue", "Booking request pending", `${v.name} requested for ${e.name} on ${e.date}.`);
         flash(`Booking requested at ${v.name}.`);
@@ -573,8 +690,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       approveBooking: (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e || !e.venue) return;
-        const v = getVenue(e.venue);
+        const v = getVenue(state.venues, e.venue);
         if (!v) return;
+        // Conflicts include each venue's setup and turnaround time (Week 7 change #1).
+        const blocker = availabilityIssues(state.events, v, e, "approved").find((i) => i.level === "block");
+        if (blocker) {
+          flash(`Can't approve: ${blocker.text}`, "warn");
+          return;
+        }
         patchEvent(
           eventId,
           { bookingState: "approved", status: e.status === "approved" ? "planning" : e.status },
@@ -626,7 +749,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       submitDraft: (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
-        const form = formFromEvent(e);
+        const form = formFromEvent(e, state.venues);
         const result = submitEventRequest(eventRequestFromForm(form, EQUIP), new Date());
         if (!result.ok) {
           const validation = validateEventRequest(
@@ -665,7 +788,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const draft = eventId ? getEvent(state.events, eventId) : undefined;
         patch({
           step: 1,
-          form: draft ? formFromEvent(draft) : initialForm(),
+          form: draft ? formFromEvent(draft, state.venues) : initialForm(),
           formErrors: {},
           editingEventId: draft?.id ?? null,
         });
@@ -740,6 +863,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         router.push("/my-events");
       },
     };
+    return value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 

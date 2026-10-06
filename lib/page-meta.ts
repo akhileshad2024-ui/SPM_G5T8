@@ -1,9 +1,9 @@
-import { VENUES } from "./data";
-import type { EventRecord } from "./types";
+import { needsCoordinatorAction } from "./event-review/review";
+import type { EventRecord, Venue } from "./types";
 
 /** Title + subtitle shown in the top bar, per route. Some subtitles are data-dependent. */
-export function getPageMeta(pathname: string, events: EventRecord[]): { title: string; subtitle: string } {
-  const actionable = events.filter((e) => e.status === "submitted" || e.status === "under_review").length;
+export function getPageMeta(pathname: string, events: EventRecord[], venues: Venue[] = []): { title: string; subtitle: string } {
+  const actionable = events.filter(needsCoordinatorAction).length;
   const pendingBookings = events.filter((e) => e.bookingState === "pending").length;
 
   switch (true) {
@@ -18,7 +18,7 @@ export function getPageMeta(pathname: string, events: EventRecord[]): { title: s
     case pathname.startsWith("/bookings"):
       return { title: "Booking requests", subtitle: `${pendingBookings} requests pending · conflicts flagged automatically` };
     case pathname.startsWith("/catalogue"):
-      return { title: "Venue catalogue", subtitle: `${VENUES.length} venues, with layouts, facilities and accessibility` };
+      return { title: "Venue catalogue", subtitle: `${venues.filter((v) => v.isActive).length} active venues, with layouts, facilities, accessibility and setup times` };
     case pathname.startsWith("/equipment"):
       return { title: "Equipment", subtitle: "Availability is calculated against overlapping reservations" };
     case pathname.startsWith("/browse"):

@@ -11,7 +11,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:us03": "vitest run tests/unit/event-request/validation.unit.test.ts",
-    "test:us04": "vitest run tests/unit/event-request/submission.unit.test.ts"
+    "test:us04": "vitest run tests/unit/event-request/submission.unit.test.ts",
+    "test:us07": "vitest run tests/unit/event-review/review.unit.test.ts",
+    "test:us08": "vitest run tests/unit/event-review/clarification.unit.test.ts",
+    "test:us10": "vitest run tests/unit/event-review/decision.unit.test.ts",
+    "test:us11": "vitest run tests/unit/event-review/assignment.unit.test.ts"
   },
   "dependencies": {
     "next": "^15.1.0",

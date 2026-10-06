@@ -51,7 +51,7 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
             ) : e.status === "rejected" ? (
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={() => app.flash(e.activity[0]?.body || "No reason recorded.", "warn")}
+                onClick={() => app.flash(e.decision?.reason || e.activity[0]?.body || "No reason recorded.", "warn")}
               >
                 View reason
               </button>

@@ -1,8 +1,8 @@
 /**
  * Shared domain types for the ConnectSphere prototype.
  *
- * There is no backend: everything here describes the shape of the
- * in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
+ * Users and venues come from the FastAPI backend; everything else describes
+ * the in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
  */
 
 export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";
@@ -38,15 +38,55 @@ export interface Person {
   email: string;
 }
 
+export type UnavailabilityReason =
+  | "maintenance"
+  | "equipment_failure"
+  | "renovation"
+  | "safety"
+  | "internal_activity"
+  | "other";
+
+/** A period when a venue can't be used (Week 7 change #2). Times are local, "YYYY-MM-DDTHH:MM[:SS]". */
+export interface UnavailabilityPeriod {
+  start: string;
+  end: string;
+  reason: UnavailabilityReason;
+  note?: string | null;
+}
+
+/** A venue from the catalogue (backend /venues), with the id as a string to match `EventRecord.venue`. */
 export interface Venue {
   id: string;
   name: string;
   building: string;
   cap: number;
-  layouts: Layout[];
+  /** Lower case, matching `Layout` values ("banquet", "theatre", ...). */
+  layouts: string[];
   facilities: string[];
-  stepFree: boolean;
+  accessibility: string[];
+  /** "HH:MM - HH:MM", or null when not recorded. */
+  operatingHours: string | null;
+  /** Full day names, Monday first. */
+  operatingDays: string[];
+  unavailability: UnavailabilityPeriod[];
+  /** Minutes the room is occupied before / after every event (Week 7 change #1). */
+  setupMinutes: number;
+  turnaroundMinutes: number;
+  isActive: boolean;
+  lastUpdatedBy: string;
+  lastUpdatedAt: string;
 }
+
+/** The venue as the backend sends it. */
+export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy" | "lastUpdatedAt"> {
+  id: number;
+  is_active: boolean;
+  last_updated_by: string;
+  last_updated_at: string;
+}
+
+/** Body for POST /venues and PUT /venues/{id}. */
+export type VenueInput = Omit<Venue, "id" | "isActive" | "lastUpdatedBy" | "lastUpdatedAt">;
 
 export interface EquipmentCatalogueItem {
   id: string;
@@ -102,7 +142,45 @@ export interface EventRecord {
   submittedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
+  /** US08: the latest clarification / amendment request sent to the organiser. */
+  clarification?: ClarificationRequest;
+  /** US10: the coordinator's final review outcome, visible to the organiser. */
+  decision?: ReviewDecision;
 }
+
+/** The person performing a review action (taken from the session, never from input). */
+export interface Actor {
+  name: string;
+  role: Role;
+}
+
+export type ClarificationKind = "clarification" | "amendment";
+
+export interface ClarificationRequest {
+  kind: ClarificationKind;
+  message: string;
+  requestedBy: string;
+  requestedAt: string;
+}
+
+export interface ReviewDecision {
+  outcome: "approved" | "rejected";
+  by: string;
+  at: string;
+  /** Mandatory when rejected; optional note when approved. */
+  reason?: string;
+}
+
+/** A notification produced by a workflow step; the context adds id/when/read. */
+export type WorkflowNotification = Pick<NotificationRecord, "to" | "title" | "body">;
+
+/**
+ * Every review-workflow step either returns the updated event plus the
+ * notifications it triggers, or explains why the action is not allowed.
+ */
+export type WorkflowResult =
+  | { ok: true; event: EventRecord; notifications: WorkflowNotification[] }
+  | { ok: false; error: string };
 
 export interface NotificationRecord {
   id: number;
@@ -115,7 +193,13 @@ export interface NotificationRecord {
 
 export type ToastKind = "ok" | "warn" | "bad";
 
-export type ModalKind = "clarify" | "reject" | "rejectBooking" | "change";
+export type ModalKind =
+  | "clarify"
+  | "amend"
+  | "approve"
+  | "reject"
+  | "rejectBooking"
+  | "change";
 
 export interface ModalState {
   kind: ModalKind;
@@ -127,7 +211,7 @@ export interface ModalState {
   confirm: string;
 }
 
-export type QueueFilter = "action" | "mine" | "all";
+export type QueueFilter = "action" | "unassigned" | "mine" | "all";
 export type EventTab = "request" | "venue" | "equipment" | "registration" | "activity";
 
 export interface VenueFilter {
