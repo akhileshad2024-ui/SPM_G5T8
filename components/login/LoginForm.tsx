@@ -63,7 +63,11 @@ export function LoginForm() {
             placeholder="••••••••"
           />
         </div>
-        {error && <div className="callout callout-danger">{error}</div>}
+        {error ? (
+          <div className="callout callout-danger">{error}</div>
+        ) : (
+          app.state.signInNotice && <div className="callout callout-warn">{app.state.signInNotice}</div>
+        )}
         <button className={`btn btn-primary ${styles.submit}`} onClick={submit} disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>

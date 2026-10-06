@@ -25,6 +25,7 @@ import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
 import { eventRequestFromForm } from "./event-request/form-adapter";
 import { submitEventRequest } from "./event-request/submission";
 import { validateEventRequest } from "./event-request/validation";
+import { IDLE_TIMEOUT_MS, useIdleSignOut } from "./idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
   AuthUser,
@@ -112,6 +113,8 @@ interface AppState {
   authChecked: boolean;
   authed: boolean;
   user: AuthUser | null;
+  /** Why the user was signed out (idle / expired), shown on the sign-in screen. */
+  signInNotice: string | null;
   role: Role;
   events: EventRecord[];
   notifs: ReturnType<typeof seedNotifs>;
@@ -182,6 +185,7 @@ function initialState(): AppState {
     authChecked: false,
     authed: false,
     user: null,
+    signInNotice: null,
     role: "coordinator",
     events: seedEvents(),
     notifs: seedNotifs(),
@@ -320,15 +324,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
 
   const startSession = (user: AuthUser) =>
-    patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role });
+    patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role, signInNotice: null });
 
-  const endSession = () => patch({ ...sessionUiState(), authChecked: true, authed: false, user: null });
+  const endSession = (signInNotice: string | null = null) =>
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, signInNotice });
+
+  const expireSession = () => {
+    endSession("Your session has expired. Please sign in again.");
+    router.push("/login");
+  };
 
   // Restore an existing session (the cookie survives reloads; in-memory state doesn't).
   useEffect(() => {
-    apiFetch<AuthUser>("/auth/me").then(startSession, endSession);
+    apiFetch<AuthUser>("/auth/me").then(startSession, () => endSession());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useIdleSignOut(
+    state.authed,
+    () => {
+      // Only this browser: being idle here shouldn't sign the user out on their other devices.
+      apiFetch("/auth/logout?all_sessions=false", { method: "POST" }).catch(() => {});
+      endSession(`You were signed out after ${IDLE_TIMEOUT_MS / 60000} minutes of inactivity.`);
+      router.push("/login");
+    },
+    (err) => {
+      if (err instanceof ApiError && err.status === 401) expireSession();
+    },
+  );
 
   const api = useMemo<AppApi>(() => {
     const me = state.user
@@ -431,9 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       handleApiError: (err) => {
         if (err instanceof ApiError && err.status === 401) {
-          endSession();
-          flash("Your session has expired. Please sign in again.", "warn");
-          router.push("/login");
+          expireSession();
         } else if (err instanceof ApiError && err.status === 403) {
           flash("You don't have permission to do that.", "bad");
         } else {

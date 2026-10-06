@@ -26,7 +26,12 @@ backend/login/
 
 - Passwords are stored only as Argon2id hashes — never in plain text.
 - Signing in sets a signed session token in an `HttpOnly`, `SameSite=Lax`
-  cookie, so page scripts can't read it. Sessions last 8 hours.
+  cookie, so page scripts can't read it.
+- 30 minutes without activity signs you out (`SESSION_IDLE_MINUTES`): the
+  backend renews the session on every signed-in request, and the frontend
+  tracks clicks/typing/scrolling across tabs, keeps the session alive while
+  you're active, and returns you to the sign-in page once you've been idle.
+  A session never lasts more than 8 hours from sign-in (`SESSION_HOURS`).
 - Signing out (or changing your password) revokes the session on the server,
   so a copied cookie stops working.
 - A wrong password and an unknown email get the same error, so the login can't

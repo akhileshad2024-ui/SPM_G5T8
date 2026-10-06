@@ -28,6 +28,9 @@ if len(JWT_SECRET) < 32 or JWT_SECRET == "CHANGE_ME":
     )
 
 JWT_ALGORITHM = "HS256"
+# A session ends after SESSION_IDLE_MINUTES without an authenticated request (each one
+# slides the window forward), and never lasts longer than SESSION_HOURS from sign-in.
+SESSION_IDLE_MINUTES = int(os.getenv("SESSION_IDLE_MINUTES", "30"))
 SESSION_HOURS = int(os.getenv("SESSION_HOURS", "8"))
 COOKIE_NAME = "cs_session"
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
@@ -63,13 +66,16 @@ def burn_password_check(password: str) -> None:
 
 # ---------------------------------------------------------------- sessions
 
-def create_session_token(user: models.User) -> str:
+def create_session_token(user: models.User, started_at: datetime | None = None) -> str:
+    """`started_at` is when the user signed in; pass it when renewing so the absolute cap holds."""
     now = datetime.now(timezone.utc)
+    started_at = started_at or now
     payload = {
         "sub": str(user.id),
         "ver": user.session_version,
         "iat": now,
-        "exp": now + timedelta(hours=SESSION_HOURS),
+        "start": int(started_at.timestamp()),
+        "exp": min(now + timedelta(minutes=SESSION_IDLE_MINUTES), started_at + timedelta(hours=SESSION_HOURS)),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -90,8 +96,8 @@ def clear_session_cookie(response: Response) -> None:
     response.delete_cookie(COOKIE_NAME, path="/", httponly=True, secure=COOKIE_SECURE, samesite="lax")
 
 
-def user_from_request(request: Request, db: Session) -> models.User | None:
-    """The signed-in user, or None if the cookie is missing, invalid, expired or revoked."""
+def _session_from_request(request: Request, db: Session) -> tuple[models.User, datetime] | None:
+    """The signed-in user and their sign-in time, or None if the cookie is missing, invalid, expired or revoked."""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         return None
@@ -100,21 +106,31 @@ def user_from_request(request: Request, db: Session) -> models.User | None:
             token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["sub", "ver", "exp"]}
         )
         user_id = int(payload["sub"])
-    except (jwt.PyJWTError, ValueError):
+        started_at = datetime.fromtimestamp(int(payload.get("start", payload["iat"])), timezone.utc)
+    except (jwt.PyJWTError, KeyError, ValueError):
         return None
 
     user = db.get(models.User, user_id)
     if user is None or not user.is_active or user.session_version != payload["ver"]:
         return None
-    return user
+    return user, started_at
+
+
+def user_from_request(request: Request, db: Session) -> models.User | None:
+    """The signed-in user, or None if the cookie is missing, invalid, expired or revoked."""
+    session = _session_from_request(request, db)
+    return session[0] if session else None
 
 
 # ---------------------------------------------------------------- dependencies
 
-def get_current_user(request: Request, db: Session = Depends(get_db)) -> models.User:
-    user = user_from_request(request, db)
-    if user is None:
+def get_current_user(request: Request, response: Response, db: Session = Depends(get_db)) -> models.User:
+    session = _session_from_request(request, db)
+    if session is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not signed in")
+    user, started_at = session
+    # Activity: renew the idle window (the absolute cap from sign-in still applies).
+    set_session_cookie(response, create_session_token(user, started_at))
     return user
 
 
