@@ -1,7 +1,7 @@
 /**
  * US01 — AC4 (frontend): the session is terminated after 30 minutes of inactivity.
  *
- * Unit tests for startIdleTracker (lib/idle-timeout.ts), with fake timers and an
+ * Unit tests for startIdleTracker (lib/auth/idle-timeout.ts), with fake timers and an
  * in-memory activity store instead of the browser's window/document/localStorage.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +13,7 @@ import {
   STORAGE_KEY,
   startIdleTracker,
   type ActivityStore,
-} from "../../lib/idle-timeout";
+} from "../../lib/auth/idle-timeout";
 
 const MINUTE = 60 * 1000;
 

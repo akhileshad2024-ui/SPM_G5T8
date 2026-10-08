@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { reviewQueue } from "@/lib/event-visibility";
+import { useApp } from "@/lib/state/app-context";
+import { reviewQueue } from "@/lib/events/visibility";
 import { QueueList } from "@/components/queue/QueueList";
 import { EventWorkspace } from "@/components/queue/EventWorkspace";
 

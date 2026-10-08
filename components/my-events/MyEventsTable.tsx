@@ -1,8 +1,8 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { StatusPill } from "@/components/ui/Pill";
-import { canDirectlyEditEventRequest } from "@/lib/event-request/submission";
+import { canDirectlyEditEventRequest } from "@/lib/events/request/submission";
 import type { EventRecord } from "@/lib/types";
 import styles from "./MyEventsTable.module.css";
 

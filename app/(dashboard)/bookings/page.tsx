@@ -1,9 +1,9 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { AvailabilityCalendar } from "@/components/bookings/AvailabilityCalendar";
 import { BookingRequestCard } from "@/components/bookings/BookingRequestCard";
-import { bookingProblems } from "@/lib/venue-rules";
+import { bookingProblems } from "@/lib/venues/rules";
 
 export default function BookingsPage() {
   const app = useApp();

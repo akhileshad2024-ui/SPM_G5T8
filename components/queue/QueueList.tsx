@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord } from "@/lib/types";
 import styles from "./QueueList.module.css";

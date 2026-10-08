@@ -1,4 +1,4 @@
-import type { Actor, EventRecord, WorkflowResult } from "../types";
+import type { Actor, EventRecord, WorkflowResult } from "../../types";
 import { fail, noteError, reviewDecisionError, withChanges } from "./shared";
 
 /** A rejection reason has to be specific enough for the organiser to act on. */

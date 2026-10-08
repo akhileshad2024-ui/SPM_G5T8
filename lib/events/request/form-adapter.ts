@@ -2,7 +2,7 @@ import type {
   EquipmentCatalogueItem,
   EventRequestDraft,
   NewRequestForm,
-} from "../types";
+} from "../../types";
 
 /**
  * Converts the strings used by HTML form inputs into the domain data that

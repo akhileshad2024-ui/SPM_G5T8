@@ -1,11 +1,8 @@
-import type {
-  EventRecord,
-  EquipmentCatalogueItem,
-  Layout,
-  NotificationRecord,
-  Person,
-  Role,
-} from "./types";
+/**
+ * Demo data: the sample people, events and notifications the app starts with.
+ * Events are being moved to the backend (POST /events); the rest is still in memory.
+ */
+import type { EventRecord, NotificationRecord, Person, Role } from "../types";
 
 export const PEOPLE: Record<Role, Person> = {
   organiser: { person: "Maya Rahman", label: "Event Organiser", email: "maya.rahman@connectsphere.edu" },
@@ -13,19 +10,6 @@ export const PEOPLE: Record<Role, Person> = {
   venue: { person: "Daniel Ortiz", label: "Venue Staff", email: "daniel.ortiz@connectsphere.edu" },
   tech: { person: "Wei Lim", label: "Technical Support", email: "wei.lim@connectsphere.edu" },
   attendee: { person: "Sam Adeyemi", label: "Attendee", email: "sam.adeyemi@student.connectsphere.edu" },
-};
-
-export const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
-  draft: { label: "Draft", bg: "#EFF0F5", fg: "#4A5169" },
-  submitted: { label: "Submitted", bg: "#E7EEFF", fg: "#0A33FF" },
-  under_review: { label: "Under review", bg: "#FFF6DB", fg: "#7A5C00" },
-  pending_clarification: { label: "Pending clarification", bg: "#FFF6DB", fg: "#7A5C00" },
-  approved: { label: "Approved", bg: "#E0F7F4", fg: "#006B60" },
-  planning: { label: "Planning", bg: "#EAF3FF", fg: "#0B5D96" },
-  confirmed: { label: "Confirmed", bg: "#0A0E1A", fg: "#FFFFFF" },
-  completed: { label: "Completed", bg: "#EFF0F5", fg: "#4A5169" },
-  rejected: { label: "Rejected", bg: "#FFE8EA", fg: "#A00E1C" },
-  cancelled: { label: "Cancelled", bg: "#EFF0F5", fg: "#4A5169" },
 };
 
 /**
@@ -47,66 +31,6 @@ export const SEED_VENUE_NAMES: Record<string, string> = {
   V4: "Seminar Room 4-2",
   V5: "Innovation Studio",
 };
-
-export const EQUIP: EquipmentCatalogueItem[] = [
-  { id: "E1", name: "Wireless microphone", total: 12 },
-  { id: "E2", name: "Projector", total: 6 },
-  { id: "E3", name: "PA system", total: 4 },
-  { id: "E4", name: "Stage lighting rig", total: 2 },
-  { id: "E5", name: "Live-stream kit", total: 3 },
-];
-
-export const FACILITY_OPTIONS = ["Stage", "PA system", "Projector", "Hearing loop", "Whiteboard", "Natural light"];
-export const ACCESS_OPTIONS = ["Step-free access", "Hearing loop", "Accessible restrooms", "Reserved seating"];
-/** Venue catalogue choices use the same words as event requests, so suitability checks can match them. */
-export const VENUE_FACILITY_OPTIONS = [...FACILITY_OPTIONS, "Microphone", "Video conferencing", "Wi-Fi"];
-export const LAYOUT_OPTIONS: Layout[] = ["banquet", "theatre", "standing", "boardroom", "classroom"];
-
-/** Route each role lands on immediately after signing in. */
-export const DEFAULT_ROUTE: Record<Role, string> = {
-  organiser: "/my-events",
-  coordinator: "/queue",
-  venue: "/bookings",
-  tech: "/equipment",
-  attendee: "/browse",
-};
-
-/** Sidebar navigation, per role: [route, label]. */
-export const NAV_FOR: Record<Role, Array<[string, string]>> = {
-  organiser: [
-    ["/my-events", "My events"],
-    ["/new-request", "New request"],
-  ],
-  coordinator: [
-    ["/queue", "Review queue"],
-    ["/board", "Pipeline"],
-  ],
-  venue: [
-    ["/bookings", "Booking requests"],
-    ["/catalogue", "Venue catalogue"],
-  ],
-  tech: [["/equipment", "Equipment"]],
-  attendee: [["/browse", "Browse events"]],
-};
-
-/**
- * Client-side route guard: a role may only open the pages in its own nav.
- * This only hides UI — the backend enforces the real permissions.
- */
-export function canAccessRoute(role: Role, pathname: string): boolean {
-  return NAV_FOR[role].some(([route]) => pathname === route || pathname.startsWith(`${route}/`));
-}
-
-export const NO_PAGE_PERMISSION = "You don't have permission to view that page.";
-
-/**
- * Where to send a signed-in user who opened `pathname`, and the authorisation
- * error to show them (US02); null when they may stay on the page.
- */
-export function routeRedirect(role: Role, pathname: string): { to: string; message: string } | null {
-  if (canAccessRoute(role, pathname)) return null;
-  return { to: DEFAULT_ROUTE[role], message: NO_PAGE_PERMISSION };
-}
 
 export function seedEvents(): EventRecord[] {
   return [

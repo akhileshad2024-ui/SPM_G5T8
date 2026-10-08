@@ -2,7 +2,7 @@
  * Shared domain types for the ConnectSphere prototype.
  *
  * Users and venues come from the FastAPI backend; everything else describes
- * the in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
+ * the in-memory data held in `AppProvider` (see `lib/state/app-context.tsx`).
  */
 
 export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";

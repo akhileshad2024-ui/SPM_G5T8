@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ApiError, apiFetch } from "@/lib/api";
-import { useApp } from "@/lib/app-context";
+import { ApiError, apiFetch } from "@/lib/api/client";
+import { useApp } from "@/lib/state/app-context";
 
 /** Must match MIN_PASSWORD_LENGTH in backend/schemas.py. */
 const MIN_PASSWORD_LENGTH = 8;

@@ -3,7 +3,7 @@ import type {
   ClarificationKind,
   EventRecord,
   WorkflowResult,
-} from "../types";
+} from "../../types";
 import { fail, noteError, reviewDecisionError, withChanges } from "./shared";
 
 const KIND_LABEL: Record<ClarificationKind, string> = {

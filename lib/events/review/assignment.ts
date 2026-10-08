@@ -1,4 +1,4 @@
-import type { Actor, EventRecord, EventStatus, WorkflowResult } from "../types";
+import type { Actor, EventRecord, EventStatus, WorkflowResult } from "../../types";
 import { fail, isCoordinator, withChanges } from "./shared";
 
 /**

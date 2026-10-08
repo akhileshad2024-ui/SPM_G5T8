@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { apiFetch } from "./api";
+import { apiFetch } from "../api/client";
 
 /** Keep in sync with SESSION_IDLE_MINUTES in backend/.env. */
 export const IDLE_TIMEOUT_MS = 30 * 60 * 1000;

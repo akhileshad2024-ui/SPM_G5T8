@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import styles from "./LoginForm.module.css";
 
 /** Right-hand sign-in panel: email/password form. */

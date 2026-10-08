@@ -1,7 +1,7 @@
 import type {
   EventRequestDraft,
   SubmissionResult,
-} from "../types";
+} from "../../types";
 import { validateEventRequest } from "./validation";
 
 /**

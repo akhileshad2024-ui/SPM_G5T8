@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 
 export function StepBasics() {
   const app = useApp();

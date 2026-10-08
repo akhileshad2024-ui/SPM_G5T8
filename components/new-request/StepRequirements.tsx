@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { ACCESS_OPTIONS, EQUIP, FACILITY_OPTIONS } from "@/lib/data";
+import { useApp } from "@/lib/state/app-context";
+import { ACCESS_OPTIONS, EQUIP, FACILITY_OPTIONS } from "@/lib/data/options";
 import type { Layout } from "@/lib/types";
 import styles from "./StepRequirements.module.css";
 

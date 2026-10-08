@@ -7,7 +7,7 @@
  * Week 7 change #2: a venue can be unavailable for a period with a reason;
  * bookings caught by that are flagged, never removed.
  */
-import type { ApiVenue, EventRecord, UnavailabilityReason, Venue } from "./types";
+import type { ApiVenue, EventRecord, UnavailabilityReason, Venue } from "../types";
 
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 

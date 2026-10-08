@@ -1,4 +1,4 @@
-import type { Actor, EventRecord, WorkflowResult } from "../types";
+import type { Actor, EventRecord, WorkflowResult } from "../../types";
 
 /** Upper bound for any free-text note so one message can't flood the activity log. */
 export const MAX_NOTE_LENGTH = 1000;

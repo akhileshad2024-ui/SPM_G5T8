@@ -3,8 +3,8 @@ import {
   MIN_REJECTION_REASON_LENGTH,
   approveRequest,
   rejectRequest,
-} from "../../../lib/event-review/decision";
-import { MAX_NOTE_LENGTH } from "../../../lib/event-review/shared";
+} from "../../../lib/events/review/decision";
+import { MAX_NOTE_LENGTH } from "../../../lib/events/review/shared";
 import {
   COORDINATOR,
   NOW,

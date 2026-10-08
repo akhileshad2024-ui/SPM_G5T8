@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useApp } from "@/lib/app-context";
-import { canAccessRoute, routeRedirect } from "@/lib/data";
+import { useApp } from "@/lib/state/app-context";
+import { canAccessRoute, routeRedirect } from "@/lib/auth/route-access";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Modal } from "@/components/Modal";

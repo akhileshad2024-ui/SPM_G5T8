@@ -21,18 +21,20 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ApiError, apiFetch } from "./api";
-import { COORDINATORS, DEFAULT_ROUTE, EQUIP, PEOPLE, SEED_VENUE_NAMES, seedEvents, seedNotifs } from "./data";
-import { eventRequestFromForm } from "./event-request/form-adapter";
-import { submitEventRequest } from "./event-request/submission";
-import { validateEventRequest } from "./event-request/validation";
-import { assignCoordinator } from "./event-review/assignment";
-import { requestClarification } from "./event-review/clarification";
-import { approveRequest, rejectRequest } from "./event-review/decision";
-import { startReview } from "./event-review/review";
-import { IDLE_TIMEOUT_MS, useIdleSignOut } from "./idle-timeout";
-import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
-import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "./venue-rules";
+import { ApiError, apiFetch } from "../api/client";
+import { COORDINATORS, PEOPLE, SEED_VENUE_NAMES, seedEvents, seedNotifs } from "../data/seed";
+import { DEFAULT_ROUTE } from "../auth/route-access";
+import { EQUIP } from "../data/options";
+import { eventRequestFromForm } from "../events/request/form-adapter";
+import { submitEventRequest } from "../events/request/submission";
+import { validateEventRequest } from "../events/request/validation";
+import { assignCoordinator } from "../events/review/assignment";
+import { requestClarification } from "../events/review/clarification";
+import { approveRequest, rejectRequest } from "../events/review/decision";
+import { startReview } from "../events/review/review";
+import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
+import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "../selectors";
+import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import type {
   ApiVenue,
   AuthUser,
@@ -49,7 +51,7 @@ import type {
   VenueFilter,
   WorkflowResult,
   VenueInput,
-} from "./types";
+} from "../types";
 
 const BASIC_FIELDS = new Set([
   "name",
@@ -368,7 +370,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
 
   /**
-   * Commits the outcome of a review-workflow step (see lib/event-review):
+   * Commits the outcome of a review-workflow step (see lib/events/review):
    * stores the updated event, sends its notifications, and tells the user.
    * Returns false when the step was refused, after flashing the reason.
    */

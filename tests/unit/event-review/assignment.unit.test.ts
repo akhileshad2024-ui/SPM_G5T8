@@ -3,9 +3,9 @@ import {
   ASSIGNABLE_STATUSES,
   assignCoordinator,
   canAssignCoordinator,
-} from "../../../lib/event-review/assignment";
-import { approveRequest } from "../../../lib/event-review/decision";
-import { startReview } from "../../../lib/event-review/review";
+} from "../../../lib/events/review/assignment";
+import { approveRequest } from "../../../lib/events/review/decision";
+import { startReview } from "../../../lib/events/review/review";
 import type { EventStatus } from "../../../lib/types";
 import { COORDINATOR, NOW, ORGANISER, ROSTER, createEvent } from "./fixtures";
 

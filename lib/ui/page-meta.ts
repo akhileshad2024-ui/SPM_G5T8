@@ -1,5 +1,5 @@
-import { needsCoordinatorAction } from "./event-review/review";
-import type { EventRecord, Venue } from "./types";
+import { needsCoordinatorAction } from "../events/review/review";
+import type { EventRecord, Venue } from "../types";
 
 /** Title + subtitle shown in the top bar, per route. Some subtitles are data-dependent. */
 export function getPageMeta(pathname: string, events: EventRecord[], venues: Venue[] = []): { title: string; subtitle: string } {

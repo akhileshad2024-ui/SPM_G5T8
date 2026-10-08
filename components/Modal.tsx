@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 
 /** The single shared confirm/reason dialog used by review, booking, and change-request actions. */
 export function Modal() {

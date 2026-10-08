@@ -6,7 +6,7 @@ import {
   reviewChecks,
   reviewQueue,
   startReview,
-} from "../../../lib/event-review/review";
+} from "../../../lib/events/review/review";
 import type { EventStatus } from "../../../lib/types";
 import { COORDINATOR, ORGANISER, createEvent } from "./fixtures";
 

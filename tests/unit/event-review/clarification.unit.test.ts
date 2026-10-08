@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { requestClarification } from "../../../lib/event-review/clarification";
-import { approveRequest, rejectRequest } from "../../../lib/event-review/decision";
-import { MAX_NOTE_LENGTH } from "../../../lib/event-review/shared";
+import { requestClarification } from "../../../lib/events/review/clarification";
+import { approveRequest, rejectRequest } from "../../../lib/events/review/decision";
+import { MAX_NOTE_LENGTH } from "../../../lib/events/review/shared";
 import type { EventStatus } from "../../../lib/types";
 import {
   COORDINATOR,

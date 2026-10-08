@@ -3,7 +3,7 @@ US01 — AC4: the user's session is terminated automatically after 30 minutes of
 
 The backend issues sessions that expire 30 minutes after the last request and
 renews them on every authenticated request (sliding expiry), up to 8 hours after
-sign-in. The frontend (lib/idle-timeout.ts) signs the user out after 30 idle
+sign-in. The frontend (lib/auth/idle-timeout.ts) signs the user out after 30 idle
 minutes and renews the session every 5 minutes while they are active.
 """
 
@@ -119,8 +119,8 @@ def test_token_without_sign_in_time_is_rejected():
 
 
 def test_frontend_idle_timeout_matches_backend():
-    """lib/idle-timeout.ts must sign out after the same number of minutes."""
+    """lib/auth/idle-timeout.ts must sign out after the same number of minutes."""
     project_root = Path(security.__file__).resolve().parents[2]
-    text = (project_root / "lib" / "idle-timeout.ts").read_text(encoding="utf-8")
+    text = (project_root / "lib" / "auth" / "idle-timeout.ts").read_text(encoding="utf-8")
 
     assert f"IDLE_TIMEOUT_MS = {security.SESSION_IDLE_MINUTES} * 60 * 1000" in text

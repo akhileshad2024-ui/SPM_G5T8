@@ -1,0 +1,28 @@
+import type { EquipmentCatalogueItem, Layout } from "../types";
+
+export const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
+  draft: { label: "Draft", bg: "#EFF0F5", fg: "#4A5169" },
+  submitted: { label: "Submitted", bg: "#E7EEFF", fg: "#0A33FF" },
+  under_review: { label: "Under review", bg: "#FFF6DB", fg: "#7A5C00" },
+  pending_clarification: { label: "Pending clarification", bg: "#FFF6DB", fg: "#7A5C00" },
+  approved: { label: "Approved", bg: "#E0F7F4", fg: "#006B60" },
+  planning: { label: "Planning", bg: "#EAF3FF", fg: "#0B5D96" },
+  confirmed: { label: "Confirmed", bg: "#0A0E1A", fg: "#FFFFFF" },
+  completed: { label: "Completed", bg: "#EFF0F5", fg: "#4A5169" },
+  rejected: { label: "Rejected", bg: "#FFE8EA", fg: "#A00E1C" },
+  cancelled: { label: "Cancelled", bg: "#EFF0F5", fg: "#4A5169" },
+};
+
+export const EQUIP: EquipmentCatalogueItem[] = [
+  { id: "E1", name: "Wireless microphone", total: 12 },
+  { id: "E2", name: "Projector", total: 6 },
+  { id: "E3", name: "PA system", total: 4 },
+  { id: "E4", name: "Stage lighting rig", total: 2 },
+  { id: "E5", name: "Live-stream kit", total: 3 },
+];
+
+export const FACILITY_OPTIONS = ["Stage", "PA system", "Projector", "Hearing loop", "Whiteboard", "Natural light"];
+export const ACCESS_OPTIONS = ["Step-free access", "Hearing loop", "Accessible restrooms", "Reserved seating"];
+/** Venue catalogue choices use the same words as event requests, so suitability checks can match them. */
+export const VENUE_FACILITY_OPTIONS = [...FACILITY_OPTIONS, "Microphone", "Video conferencing", "Wi-Fi"];
+export const LAYOUT_OPTIONS: Layout[] = ["banquet", "theatre", "standing", "boardroom", "classroom"];

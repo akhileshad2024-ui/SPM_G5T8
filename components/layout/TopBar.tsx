@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useApp } from "@/lib/app-context";
-import { getPageMeta } from "@/lib/page-meta";
+import { useApp } from "@/lib/state/app-context";
+import { getPageMeta } from "@/lib/ui/page-meta";
 import { NotificationsPanel } from "./NotificationsPanel";
 import styles from "./TopBar.module.css";
 

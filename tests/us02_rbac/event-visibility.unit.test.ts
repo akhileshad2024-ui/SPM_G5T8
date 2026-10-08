@@ -1,11 +1,11 @@
 /**
  * US02 — "can view only the events they are associated with or authorised to see".
  *
- * Unit tests for the per-role event lists in lib/event-visibility.ts, using the seed data.
+ * Unit tests for the per-role event lists in lib/events/visibility.ts, using the seed data.
  */
 import { describe, expect, it } from "vitest";
-import { seedEvents } from "../../lib/data";
-import { organiserEvents, publishedEvents, reviewQueue } from "../../lib/event-visibility";
+import { seedEvents } from "../../lib/data/seed";
+import { organiserEvents, publishedEvents, reviewQueue } from "../../lib/events/visibility";
 import type { EventRecord } from "../../lib/types";
 
 const events = seedEvents();

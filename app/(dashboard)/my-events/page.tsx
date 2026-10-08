@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { organiserEvents } from "@/lib/event-visibility";
+import { useApp } from "@/lib/state/app-context";
+import { organiserEvents } from "@/lib/events/visibility";
 import { MyEventsTable } from "@/components/my-events/MyEventsTable";
 
 export default function MyEventsPage() {

@@ -1,4 +1,4 @@
-import type { EventRequestDraft, ValidationResult } from "../types";
+import type { EventRequestDraft, ValidationResult } from "../../types";
 
 /** Returns true when a text field is empty or contains spaces only. */
 function isBlank(value: string): boolean {

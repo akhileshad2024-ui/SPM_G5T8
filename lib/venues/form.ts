@@ -3,8 +3,8 @@
  * the API body. Pure functions so they can be unit tested; the backend applies
  * the same rules again (backend/schemas.py).
  */
-import type { UnavailabilityPeriod, Venue, VenueInput } from "./types";
-import { WEEKDAYS, parseDateTime, parseOperatingHours } from "./venue-rules";
+import type { UnavailabilityPeriod, Venue, VenueInput } from "../types";
+import { WEEKDAYS, parseDateTime, parseOperatingHours } from "./rules";
 
 export const MAX_BUFFER_MINUTES = 24 * 60;
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { publishedEvents } from "@/lib/event-visibility";
+import { useApp } from "@/lib/state/app-context";
+import { publishedEvents } from "@/lib/events/visibility";
 import { PublicEventCard } from "@/components/browse/PublicEventCard";
 
 export default function BrowsePage() {

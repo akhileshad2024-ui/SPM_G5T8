@@ -3,9 +3,9 @@
  * Kept separate from `app-context.tsx` so they can be unit tested or
  * reused without pulling in React.
  */
-import { EQUIP } from "./data";
+import { EQUIP } from "./data/options";
 import type { EventRecord, Venue } from "./types";
-import { availabilityIssues, hasStepFreeAccess, venueHas } from "./venue-rules";
+import { availabilityIssues, hasStepFreeAccess, venueHas } from "./venues/rules";
 
 export function getEvent(events: EventRecord[], id: string | null | undefined): EventRecord | undefined {
   return events.find((e) => e.id === id);

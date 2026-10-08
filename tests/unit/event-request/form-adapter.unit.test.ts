@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventRequestFromForm } from "../../../lib/event-request/form-adapter";
+import { eventRequestFromForm } from "../../../lib/events/request/form-adapter";
 import type { NewRequestForm } from "../../../lib/types";
 
 const EQUIPMENT = [

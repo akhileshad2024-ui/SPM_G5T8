@@ -6,7 +6,7 @@ reservation, and registration, with a different view per role.
 
 Sign-in and the venue catalogue are served by a FastAPI backend (`backend/`)
 on Supabase Postgres. The rest of the data is still seeded in memory on load
-(see `lib/data.ts`) and lives in a single React context (`lib/app-context.tsx`)
+(see `lib/data/seed.ts`) and lives in a single React context (`lib/state/app-context.tsx`)
 — reloading the page resets it (but keeps you signed in).
 
 ## Login & role-based access control (RBAC)
@@ -55,7 +55,7 @@ backend/login/
 | Attendee | `/browse` | Browse events |
 
 Opening any other page redirects to the role's home page; signed-out users are
-sent to `/login`. This is `canAccessRoute` in `lib/data.ts`, driven by
+sent to `/login`. This is `canAccessRoute` in `lib/auth/route-access.ts`, driven by
 `NAV_FOR`.
 
 **Backend role checks**
@@ -92,7 +92,7 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 - A booking occupies its venue from *start − setup* to *end + turnaround*
   (e.g. 10:00–12:00 with 30 + 45 min occupies 09:30–12:45). This window is used
   for suitability, the availability calendar and conflict detection
-  (`lib/venue-rules.ts`). Venue Staff can't approve a booking that clashes.
+  (`lib/venues/rules.ts`). Venue Staff can't approve a booking that clashes.
 - When a venue edit (longer setup/turnaround, a new unavailable period,
   deactivation) puts existing bookings in trouble, they are **kept** and
   flagged: the coordinator gets a notification, the event's activity log and

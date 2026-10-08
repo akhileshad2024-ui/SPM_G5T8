@@ -1,12 +1,12 @@
 /**
  * US02 — "can perform only the actions permitted for their assigned role".
  *
- * Unit tests for the page-level access rules in lib/data.ts: which pages each
+ * Unit tests for the page-level access rules in lib/auth/route-access.ts: which pages each
  * role sees in the sidebar (NAV_FOR), where they land (DEFAULT_ROUTE), and
  * which URLs the client-side guard lets them open (canAccessRoute).
  */
 import { describe, expect, it } from "vitest";
-import { canAccessRoute, DEFAULT_ROUTE, NAV_FOR, NO_PAGE_PERMISSION, routeRedirect } from "../../lib/data";
+import { canAccessRoute, DEFAULT_ROUTE, NAV_FOR, NO_PAGE_PERMISSION, routeRedirect } from "../../lib/auth/route-access";
 import type { Role } from "../../lib/types";
 
 const ROLES: Role[] = ["organiser", "coordinator", "venue", "tech", "attendee"];

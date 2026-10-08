@@ -13,12 +13,12 @@ Boundary / edge-case tests carry a `-Bnn` suffix (e.g. `US10-AC2-B01`).
 
 | Story | Code | Tests |
 |---|---|---|
-| US07 | `lib/event-review/review.ts` | `tests/unit/event-review/review.unit.test.ts` |
-| US08 | `lib/event-review/clarification.ts` | `tests/unit/event-review/clarification.unit.test.ts` |
-| US10 | `lib/event-review/decision.ts` | `tests/unit/event-review/decision.unit.test.ts` |
-| US11 | `lib/event-review/assignment.ts` | `tests/unit/event-review/assignment.unit.test.ts` |
+| US07 | `lib/events/review/review.ts` | `tests/unit/event-review/review.unit.test.ts` |
+| US08 | `lib/events/review/clarification.ts` | `tests/unit/event-review/clarification.unit.test.ts` |
+| US10 | `lib/events/review/decision.ts` | `tests/unit/event-review/decision.unit.test.ts` |
+| US11 | `lib/events/review/assignment.ts` | `tests/unit/event-review/assignment.unit.test.ts` |
 
-Shared rules live in `lib/event-review/shared.ts`; `lib/app-context.tsx` only
+Shared rules live in `lib/events/review/shared.ts`; `lib/state/app-context.tsx` only
 applies each function's result (saves the event, sends notifications).
 
 ## Status flow

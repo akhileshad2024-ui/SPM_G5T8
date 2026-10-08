@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { NAV_FOR } from "@/lib/data";
-import { useApp } from "@/lib/app-context";
-import { needsCoordinatorAction } from "@/lib/event-review/review";
+import { NAV_FOR } from "@/lib/auth/route-access";
+import { useApp } from "@/lib/state/app-context";
+import { needsCoordinatorAction } from "@/lib/events/review/review";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import styles from "./Sidebar.module.css";
 

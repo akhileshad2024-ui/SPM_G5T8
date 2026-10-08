@@ -5,7 +5,7 @@ import type {
   QueueFilter,
   Role,
   WorkflowResult,
-} from "../types";
+} from "../../types";
 import { fail, isCoordinator, withChanges } from "./shared";
 
 /** Statuses that are still going through coordinator review (US07). */

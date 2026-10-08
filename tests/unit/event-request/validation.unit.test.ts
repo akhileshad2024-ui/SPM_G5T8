@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateEventRequest } from "../../../lib/event-request/validation";
+import { validateEventRequest } from "../../../lib/events/request/validation";
 import type { EventRequestDraft } from "../../../lib/types";
 
 const TODAY = "2030-05-10";

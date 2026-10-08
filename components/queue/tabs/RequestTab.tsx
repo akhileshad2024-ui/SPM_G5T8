@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/app-context";
-import { COORDINATORS } from "@/lib/data";
-import { canAssignCoordinator } from "@/lib/event-review/assignment";
-import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/event-review/review";
+import { useApp } from "@/lib/state/app-context";
+import { COORDINATORS } from "@/lib/data/seed";
+import { canAssignCoordinator } from "@/lib/events/review/assignment";
+import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";

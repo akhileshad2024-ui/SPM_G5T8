@@ -54,8 +54,8 @@ STORY_DIRS = {
 
 # Frontend files each story's Vitest unit tests are meant to cover.
 STORY_FRONTEND = {
-    "us01": ["lib/idle-timeout.ts"],
-    "us02": ["lib/data.ts", "lib/event-visibility.ts"],
+    "us01": ["lib/auth/idle-timeout.ts"],
+    "us02": ["lib/auth/route-access.ts", "lib/events/visibility.ts"],
 }
 
 

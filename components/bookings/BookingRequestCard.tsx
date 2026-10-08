@@ -1,9 +1,9 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord } from "@/lib/types";
-import { availabilityIssues } from "@/lib/venue-rules";
+import { availabilityIssues } from "@/lib/venues/rules";
 
 export function BookingRequestCard({ event }: { event: EventRecord }) {
   const app = useApp();
