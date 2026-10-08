@@ -106,8 +106,8 @@ export function VenueForm({
           <FieldError errors={errors} field="name" />
         </div>
         <div>
-          <input aria-label="Location" placeholder="Location (building · level)" value={form.building} onChange={(e) => set("building", e.target.value)} style={inputStyle} />
-          <FieldError errors={errors} field="building" />
+          <input aria-label="Location" placeholder="Location" value={form.location} onChange={(e) => set("location", e.target.value)} style={inputStyle} />
+          <FieldError errors={errors} field="location" />
         </div>
         <div>
           <input aria-label="Capacity" placeholder="Capacity" type="number" min={1} step={1} value={form.cap} onChange={(e) => set("cap", e.target.value)} style={inputStyle} />

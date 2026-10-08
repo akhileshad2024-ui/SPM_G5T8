@@ -58,7 +58,7 @@ export interface UnavailabilityPeriod {
 export interface Venue {
   id: string;
   name: string;
-  building: string;
+  location: string;
   cap: number;
   /** Lower case, matching `Layout` values ("banquet", "theatre", ...). */
   layouts: string[];
@@ -217,6 +217,36 @@ export type EventTab = "request" | "venue" | "equipment" | "registration" | "act
 export interface VenueFilter {
   cap: string;
   layout: Layout | "any";
+}
+
+/** The search form on the Venues page (US20). Empty strings / arrays mean "not filtering on this". */
+export interface VenueSearchFilters {
+  date: string;
+  start: string;
+  end: string;
+  attendance: string;
+  location: string;
+  accessibility: string[];
+  layout: Layout | "";
+  facilities: string[];
+}
+
+/** Which filter an applied-filter chip stands for; the backend's `AppliedFilter.key`. */
+export type VenueFilterKey = "timing" | "attendance" | "location" | "accessibility" | "layout" | "facilities";
+
+/** One filter in use, as the backend describes it for display. */
+export interface AppliedVenueFilter {
+  key: VenueFilterKey;
+  label: string;
+  value: string;
+}
+
+/** The backend's answer to POST /venues/search. */
+export interface VenueSearchResponse {
+  venues: ApiVenue[];
+  total: number;
+  applied_filters: AppliedVenueFilter[];
+  message: string | null;
 }
 
 export interface NewRequestForm {

@@ -65,7 +65,7 @@ export function VenueCard({ venue }: { venue: Venue }) {
           <div style={{ fontSize: 16, fontWeight: 700 }}>{venue.name}</div>
           {!venue.isActive && <span className="pill" style={{ background: "var(--bad-bg)", color: "var(--bad-fg)" }}>Deactivated</span>}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}>{venue.building}</div>
+        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}>{venue.location}</div>
       </div>
 
       <div style={{ display: "flex", gap: 20 }}>

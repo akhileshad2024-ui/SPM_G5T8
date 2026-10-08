@@ -29,7 +29,7 @@ from schemas import ACCESSIBILITY_FEATURES, UnavailabilityPeriod, VenueCreate, V
 
 VALID = {
     "name": "Lecture Theatre 1",
-    "building": "North wing · Level 2",
+    "location": "North wing",
     "cap": 150,
     "layouts": ["theatre", "classroom"],
     "facilities": ["Projector", "PA system"],
@@ -65,7 +65,7 @@ class TestRecordsVenueDetails(ValidationTestCase):
         venue = VenueCreate(**VALID)
 
         self.assertEqual(venue.name, VALID["name"])
-        self.assertEqual(venue.building, VALID["building"])
+        self.assertEqual(venue.location, VALID["location"])
         self.assertEqual(venue.cap, 150)
         self.assertEqual(venue.layouts, ["theatre", "classroom"])
         self.assertEqual(venue.facilities, ["Projector", "PA system"])
@@ -73,7 +73,7 @@ class TestRecordsVenueDetails(ValidationTestCase):
         self.assertEqual((venue.setupMinutes, venue.turnaroundMinutes), (30, 45))
 
     def test_only_name_location_and_capacity_are_required(self):
-        venue = VenueCreate(name="Room", building="COM1", cap=10)
+        venue = VenueCreate(name="Room", location="COM1", cap=10)
 
         for field in ("layouts", "facilities", "accessibility", "unavailability"):
             self.assertEqual(getattr(venue, field), [], field)
@@ -82,9 +82,9 @@ class TestRecordsVenueDetails(ValidationTestCase):
         self.assertEqual((venue.setupMinutes, venue.turnaroundMinutes), (0, 0))
 
     def test_text_is_trimmed(self):
-        venue = VenueCreate(**{**VALID, "name": "  LT1  ", "building": " COM1 "})
+        venue = VenueCreate(**{**VALID, "name": "  LT1  ", "location": " COM1 "})
 
-        self.assertEqual((venue.name, venue.building), ("LT1", "COM1"))
+        self.assertEqual((venue.name, venue.location), ("LT1", "COM1"))
 
     def test_layouts_are_lower_cased_to_match_event_layouts(self):
         venue = VenueCreate(**{**VALID, "layouts": ["Theatre", " BANQUET "]})
@@ -106,19 +106,19 @@ class TestRecordsVenueDetails(ValidationTestCase):
 
 class TestMissingValues(ValidationTestCase):
     def test_required_field_missing(self):
-        for field in ("name", "building", "cap"):
+        for field in ("name", "location", "cap"):
             with self.subTest(field=field):
                 self.assertRejects(VenueCreate, {k: v for k, v in VALID.items() if k != field}, field)
 
     def test_blank_text_rejected(self):
-        for field in ("name", "building"):
+        for field in ("name", "location"):
             for blank in ("", "   "):  # empty, and whitespace that trims to empty
                 with self.subTest(field=field, blank=blank):
                     self.assertRejects(VenueCreate, {**VALID, field: blank}, field)
 
     def test_one_character_is_enough(self):
         # Boundary: the shortest accepted text.
-        for field in ("name", "building"):
+        for field in ("name", "location"):
             with self.subTest(field=field):
                 self.assertEqual(getattr(VenueCreate(**{**VALID, field: "A"}), field), "A")
 
@@ -354,7 +354,7 @@ class TestVenueUpdate(ValidationTestCase):
 class TestVenueResponse(ValidationTestCase):
     def test_older_rows_with_missing_values_still_load(self):
         row = {
-            "id": 1, "name": "Old Hall", "building": "Block A", "cap": 100,
+            "id": 1, "name": "Old Hall", "location": "Block A", "cap": 100,
             "layouts": None, "facilities": None, "accessibility": None, "operatingDays": None,
             "unavailability": None, "setupMinutes": None, "turnaroundMinutes": None,
             "is_active": True, "last_updated_by": "x@y.z", "last_updated_at": "2026-09-01T10:00:00",

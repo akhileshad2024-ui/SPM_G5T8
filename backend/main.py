@@ -7,7 +7,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import get_current_user, require_roles
-import models, schemas
+import models, schemas, venue_search
 from venue_audit import apply_update, change_action, creation_changes, record_change
 
 Base.metadata.create_all(bind=engine)
@@ -29,6 +29,8 @@ VENUE_MANAGERS = (Role.venue,)
 # Who may also see deactivated venues: Venue Staff (to reactivate them) and Coordinators
 # (whose events may still point at a venue that has since been deactivated).
 INACTIVE_VENUE_VIEWERS = (Role.venue, Role.coordinator)
+# Who may search and filter venues (US20).
+VENUE_SEARCHERS = (Role.coordinator,)
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 
@@ -43,6 +45,21 @@ def get_venues(include_inactive: bool = Query(False), db: Session = Depends(get_
     else:
         query = query.filter(models.Venue.is_active == True)
     return query.order_by(models.Venue.id).all()
+
+# Fulfills US20: search and filter active venues. Every filter given must match; when a date and time
+# are given, only venues free for that period (setup and turnaround included) are returned.
+# POST because the page also sends the bookings that hold venues (see schemas.BookedPeriod).
+@app.post("/venues/search", response_model=schemas.VenueSearchResponse)
+def search_venues(criteria: schemas.VenueSearchRequest, db: Session = Depends(get_db), _user: User = Depends(require_roles(*VENUE_SEARCHERS))):
+    active = db.query(models.Venue).filter(models.Venue.is_active == True).order_by(models.Venue.id).all()
+    found = venue_search.find_venues(active, criteria)
+    applied = venue_search.describe_filters(criteria)
+    return schemas.VenueSearchResponse(
+        venues=[schemas.VenueResponse.model_validate(v) for v in found],
+        total=len(found),
+        applied_filters=applied,
+        message=None if found else venue_search.no_match_message(applied),
+    )
 
 # Fulfills US18: full details of one active venue — any signed-in user.
 # A deactivated venue is "not found", the same as it being left out of the list.

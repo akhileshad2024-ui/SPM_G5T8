@@ -1,0 +1,13 @@
+Coverage report for test_us20_search_filter_venues  (unit tests)
+Generated: 2026-10-08 19:10:41
+Test file: tests/unit/venue/test_us20_search_filter_venues.py
+Result: 58 tests, all passed
+Measured code: venue_search.py, main.py:search_venues, schemas.py:BookedPeriod,VenueSearchRequest,AppliedFilter,VenueSearchResponse
+
+Name                                                                          Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------------------------------------------
+venue_search.py                                                                  97     0   100%  
+main.py:search_venues                                                             6     0   100%  
+schemas.py:BookedPeriod,VenueSearchRequest,AppliedFilter,VenueSearchResponse     37     0   100%  
+------------------------------------------------------------------------------------------------------------
+TOTAL                                                                           140     0   100%

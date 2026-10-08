@@ -1,0 +1,11 @@
+Coverage report for test_us17_venue_validation  (unit tests)
+Generated: 2026-10-08 20:19:07
+Test file: tests/unit/venue/test_us17_venue_validation.py
+Result: 48 tests, all passed
+Measured code: schemas.py:VenueCreate,VenueUpdate,UnavailabilityPeriod
+
+Name                                                     Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------
+schemas.py:VenueCreate,VenueUpdate,UnavailabilityPeriod     44     0   100%  
+---------------------------------------------------------------------------------------
+TOTAL                                                       44     0   100%
