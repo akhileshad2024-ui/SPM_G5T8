@@ -35,7 +35,7 @@ OTHER_EDITOR = "venue.two@connectsphere.edu"
 def make_venue(**overrides):
     fields = dict(
         id=7, name="Lecture Theatre 1", building="North wing", cap=150,
-        layouts=["theatre"], facilities=["Projector"], accessibility=["Step-free access"],
+        layouts=["theatre"], facilities=["Projector"], accessibility=["Wheelchair Access"],
         operatingHours="08:00 - 22:00", operatingDays=["Monday", "Tuesday"],
         unavailability=[], setupMinutes=30, turnaroundMinutes=45, is_active=True,
         last_updated_by="someone.before@connectsphere.edu", last_updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),

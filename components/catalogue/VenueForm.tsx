@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { useApp, type SaveVenueResult } from "@/lib/state/app-context";
-import { ACCESS_OPTIONS, LAYOUT_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data/options";
+import { LAYOUT_OPTIONS, VENUE_ACCESSIBILITY_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data/options";
 import type { UnavailabilityPeriod, UnavailabilityReason, Venue } from "@/lib/types";
 import { MAX_BUFFER_MINUTES, validateVenueForm, venueFormFrom, venueInputFrom, type VenueFormState } from "@/lib/venues/form";
 import { UNAVAILABILITY_REASONS, WEEKDAYS } from "@/lib/venues/rules";
@@ -59,6 +59,12 @@ export function VenueForm({
 
   const removePeriod = (index: number) => set("unavailability", form.unavailability.filter((_, i) => i !== index));
 
+  // The fixed set, plus any older value already saved on this venue, so it can still be seen and unticked.
+  const accessibilityOptions = [
+    ...VENUE_ACCESSIBILITY_OPTIONS,
+    ...form.accessibility.filter((a) => !VENUE_ACCESSIBILITY_OPTIONS.some((o) => o.toLowerCase() === a.toLowerCase())),
+  ];
+
   const handleSave = async () => {
     const clientErrors = validateVenueForm(form);
     setErrors(clientErrors);
@@ -113,7 +119,7 @@ export function VenueForm({
 
       <CheckboxGroup title="Supported Layouts" options={LAYOUT_OPTIONS} field="layouts" label={(l) => l.charAt(0).toUpperCase() + l.slice(1)} />
       <CheckboxGroup title="Facilities" options={VENUE_FACILITY_OPTIONS} field="facilities" />
-      <CheckboxGroup title="Accessibility Features" options={ACCESS_OPTIONS} field="accessibility" />
+      <CheckboxGroup title="Accessibility Features" options={accessibilityOptions} field="accessibility" />
 
       <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
 

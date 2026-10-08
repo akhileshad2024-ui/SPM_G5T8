@@ -18,6 +18,7 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   coordinator: [
     ["/queue", "Review queue"],
     ["/board", "Pipeline"],
+    ["/venues", "Venues"],
   ],
   venue: [
     ["/bookings", "Booking requests"],

@@ -187,7 +187,7 @@ function sessionUiState() {
     step: 1,
     formErrors: {},
     editingEventId: null,
-    vf: { cap: "180", layout: "any", stepFree: true },
+    vf: { cap: "180", layout: "any" },
     form: initialForm(),
   } satisfies Partial<AppState>;
 }
@@ -305,7 +305,6 @@ export interface AppApi {
   // ---- venue search / booking ----
   setVfCap: (cap: string) => void;
   setVfLayout: (layout: VenueFilter["layout"]) => void;
-  toggleVfStepFree: () => void;
   requestBooking: (eventId: string, venueId: string) => void;
   approveBooking: (eventId: string) => void;
 
@@ -719,7 +718,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setVfCap: (cap) => patch((s) => ({ vf: { ...s.vf, cap } })),
       setVfLayout: (layout) => patch((s) => ({ vf: { ...s.vf, layout } })),
-      toggleVfStepFree: () => patch((s) => ({ vf: { ...s.vf, stepFree: !s.vf.stepFree } })),
       requestBooking: (eventId, venueId) => {
         const e = getEvent(state.events, eventId);
         const v = getVenue(state.venues, venueId);

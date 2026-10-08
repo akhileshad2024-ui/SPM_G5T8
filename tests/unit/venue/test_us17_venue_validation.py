@@ -13,17 +13,19 @@ Run from the repo root:
     python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
 """
 
+import re
 import sys
 import unittest
 from datetime import datetime
 from pathlib import Path
 
 # backend/ must be importable; schemas.py itself needs no database.
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
+REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "backend"))
 
 from pydantic import ValidationError
 
-from schemas import UnavailabilityPeriod, VenueCreate, VenueResponse, VenueUpdate
+from schemas import ACCESSIBILITY_FEATURES, UnavailabilityPeriod, VenueCreate, VenueResponse, VenueUpdate
 
 VALID = {
     "name": "Lecture Theatre 1",
@@ -31,7 +33,7 @@ VALID = {
     "cap": 150,
     "layouts": ["theatre", "classroom"],
     "facilities": ["Projector", "PA system"],
-    "accessibility": ["Step-free access", "Hearing loop"],
+    "accessibility": ["Wheelchair Access", "Special Physical Seating"],
     "operatingHours": "08:00 - 22:00",
     "operatingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
     "unavailability": [{"start": "2027-01-10T08:00", "end": "2027-01-12T18:00", "reason": "renovation", "note": "Re-flooring"}],
@@ -67,7 +69,7 @@ class TestRecordsVenueDetails(ValidationTestCase):
         self.assertEqual(venue.cap, 150)
         self.assertEqual(venue.layouts, ["theatre", "classroom"])
         self.assertEqual(venue.facilities, ["Projector", "PA system"])
-        self.assertEqual(venue.accessibility, ["Step-free access", "Hearing loop"])
+        self.assertEqual(venue.accessibility, ["Wheelchair Access", "Special Physical Seating"])
         self.assertEqual((venue.setupMinutes, venue.turnaroundMinutes), (30, 45))
 
     def test_only_name_location_and_capacity_are_required(self):
@@ -94,12 +96,10 @@ class TestRecordsVenueDetails(ValidationTestCase):
             **VALID,
             "layouts": ["theatre", "Theatre"],
             "facilities": ["Projector", "projector", "Wi-Fi"],
-            "accessibility": ["Hearing loop", "HEARING LOOP"],
         })
 
         self.assertEqual(venue.layouts, ["theatre"])
         self.assertEqual(venue.facilities, ["Projector", "Wi-Fi"])
-        self.assertEqual(venue.accessibility, ["Hearing loop"])
 
 
 # ---------------------------------------------------------------- AC3: missing values
@@ -142,6 +142,38 @@ class TestCapacity(ValidationTestCase):
         for cap in ("lots", 12.5, None):
             with self.subTest(cap=cap):
                 self.assertRejects(VenueCreate, {**VALID, "cap": cap}, "cap")
+
+
+# ---------------------------------------------------------------- accessibility: a fixed set of features
+
+class TestAccessibilityFeatures(ValidationTestCase):
+    def test_every_feature_in_the_set_is_accepted_and_none_is_allowed(self):
+        every = list(ACCESSIBILITY_FEATURES)
+        for chosen in ([], every):  # boundaries: nothing ticked, everything ticked
+            with self.subTest(chosen=chosen):
+                self.assertEqual(VenueCreate(**{**VALID, "accessibility": chosen}).accessibility, chosen)
+
+    def test_spelling_is_tidied_to_the_fixed_names_in_order_without_repeats(self):
+        venue = VenueCreate(**{**VALID, "accessibility": ["special physical seating", "WHEELCHAIR ACCESS", "wheelchair access"]})
+
+        self.assertEqual(venue.accessibility, ["Wheelchair Access", "Special Physical Seating"])
+
+    def test_a_feature_outside_the_set_is_rejected_naming_it_and_the_allowed_ones(self):
+        for features in (["Hearing loop"], ["Wheelchair Access", "Ramp"]):  # only one bad item, or one among good ones
+            with self.subTest(features=features):
+                message = self.assertRejects(VenueCreate, {**VALID, "accessibility": features}, "accessibility")
+                self.assertIn("unknown accessibility feature", message)
+                self.assertIn("Mobility/Facility Arrangements", message)
+
+    def test_the_same_rule_applies_when_editing(self):
+        self.assertRejects(VenueUpdate, {"accessibility": ["Hearing loop"]}, "accessibility")
+        self.assertEqual(VenueUpdate(accessibility=["wheelchair access"]).accessibility, ["Wheelchair Access"])
+
+    def test_the_form_and_the_backend_offer_the_same_features(self):
+        source = (REPO / "lib" / "data" / "options.ts").read_text(encoding="utf-8")
+        listed = re.search(r"VENUE_ACCESSIBILITY_OPTIONS\s*=\s*\[(.*?)\]", source, re.S).group(1)
+
+        self.assertEqual(re.findall(r'"([^"]+)"', listed), list(ACCESSIBILITY_FEATURES))
 
 
 # ---------------------------------------------------------------- operating information

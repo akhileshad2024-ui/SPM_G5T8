@@ -51,6 +51,15 @@ def get_venues(include_inactive: bool = Query(False), db: Session = Depends(get_
         query = query.filter(models.Venue.is_active == True)
     return query.order_by(models.Venue.id).all()
 
+# Fulfills US18: full details of one active venue — any signed-in user.
+# A deactivated venue is "not found", the same as it being left out of the list.
+@app.get("/venues/{venue_id}", response_model=schemas.VenueResponse)
+def get_venue(venue_id: int, db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
+    venue = db.query(models.Venue).filter(models.Venue.id == venue_id, models.Venue.is_active == True).first()
+    if venue is None:
+        raise HTTPException(status_code=404, detail="Venue not found")
+    return venue
+
 # Fulfills US17: Create
 @app.post("/venues", response_model=schemas.VenueResponse)
 def create_venue(venue: schemas.VenueCreate, db: Session = Depends(get_db), user: User = Depends(require_roles(*VENUE_MANAGERS))):

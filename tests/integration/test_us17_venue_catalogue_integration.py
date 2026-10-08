@@ -51,7 +51,7 @@ VALID_VENUE = {
     "cap": 250,
     "layouts": ["theatre", "classroom"],
     "facilities": ["Projector", "PA System", "Wi-Fi"],
-    "accessibility": ["Wheelchair access", "Hearing loop"],
+    "accessibility": ["Wheelchair Access", "Special Physical Seating"],
     "operatingHours": "08:00 - 22:00",
     "operatingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
     "unavailability": [{"start": "2026-12-25T00:00:00", "end": "2026-12-26T00:00:00", "reason": "maintenance", "note": "Annual rewiring"}],
@@ -238,7 +238,7 @@ class TestRecordVenueDetails(VenueApiTestCase):
             "cap": 80,
             "building": "Engineering Block E2",
             "facilities": ["Whiteboard"],
-            "accessibility": ["Ramp", "Accessible toilet"],
+            "accessibility": ["Mobility/Facility Arrangements"],
             "layouts": ["banquet", "u-shape", "cocktail"],
         }
         res = self.staff.put(f"/venues/{venue['id']}", json=changes)

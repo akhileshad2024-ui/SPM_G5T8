@@ -15,7 +15,7 @@ const ALL_PAGES = ROLES.flatMap((r) => NAV_FOR[r].map(([route]) => route));
 describe("sidebar per role", () => {
   it.each<[Role, string[]]>([
     ["organiser", ["My events", "New request"]],
-    ["coordinator", ["Review queue", "Pipeline"]],
+    ["coordinator", ["Review queue", "Pipeline", "Venues"]],
     ["venue", ["Booking requests", "Venue catalogue"]],
     ["tech", ["Equipment"]],
     ["attendee", ["Browse events"]],

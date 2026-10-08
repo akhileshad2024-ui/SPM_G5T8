@@ -1,0 +1,11 @@
+Coverage report for test_us17_venue_endpoints  (unit tests)
+Generated: 2026-10-06 23:09:31
+Test file: tests/unit/venue/test_us17_venue_endpoints.py
+Result: 12 tests, all passed
+Measured code: main.py:create_venue,update_venue,delete_venue,get_venue_history
+
+Name                                                              Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------------------------------
+main.py:create_venue,update_venue,delete_venue,get_venue_history     33     0   100%  
+------------------------------------------------------------------------------------------------
+TOTAL                                                                33     0   100%
