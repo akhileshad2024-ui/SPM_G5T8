@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tag } from "@/components/ui/Pill";
@@ -7,6 +8,7 @@ import type { EventRecord } from "@/lib/types";
 
 export function PublicEventCard({ event }: { event: EventRecord }) {
   const app = useApp();
+  const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
   const venue = event.venue ? app.venue(event.venue) : undefined;
   const full = event.registered >= event.regCap;
   const registration = app.state.registrations.find((r) => r.eventId === event.id && r.attendeeEmail === app.me.email && r.status !== "withdrawn");
@@ -16,9 +18,8 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
   const btnVariant = mine ? "btn-danger" : "btn-primary";
 
   const onClick = () => {
-    if (mine) {
-      if (window.confirm(`Withdraw your registration for ${event.name}?`)) app.withdrawRegistration(event.id);
-    } else app.registerForEvent(event.id);
+    if (mine) setConfirmWithdrawal(true);
+    else app.registerForEvent(event.id);
   };
 
   return (
@@ -58,6 +59,13 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
           {btnLabel}
         </button>
       </div>
+      {confirmWithdrawal && <div className="callout callout-warn" style={{ marginTop: 12 }}>
+        <div>Withdraw your registration for {event.name}?</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button className="btn btn-sm btn-danger" onClick={() => { app.withdrawRegistration(event.id); setConfirmWithdrawal(false); }}>Confirm withdrawal</button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setConfirmWithdrawal(false)}>Keep registration</button>
+        </div>
+      </div>}
     </div>
   );
 }

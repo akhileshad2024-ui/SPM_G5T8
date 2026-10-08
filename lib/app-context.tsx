@@ -21,6 +21,7 @@ import {
 } from "react";
 import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs, seedRegistrations } from "./data";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
+import { decideRegistration, withdrawalError } from "./registration";
 import type {
   EventRecord,
   EventTab,
@@ -451,19 +452,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const e = getEvent(state.events, eventId);
         if (!e) return;
         const existing = state.registrations.find((r) => r.eventId === eventId && r.attendeeEmail === PEOPLE.attendee.email && r.status !== "withdrawn");
-        if (existing) {
-          flash(`You already have a ${existing.status} registration for ${e.name}.`, "warn");
-          return;
-        }
-        if (!e.reg || !["planning", "confirmed"].includes(e.status)) {
-          flash("Registration is not open for this event.", "warn");
-          return;
-        }
-        if (e.regClose && new Date(e.regClose).getTime() < Date.now()) {
-          flash(`Registration for ${e.name} has closed.`, "warn");
-          return;
-        }
-        const status = e.registered >= e.regCap ? "waitlisted" : "registered";
+        const decision = decideRegistration(e, existing);
+        if (!decision.ok) { flash(decision.reason, "warn"); return; }
+        const status = decision.status;
         const now = new Date().toISOString();
         const registration: RegistrationRecord = { id: `REG-${Date.now()}`, eventId, attendeeName: PEOPLE.attendee.person, attendeeEmail: PEOPLE.attendee.email, status, registeredAt: now, updatedAt: now };
         patch((s) => ({ registrations: [registration, ...s.registrations], events: s.events.map((item) => item.id === eventId && status === "registered" ? { ...item, registered: item.registered + 1 } : item) }));
@@ -473,8 +464,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       withdrawRegistration: (eventId) => {
         const e = getEvent(state.events, eventId);
         const current = state.registrations.find((r) => r.eventId === eventId && r.attendeeEmail === PEOPLE.attendee.email && (r.status === "registered" || r.status === "waitlisted"));
-        if (!e || !current) { flash("No active registration was found.", "warn"); return; }
-        if (e.withdrawalClose && new Date(e.withdrawalClose).getTime() < Date.now()) { flash(`The withdrawal deadline for ${e.name} has passed.`, "warn"); return; }
+        if (!e) { flash("No active registration was found.", "warn"); return; }
+        const error = withdrawalError(e, current);
+        if (error || !current) { flash(error ?? "No active registration was found.", "warn"); return; }
         const now = new Date().toISOString();
         patch((s) => ({ registrations: s.registrations.map((r) => r.id === current.id ? { ...r, status: "withdrawn", updatedAt: now } : r), events: s.events.map((item) => item.id === eventId && current.status === "registered" ? { ...item, registered: Math.max(0, item.registered - 1) } : item) }));
         notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
