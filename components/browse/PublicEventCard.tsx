@@ -9,17 +9,16 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
   const app = useApp();
   const venue = event.venue ? app.venue(event.venue) : undefined;
   const full = event.registered >= event.regCap;
-  const mine = !!event.myReg;
+  const registration = app.state.registrations.find((r) => r.eventId === event.id && r.attendeeEmail === app.me.email && r.status !== "withdrawn");
+  const mine = !!registration;
 
-  const btnLabel = mine ? "Withdraw" : full ? "Full" : "Register";
-  const btnVariant = mine ? "btn-danger" : full ? "btn-muted" : "btn-primary";
+  const btnLabel = mine ? "Withdraw" : full ? "Join waitlist" : "Register";
+  const btnVariant = mine ? "btn-danger" : "btn-primary";
 
   const onClick = () => {
-    if (full && !mine) {
-      app.flash(`${event.name} is full.`, "warn");
-      return;
-    }
-    app.toggleRegistration(event.id);
+    if (mine) {
+      if (window.confirm(`Withdraw your registration for ${event.name}?`)) app.withdrawRegistration(event.id);
+    } else app.registerForEvent(event.id);
   };
 
   return (
@@ -43,7 +42,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
             {venue ? `${venue.name} · ${venue.location}` : "Venue to be confirmed"}
           </div>
         </div>
-        {mine && <Tag label="Registered" bg="var(--ok-bg)" fg="var(--ok-fg)" />}
+        {registration && <Tag label={registration.status} bg={registration.status === "waitlisted" ? "var(--warn-bg)" : "var(--ok-bg)"} fg={registration.status === "waitlisted" ? "var(--warn-fg)" : "var(--ok-fg)"} />}
       </div>
 
       <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 12 }}>{event.purpose}</div>

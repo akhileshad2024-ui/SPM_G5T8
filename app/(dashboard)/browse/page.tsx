@@ -2,10 +2,12 @@
 
 import { useApp } from "@/lib/app-context";
 import { PublicEventCard } from "@/components/browse/PublicEventCard";
+import { Tag } from "@/components/ui/Pill";
 
 export default function BrowsePage() {
   const app = useApp();
   const open = app.state.events.filter((e) => e.reg && (e.status === "confirmed" || e.status === "planning"));
+  const mine = app.state.registrations.filter((r) => r.attendeeEmail === app.me.email);
 
   return (
     <div style={{ padding: "24px 26px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -14,6 +16,18 @@ export default function BrowsePage() {
           <PublicEventCard key={e.id} event={e} />
         ))}
       </div>
+      <section>
+        <h2 style={{ fontSize: 18, margin: "8px 0 12px" }}>My registrations</h2>
+        <div className="card" style={{ overflow: "hidden" }}>
+          {mine.length === 0 ? <div className="empty-state">You have not registered for an event yet.</div> : mine.map((r) => {
+            const event = app.event(r.eventId);
+            return <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderBottom: "1px solid var(--border)" }}>
+              <div><strong>{event?.name ?? r.eventId}</strong><div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{event?.date} · {event?.start}–{event?.end}</div></div>
+              <Tag label={event?.status === "cancelled" ? "cancelled" : r.status} bg="var(--neutral-bg)" fg="var(--neutral-fg)" />
+            </div>;
+          })}
+        </div>
+      </section>
     </div>
   );
 }

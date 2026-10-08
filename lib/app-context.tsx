@@ -19,7 +19,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
+import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs, seedRegistrations } from "./data";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
   EventRecord,
@@ -28,6 +28,7 @@ import type {
   ModalState,
   NewRequestForm,
   QueueFilter,
+  RegistrationRecord,
   Role,
   ToastKind,
   Venue,
@@ -41,6 +42,7 @@ interface AppState {
   authed: boolean;
   role: Role;
   events: EventRecord[];
+  registrations: RegistrationRecord[];
   notifs: ReturnType<typeof seedNotifs>;
   selectedId: string;
   tab: EventTab;
@@ -80,6 +82,7 @@ function initialState(): AppState {
     authed: false,
     role: "coordinator",
     events: seedEvents(),
+    registrations: seedRegistrations(),
     notifs: seedNotifs(),
     selectedId: "EVT-2041",
     tab: "request",
@@ -181,7 +184,8 @@ export interface AppApi {
   releaseEquipment: (eventId: string) => void;
 
   // ---- attendee registration ----
-  toggleRegistration: (eventId: string) => void;
+  registerForEvent: (eventId: string) => void;
+  withdrawRegistration: (eventId: string) => void;
 
   // ---- organiser / new request form ----
   submitDraft: (eventId: string) => void;
@@ -443,22 +447,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
         flash("Reservation released.", "warn");
       },
 
-      toggleRegistration: (eventId) => {
+      registerForEvent: (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
-        if (e.myReg) {
-          patchEvent(eventId, { myReg: false, registered: Math.max(0, e.registered - 1) });
-          notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
-          flash(`Withdrawn from ${e.name}.`, "warn");
-        } else {
-          if (e.registered >= e.regCap) {
-            flash(`${e.name} is full.`, "warn");
-            return;
-          }
-          patchEvent(eventId, { myReg: true, registered: e.registered + 1 });
-          notify("attendee", "Registration confirmed", `You are registered for ${e.name} on ${e.date}.`);
-          flash(`Registered for ${e.name}.`);
+        const existing = state.registrations.find((r) => r.eventId === eventId && r.attendeeEmail === PEOPLE.attendee.email && r.status !== "withdrawn");
+        if (existing) {
+          flash(`You already have a ${existing.status} registration for ${e.name}.`, "warn");
+          return;
         }
+        if (!e.reg || !["planning", "confirmed"].includes(e.status)) {
+          flash("Registration is not open for this event.", "warn");
+          return;
+        }
+        if (e.regClose && new Date(e.regClose).getTime() < Date.now()) {
+          flash(`Registration for ${e.name} has closed.`, "warn");
+          return;
+        }
+        const status = e.registered >= e.regCap ? "waitlisted" : "registered";
+        const now = new Date().toISOString();
+        const registration: RegistrationRecord = { id: `REG-${Date.now()}`, eventId, attendeeName: PEOPLE.attendee.person, attendeeEmail: PEOPLE.attendee.email, status, registeredAt: now, updatedAt: now };
+        patch((s) => ({ registrations: [registration, ...s.registrations], events: s.events.map((item) => item.id === eventId && status === "registered" ? { ...item, registered: item.registered + 1 } : item) }));
+        notify("attendee", status === "registered" ? "Registration confirmed" : "Added to waitlist", `${e.name} on ${e.date}. Confirmation email queued for ${PEOPLE.attendee.email}.`);
+        flash(status === "registered" ? `Registered for ${e.name}. Confirmation email queued.` : `${e.name} is full. You have been waitlisted.`);
+      },
+      withdrawRegistration: (eventId) => {
+        const e = getEvent(state.events, eventId);
+        const current = state.registrations.find((r) => r.eventId === eventId && r.attendeeEmail === PEOPLE.attendee.email && (r.status === "registered" || r.status === "waitlisted"));
+        if (!e || !current) { flash("No active registration was found.", "warn"); return; }
+        if (e.withdrawalClose && new Date(e.withdrawalClose).getTime() < Date.now()) { flash(`The withdrawal deadline for ${e.name} has passed.`, "warn"); return; }
+        const now = new Date().toISOString();
+        patch((s) => ({ registrations: s.registrations.map((r) => r.id === current.id ? { ...r, status: "withdrawn", updatedAt: now } : r), events: s.events.map((item) => item.id === eventId && current.status === "registered" ? { ...item, registered: Math.max(0, item.registered - 1) } : item) }));
+        notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
+        flash(`Withdrawal recorded for ${e.name}.`, "warn");
       },
 
       submitDraft: (eventId) => {

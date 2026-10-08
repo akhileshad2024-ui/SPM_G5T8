@@ -3,6 +3,7 @@ import type {
   EquipmentCatalogueItem,
   NotificationRecord,
   Person,
+  RegistrationRecord,
   Role,
   Venue,
 } from "./types";
@@ -60,10 +61,12 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   organiser: [
     ["/my-events", "My events"],
     ["/new-request", "New request"],
+    ["/registrations", "Event registrations"],
   ],
   coordinator: [
     ["/queue", "Review queue"],
     ["/board", "Pipeline"],
+    ["/registrations", "Event registrations"],
   ],
   venue: [
     ["/bookings", "Booking requests"],
@@ -72,6 +75,14 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   tech: [["/equipment", "Equipment"]],
   attendee: [["/browse", "Browse events"]],
 };
+
+export function seedRegistrations(): RegistrationRecord[] {
+  return [
+    { id: "REG-1001", eventId: "EVT-2030", attendeeName: "Aisha Khan", attendeeEmail: "aisha.khan@student.connectsphere.edu", status: "registered", registeredAt: "2026-03-01T09:30:00Z", updatedAt: "2026-03-01T09:30:00Z" },
+    { id: "REG-1002", eventId: "EVT-2030", attendeeName: "Marcus Lee", attendeeEmail: "marcus.lee@student.connectsphere.edu", status: "waitlisted", registeredAt: "2026-03-02T11:15:00Z", updatedAt: "2026-03-02T11:15:00Z" },
+    { id: "REG-1003", eventId: "EVT-2012", attendeeName: "Nora Hassan", attendeeEmail: "nora.hassan@student.connectsphere.edu", status: "withdrawn", registeredAt: "2026-02-18T08:00:00Z", updatedAt: "2026-02-25T16:20:00Z" },
+  ];
+}
 
 export function seedEvents(): EventRecord[] {
   return [

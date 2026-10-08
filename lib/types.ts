@@ -20,6 +20,17 @@ export type EventStatus =
 
 export type BookingState = "pending" | "approved" | "rejected" | null;
 export type EquipmentState = "requested" | "reserved" | null;
+export type RegistrationStatus = "registered" | "waitlisted" | "withdrawn" | "cancelled";
+
+export interface RegistrationRecord {
+  id: string;
+  eventId: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  status: RegistrationStatus;
+  registeredAt: string;
+  updatedAt: string;
+}
 
 export type Layout = "banquet" | "theatre" | "standing" | "boardroom" | "classroom";
 
@@ -79,6 +90,8 @@ export interface EventRecord {
   reg: boolean;
   regCap: number;
   registered: number;
+  regClose?: string;
+  withdrawalClose?: string;
   /** Set once the signed-in attendee has registered themselves. */
   myReg?: boolean;
   submittedAgo: string;
