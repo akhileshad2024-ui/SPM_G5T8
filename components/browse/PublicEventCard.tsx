@@ -40,7 +40,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
             {event.date} · {event.start}–{event.end}
           </div>
           <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
-            {venue ? `${venue.name} · ${venue.building}` : "Venue to be confirmed"}
+            {venue ? `${venue.name} · ${venue.location}` : "Venue to be confirmed"}
           </div>
         </div>
         {mine && <Tag label="Registered" bg="var(--ok-bg)" fg="var(--ok-fg)" />}

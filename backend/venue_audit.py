@@ -10,7 +10,7 @@ import models
 
 # Fields tracked in the US17 audit trail (everything a Venue Staff member can edit).
 AUDITED_FIELDS = (
-    "name", "building", "cap", "layouts", "facilities", "accessibility",
+    "name", "location", "cap", "layouts", "facilities", "accessibility",
     "operatingHours", "operatingDays", "unavailability", "setupMinutes", "turnaroundMinutes", "is_active",
 )
 

@@ -10,7 +10,7 @@ export const MAX_BUFFER_MINUTES = 24 * 60;
 
 export interface VenueFormState {
   name: string;
-  building: string;
+  location: string;
   cap: string;
   layouts: string[];
   facilities: string[];
@@ -27,7 +27,7 @@ export function venueFormFrom(v?: Venue | null): VenueFormState {
   const [open, close] = (v?.operatingHours ?? "08:00 - 22:00").split(" - ");
   return {
     name: v?.name ?? "",
-    building: v?.building ?? "",
+    location: v?.location ?? "",
     cap: v ? String(v.cap) : "",
     layouts: v?.layouts ?? [],
     facilities: v?.facilities ?? [],
@@ -50,7 +50,7 @@ function isWholeNumber(text: string): boolean {
 export function validateVenueForm(f: VenueFormState): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!f.name.trim()) errors.name = "Enter the venue name.";
-  if (!f.building.trim()) errors.building = "Enter where the venue is (building / level).";
+  if (!f.location.trim()) errors.location = "Enter where the venue is.";
   if (!isWholeNumber(f.cap) || parseInt(f.cap, 10) <= 0) errors.cap = "Capacity must be a whole number greater than 0.";
   if (!parseOperatingHours(`${f.openTime} - ${f.closeTime}`)) errors.operatingHours = "Closing time must be after opening time.";
   if (f.operatingDays.length === 0) errors.operatingDays = "Pick at least one operating day.";
@@ -72,7 +72,7 @@ export function validateVenueForm(f: VenueFormState): Record<string, string> {
 export function venueInputFrom(f: VenueFormState): VenueInput {
   return {
     name: f.name.trim(),
-    building: f.building.trim(),
+    location: f.location.trim(),
     cap: parseInt(f.cap, 10),
     layouts: f.layouts,
     facilities: f.facilities,

@@ -49,7 +49,7 @@ COORDINATOR = SimpleNamespace(email="priya.tan@connectsphere.edu", role=Role.coo
 def make_venue(**overrides) -> models.Venue:
     """A venue as it would be loaded from the database (never saved anywhere)."""
     fields = dict(
-        id=7, name="Lecture Theatre 1", building="North wing · Level 2", cap=150,
+        id=7, name="Lecture Theatre 1", location="North wing", cap=150,
         layouts=["theatre", "classroom"], facilities=["Projector", "PA system"],
         accessibility=["Wheelchair Access", "Special Physical Seating"],
         operatingHours="08:00 - 22:00", operatingDays=["Monday", "Tuesday"],
@@ -107,7 +107,7 @@ class TestDetailsShown(unittest.TestCase):
         details = schemas.VenueResponse.model_validate(make_venue()).model_dump()
 
         self.assertEqual(details["cap"], 150)
-        self.assertEqual(details["building"], "North wing · Level 2")
+        self.assertEqual(details["location"], "North wing")
         self.assertEqual(details["facilities"], ["Projector", "PA system"])
         self.assertEqual(details["accessibility"], ["Wheelchair Access", "Special Physical Seating"])
         self.assertEqual(details["layouts"], ["theatre", "classroom"])

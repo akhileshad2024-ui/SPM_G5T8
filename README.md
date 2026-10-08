@@ -42,7 +42,7 @@ backend/login/
 | Role | Lands on | Pages |
 |---|---|---|
 | Event Organiser | `/my-events` | My events, New request |
-| Event Coordinator | `/queue` | Review queue, Pipeline, Venues (read-only details) |
+| Event Coordinator | `/queue` | Review queue, Pipeline, Venues (search, filter and read-only details) |
 | Venue Staff | `/bookings` | Booking requests, Venue catalogue |
 | Technical Support | `/equipment` | Equipment |
 | Attendee | `/browse` | Browse events |
@@ -68,6 +68,7 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `GET /auth/me`, `POST /auth/change-password` | any signed-in user |
 | `GET /venues` | any signed-in user (active venues only) |
 | `GET /venues/{id}` | any signed-in user (active venues only; a deactivated venue is a 404) |
+| `POST /venues/search` | Event Coordinator (search and filter active venues) |
 | `GET /venues?include_inactive=true` | Venue Staff, Event Coordinator |
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
@@ -98,6 +99,36 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
   "Confirmed bookings needing attention". The coordinator can request a
   replacement venue without losing any other event details.
 
+## Venue search (US20)
+
+Event Coordinators search the active venues on the **Venues** page. Every filter is optional and
+the ones given must all match:
+
+| Filter | A venue matches when |
+|---|---|
+| Date and time | it is free for the whole period (date, start and end are given together) |
+| Expected attendance | its capacity is at least that many people |
+| Location | its location is the one chosen (picked from the locations of the active venues) |
+| Accessibility | it offers every ticked feature (the same fixed set as the venue form) |
+| Layout | it supports that layout |
+| Facilities | it offers every ticked facility |
+
+- **Free for the period** uses the same rules as the rest of the app (`backend/venue_search.py`
+  mirrors `lib/venue-rules.ts`): the venue is open that weekday and the event falls within its
+  operating hours; no unavailability period overlaps; no booking clashes. Setup and turnaround
+  are included, so an event occupies *start − setup* to *end + turnaround* (Week 7 change #1),
+  and a window that only touches another does not clash. Setup or turnaround running outside
+  operating hours does not rule a venue out, matching the venue tab's warning-only treatment.
+- **Bookings** are not stored in the backend yet (events live in the browser), so the page sends
+  the bookings that currently hold a venue (approved or pending) together with the search.
+  That is why the search is a `POST`.
+- **Results are strict:** only venues meeting every filter are listed, no close matches.
+- **Filters** are shown as chips (from the response's `applied_filters`); each chip has a button
+  that clears just that filter and searches again. "Clear all" resets the search. When nothing
+  matches, the page says so and keeps the applied filters on screen.
+- The search runs over all active venues in one query and in memory; the unit tests time a
+  2,000-venue, 4,000-booking search against the 3-second limit.
+
 ## Project structure
 
 ```
@@ -108,7 +139,7 @@ app/
   (dashboard)/layout.tsx     Signed-in shell: sidebar, top bar, modal, toast
   (dashboard)/queue/         Coordinator: review queue + event workspace (tabs)
   (dashboard)/board/         Coordinator: pipeline board
-  (dashboard)/venues/        Coordinator: read-only venue details (US18)
+  (dashboard)/venues/        Coordinator: venue search + read-only details (US18, US20)
   (dashboard)/my-events/     Organiser: my requests + stats
   (dashboard)/new-request/   Organiser: 3-step new request wizard
   (dashboard)/bookings/      Venue staff: availability calendar + booking requests
@@ -130,6 +161,7 @@ lib/
   data.ts          Static reference data, seed data, per-role nav + route guard
   selectors.ts     Pure helpers (freeQty, suitability, lookups) — no React
   venue-rules.ts   Venue availability: occupied windows, conflicts, unavailability — no React
+  venue-search.ts  Venue search (US20): filter state, request body, clearing one filter — no React
   venue-form.ts    Venue catalogue form state + client-side validation — no React
   api.ts           fetch wrapper for the backend (/api/*)
   app-context.tsx  Global state + every mutation (signIn, approve, requestBooking, ...)
@@ -137,6 +169,7 @@ lib/
 
 backend/
   main.py          FastAPI app + venue endpoints
+  venue_search.py  Venue search rules (US20): requirements + free-for-the-period check
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns)
@@ -220,15 +253,18 @@ npm test                # all frontend unit tests (vitest)
 python -m unittest discover -s tests -v     # all Python tests
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
+python -m unittest discover -s tests/unit/venue -p "test_us20_*.py" -v
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
+python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
+                        # US20 integration tests: search through the real API (login, SQL, JSON columns), also run by hand
                         # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
 
 # Coverage for one story: runs each UNIT test file on its own and saves a timestamped report per file under
 # coverage_reports/<story>/<date_time>/unit/<test_file>/ (htmlcov/index.html, coverage_report.txt, test_output.txt),
 # plus summary.txt, and adds one line per test file to coverage_reports/<story>/history_by_file.csv.
 # Integration tests are not part of this automation.
-python run_coverage.py us17      # or us18
+python run_coverage.py us17      # or us18, us20
 ```
 
 ## Scripts

@@ -96,7 +96,7 @@ function formFromEvent(event: EventRecord, venues: Venue[]): NewRequestForm {
     end: event.end,
     pax: event.pax ? String(event.pax) : "",
     venueLocation:
-      event.venueLocation ?? (event.venue ? getVenue(venues, event.venue)?.building ?? "" : ""),
+      event.venueLocation ?? (event.venue ? getVenue(venues, event.venue)?.location ?? "" : ""),
     venueCapacity: event.venueCapacity ? String(event.venueCapacity) : "",
     layout: event.layout,
     facilities: [...event.facilities],

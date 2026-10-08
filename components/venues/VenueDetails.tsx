@@ -32,7 +32,7 @@ export function VenueDetails({ venue }: { venue: Venue }) {
       <div>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{venue.name}</div>
         <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
-          <strong>Location:</strong> {venue.building}
+          <strong>Location:</strong> {venue.location}
         </div>
       </div>
 
