@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/lib/app-context";
-import { canAccessRoute, DEFAULT_ROUTE } from "@/lib/data";
+import { canAccessRoute, routeRedirect } from "@/lib/data";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Modal } from "@/components/Modal";
@@ -19,9 +19,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!authChecked) return;
-    if (!authed) router.replace("/login");
-    else if (!allowed) router.replace(DEFAULT_ROUTE[role]);
-  }, [authChecked, authed, allowed, role, router]);
+    if (!authed) {
+      router.replace("/login");
+      return;
+    }
+    const redirect = routeRedirect(role, pathname);
+    if (redirect) {
+      // Tell the user why they ended up on their home page instead of the one they asked for.
+      app.flash(redirect.message, "bad");
+      router.replace(redirect.to);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, authed, role, pathname, router]);
 
   if (!authChecked || !allowed) return null;
 

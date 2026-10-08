@@ -1,11 +1,12 @@
 "use client";
 
 import { useApp } from "@/lib/app-context";
+import { organiserEvents } from "@/lib/event-visibility";
 import { MyEventsTable } from "@/components/my-events/MyEventsTable";
 
 export default function MyEventsPage() {
   const app = useApp();
-  const mine = app.state.events.filter((e) => e.organiser === app.me.person);
+  const mine = organiserEvents(app.state.events, app.me.person);
 
   const stats: Array<[string, string]> = [
     [String(mine.filter((x) => x.status === "draft").length), "Drafts"],

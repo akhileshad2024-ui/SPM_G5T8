@@ -1,11 +1,12 @@
 "use client";
 
 import { useApp } from "@/lib/app-context";
+import { publishedEvents } from "@/lib/event-visibility";
 import { PublicEventCard } from "@/components/browse/PublicEventCard";
 
 export default function BrowsePage() {
   const app = useApp();
-  const open = app.state.events.filter((e) => e.reg && (e.status === "confirmed" || e.status === "planning"));
+  const open = publishedEvents(app.state.events);
 
   return (
     <div style={{ padding: "24px 26px 40px", display: "flex", flexDirection: "column", gap: 20 }}>

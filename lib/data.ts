@@ -97,6 +97,17 @@ export function canAccessRoute(role: Role, pathname: string): boolean {
   return NAV_FOR[role].some(([route]) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
+export const NO_PAGE_PERMISSION = "You don't have permission to view that page.";
+
+/**
+ * Where to send a signed-in user who opened `pathname`, and the authorisation
+ * error to show them (US02); null when they may stay on the page.
+ */
+export function routeRedirect(role: Role, pathname: string): { to: string; message: string } | null {
+  if (canAccessRoute(role, pathname)) return null;
+  return { to: DEFAULT_ROUTE[role], message: NO_PAGE_PERMISSION };
+}
+
 export function seedEvents(): EventRecord[] {
   return [
     { id: "EVT-2041", name: "Alumni Homecoming Dinner", organiser: "Maya Rahman", status: "submitted", date: "14 Mar 2026", start: "19:00", end: "23:00", pax: 180, day: 3, purpose: "An annual reunion dinner for alumni of the last twenty cohorts, with a short address from the Dean and table-side networking over a seated meal.", layout: "banquet", facilities: ["Stage", "PA system", "Projector"], access: ["Step-free access", "Hearing loop"], coordinator: null, venue: null, bookingState: null, equip: [{ id: "E1", qty: 2 }, { id: "E2", qty: 1 }, { id: "E3", qty: 1 }], equipState: "requested", reg: true, regCap: 200, registered: 0, submittedAgo: "submitted 2 days ago",
