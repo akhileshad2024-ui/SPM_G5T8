@@ -1,0 +1,15 @@
+Coverage report for US01
+Generated: 2026-10-06 17:22:22
+Tests: tests/us01_secure_login/test_ac1_ac2_login.py, tests/us01_secure_login/test_ac3_lockout.py, tests/us01_secure_login/test_ac4_session_timeout.py, tests/us01_secure_login/test_ac5_tls.py, tests/us01_secure_login/test_ac6_password_storage.py, tests/us01_secure_login/unit/test_lockout_unit.py, tests/us01_secure_login/unit/test_security_unit.py
+Result: 128 tests, all passed
+Measured files: login/auth.py, login/security.py, login/schemas.py, login/models.py, login/set_password.py
+
+Name                            Stmts   Miss  Cover   Missing
+-------------------------------------------------------------
+backend\login\auth.py              65      0   100%
+backend\login\models.py            22      0   100%
+backend\login\schemas.py           11      0   100%
+backend\login\security.py          84      4    95%   26, 148-150
+backend\login\set_password.py      33      1    97%   51
+-------------------------------------------------------------
+TOTAL                             215      5    98%

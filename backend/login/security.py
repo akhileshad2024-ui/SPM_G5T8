@@ -15,6 +15,7 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from database import get_db  # importing database also loads backend/.env
@@ -33,7 +34,12 @@ JWT_ALGORITHM = "HS256"
 SESSION_IDLE_MINUTES = int(os.getenv("SESSION_IDLE_MINUTES", "30"))
 SESSION_HOURS = int(os.getenv("SESSION_HOURS", "8"))
 COOKIE_NAME = "cs_session"
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+
+# In production (APP_ENV=production) the cookie is HTTPS-only and requests that did
+# not arrive over HTTPS are refused (see enforce_https). Local development uses http.
+IS_PRODUCTION = os.getenv("APP_ENV", "development").lower() == "production"
+COOKIE_SECURE = IS_PRODUCTION or os.getenv("COOKIE_SECURE", "false").lower() == "true"
+HSTS_HEADER = "max-age=63072000; includeSubDomains"
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
@@ -144,3 +150,24 @@ def require_roles(*roles: models.Role):
         return user
 
     return dependency
+
+
+# ---------------------------------------------------------------- transport (TLS)
+
+async def enforce_https(request: Request, call_next):
+    """
+    HTTP middleware. In production, refuse any request that did not arrive over
+    HTTPS (so credentials are never accepted over plain HTTP) and send HSTS so
+    browsers stick to HTTPS. Behind a TLS-terminating proxy, the original scheme
+    comes from X-Forwarded-Proto. Does nothing in development.
+    """
+    if not IS_PRODUCTION:
+        return await call_next(request)
+
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip().lower()
+    if scheme != "https":
+        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "HTTPS is required"})
+
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = HSTS_HEADER
+    return response

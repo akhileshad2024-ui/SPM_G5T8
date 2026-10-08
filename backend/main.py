@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
-from login.security import get_current_user, require_roles
+from login.security import enforce_https, get_current_user, require_roles
 import models, schemas
 from venue_audit import apply_update, change_action, creation_changes, record_change
 
@@ -21,6 +21,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# US01 AC5: in production, credentials are only accepted over HTTPS.
+app.middleware("http")(enforce_https)
 
 app.include_router(auth.router)
 

@@ -23,8 +23,10 @@ from pathlib import Path
 
 # Must be set before the backend is imported: database.py and security.py read
 # these at import time (load_dotenv doesn't override variables already set).
-os.environ["DATABASE_URL"] = "sqlite://"
-os.environ["JWT_SECRET"] = "test-secret-for-us17-unit-tests-only-0123456789"
+# setdefault: tests/conftest.py normally sets them already, and other test
+# folders share the same backend modules, so don't swap them out from under them.
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ.setdefault("JWT_SECRET", "test-secret-for-us17-unit-tests-only-0123456789")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
 

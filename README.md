@@ -32,6 +32,8 @@ backend/login/
   tracks clicks/typing/scrolling across tabs, keeps the session alive while
   you're active, and returns you to the sign-in page once you've been idle.
   A session never lasts more than 8 hours from sign-in (`SESSION_HOURS`).
+- In production (`APP_ENV=production`) credentials are only accepted over
+  HTTPS: plain-HTTP requests get 403, HSTS is sent and the cookie is `Secure`.
 - Signing out (or changing your password) revokes the session on the server,
   so a copied cookie stops working.
 - A wrong password and an unknown email get the same error, so the login can't
@@ -213,29 +215,42 @@ the repo):
 This is a standard Next.js app — push it to GitHub and import the repo at
 [vercel.com/new](https://vercel.com/new), or run `npx vercel` from this
 directory. Set `BACKEND_URL` to wherever the FastAPI backend is hosted, and
-set `COOKIE_SECURE=true` in the backend's environment when serving over HTTPS.
+set `APP_ENV=production` in the backend's environment: it then refuses any
+request not made over HTTPS (behind a hosting proxy it reads
+`X-Forwarded-Proto`), sends HSTS, and makes the session cookie HTTPS-only.
 
 ## Tests
 
 ```bash
 npm test                # all frontend unit tests (vitest)
-python -m unittest discover -s tests -v     # all Python tests
+python -m pytest tests  # all Python tests (pip install pytest pytest-cov once)
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
+                        # US17 integration tests: real API + in-memory SQLite, never touches Supabase
+python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, throwaway SQLite
+python -m pytest tests/us02_rbac             # US02 backend
+npm run test:us01       # US01 frontend unit tests (idle sign-out)
+npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
 
 # Coverage for one story (run from the project root). Saves a timestamped report under
-# coverage_reports/<story>/<date_time>/ (htmlcov/index.html, coverage_report.txt, test_output.txt)
-# and adds a line to coverage_reports/<story>/history.csv:
+# coverage_reports/<story>/<date_time>/ (htmlcov/index.html, coverage_report.txt, test_output.txt;
+# US01/US02 also frontend/coverage_report.txt) and adds a line to coverage_reports/<story>/history.csv:
 python run_coverage.py us17
-                        # US17 integration tests: real API + in-memory SQLite, never touches Supabase
+python run_coverage.py us01
+python run_coverage.py us02
 ```
+
+US01 and US02 keep their tests in one folder per story (`tests/us01_secure_login/`,
+`tests/us02_rbac/`): pytest backend tests (`unit/` for single functions,
+`test_*.py` for the API) next to the Vitest frontend tests (`*.unit.test.ts`).
 
 ## Scripts
 
 - `npm run dev` — start the dev server
 - `npm run build` — production build
 - `npm run start` — run the production build locally
+
 ## Architecture
 [Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio)
 The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**: Next.js / React, a Python monolith, and Supabase DB. Today the backend serves sign-in and the venue catalogue; the other data is still held in the browser.
