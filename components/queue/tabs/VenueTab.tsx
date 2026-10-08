@@ -3,7 +3,7 @@
 import { useApp } from "@/lib/app-context";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout } from "@/lib/types";
-import { bookingProblems, hasStepFreeAccess, venueHas } from "@/lib/venue-rules";
+import { bookingProblems, venueHas } from "@/lib/venue-rules";
 import styles from "./VenueTab.module.css";
 
 const LAYOUTS: Array<[Layout | "any", string]> = [
@@ -22,7 +22,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
   const venues = app.state.venues.filter((v) => v.isActive);
   const minCap = parseInt(vf.cap, 10) || 0;
   const matches = venues.filter(
-    (v) => v.cap >= minCap && (vf.layout === "any" || venueHas(v.layouts, vf.layout)) && (!vf.stepFree || hasStepFreeAccess(v))
+    (v) => v.cap >= minCap && (vf.layout === "any" || venueHas(v.layouts, vf.layout))
   );
   // The current booking may have become unusable (venue deactivated/unavailable, or a setup/turnaround clash).
   const currentVenue = app.venue(event.venue);
@@ -54,10 +54,6 @@ export function VenueTab({ event }: { event: EventRecord }) {
             ))}
           </select>
         </div>
-        <label className="checkbox-row" style={{ height: 32 }}>
-          <input type="checkbox" checked={vf.stepFree} onChange={app.toggleVfStepFree} />
-          Step-free access
-        </label>
         <div style={{ flex: 1 }} />
         <div className={styles.count}>
           {matches.length} of {venues.length} venues match
@@ -125,11 +121,9 @@ export function VenueTab({ event }: { event: EventRecord }) {
                     {v.facilities.map((f) => (
                       <Tag key={f} label={f} bg="#fff" fg="#4A5169" border="rgba(10,14,26,.14)" />
                     ))}
-                    <Tag
-                      label={hasStepFreeAccess(v) ? "Step-free" : "No step-free access"}
-                      bg={hasStepFreeAccess(v) ? "var(--info-bg)" : "var(--bad-bg)"}
-                      fg={hasStepFreeAccess(v) ? "var(--info-fg)" : "var(--bad-fg)"}
-                    />
+                    {v.accessibility.map((a) => (
+                      <Tag key={a} label={a} bg="var(--info-bg)" fg="var(--info-fg)" />
+                    ))}
                   </div>
                   {su.reasons.length > 0 && (
                     <div className={styles.reasons}>

@@ -242,10 +242,6 @@ export function venueHas(list: string[], item: string): boolean {
   return list.some((x) => x.toLowerCase() === item.toLowerCase());
 }
 
-export function hasStepFreeAccess(venue: Venue): boolean {
-  return venueHas(venue.accessibility, "Step-free access") || venueHas(venue.accessibility, "Wheelchair access");
-}
-
 export function venueFromApi(v: ApiVenue): Venue {
   return {
     id: String(v.id),

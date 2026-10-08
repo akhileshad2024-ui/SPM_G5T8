@@ -1,0 +1,6 @@
+US17 unit test and coverage summary - 2026-10-06 22:15:32
+
+type    test file                          tests  result   coverage
+unit    test_us17_venue_audit                 17  passed     100.0%
+unit    test_us17_venue_endpoints             12  passed      84.4%
+unit    test_us17_venue_validation            43  passed     100.0%

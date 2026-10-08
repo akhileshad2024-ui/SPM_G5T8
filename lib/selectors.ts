@@ -5,7 +5,7 @@
  */
 import { EQUIP } from "./data";
 import type { EventRecord, Venue } from "./types";
-import { availabilityIssues, hasStepFreeAccess, venueHas } from "./venue-rules";
+import { availabilityIssues, venueHas } from "./venue-rules";
 
 export function getEvent(events: EventRecord[], id: string | null | undefined): EventRecord | undefined {
   return events.find((e) => e.id === id);
@@ -59,13 +59,6 @@ export function suitability(events: EventRecord[], venue: Venue, event: EventRec
   (event.facilities || []).forEach((f) => {
     if (!venueHas(venue.facilities, f)) {
       reasons.push({ level: "warn", text: `${f} is not available at this venue.` });
-    }
-  });
-  (event.access || []).forEach((a) => {
-    if (a.toLowerCase() === "step-free access") {
-      if (!hasStepFreeAccess(venue)) reasons.push({ level: "block", text: "No step-free access, which this event requires." });
-    } else if (!venueHas(venue.accessibility, a)) {
-      reasons.push({ level: "warn", text: `${a} is not listed for this venue.` });
     }
   });
   // Date/time checks use the occupied window: setup and turnaround included (Week 7 change #1).
