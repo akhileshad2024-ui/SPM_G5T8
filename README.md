@@ -4,10 +4,11 @@ A Next.js (App Router + TypeScript) rebuild of the ConnectSphere event-operation
 prototype: one request moving through review, venue booking, equipment
 reservation, and registration, with a different view per role.
 
-Sign-in and the venue catalogue are served by a FastAPI backend (`backend/`)
-on Supabase Postgres. The rest of the data is still seeded in memory on load
-(see `lib/data/seed.ts`) and lives in a single React context (`lib/state/app-context.tsx`)
-— reloading the page resets it (but keeps you signed in).
+Sign-in, the venue catalogue and event requests are served by a FastAPI backend
+(`backend/`) on Supabase Postgres; the app starts with no sample events. Actions
+that are not yet saved on the server (review decisions, venue bookings, equipment
+reservations, registrations, notifications) only change the browser's copy, held
+in a single React context (`lib/state/app-context.tsx`), and are lost on reload.
 
 ## Login & role-based access control (RBAC)
 
@@ -78,6 +79,37 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
 | `GET /venues/{id}/history` | Venue Staff |
+| `POST /events`, `PUT /events/{id}` | Event Organiser — `PUT` only on their own drafts |
+| `GET /events` | any signed-in user — only events they are involved in (below) |
+| `GET /events/{id}/history` | users involved in that event |
+
+## Event status (US13)
+
+An event's status is always one of: **Draft, Submitted, Under Review, Pending
+Clarification, Approved, Rejected, Confirmed, Cancelled**.
+
+**Changing a status — rule for every story:** call `change_status()` in
+`backend/event_status.py`; never set `event.status` directly. It refuses changes
+the workflow doesn't allow (409) and records each change in the
+`event_status_changes` table (old → new status, who, when, optional reason), which
+is what `GET /events/{id}/history` and the "Status history" timeline show.
+
+| From | May change to |
+|---|---|
+| (new request) | Draft, Submitted |
+| Draft | Submitted |
+| Submitted | Under Review, Cancelled |
+| Under Review | Pending Clarification, Approved, Rejected, Cancelled |
+| Pending Clarification | Under Review, Cancelled |
+| Approved | Confirmed, Cancelled |
+| Confirmed | Cancelled |
+| Rejected, Cancelled | — (final) |
+
+**Who is involved in an event** (`backend/event_access.py`) — and so may see it,
+its status and its history: the organiser who created it (drafts are visible only
+to them); a coordinator assigned to it, or any coordinator while it is submitted
+and unassigned; Venue Staff once it has a venue booking; Technical Support once it
+requests equipment; attendees once it is Confirmed with registration open.
 
 ## Venue catalogue (US17 + Week 7 changes)
 
@@ -144,7 +176,7 @@ backend/
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns)
-  seed_venues.py   Script: add the five demo venues the sample events refer to
+  seed_venues.py   Script: add five demo venues to the catalogue
   login/           Authentication + RBAC (see above)
 ```
 
@@ -177,9 +209,9 @@ predates US17, run the steps in `backend/schema_changes.sql` once in the Supabas
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
 column) must wait until every branch uses the new venue model.
 
-**Demo venues** — the sample events (Grand Hall, The Atrium, ...) only link to
-real venues once those exist in the catalogue. Add any that are missing with
-`python -m seed_venues` (from `backend/`; existing venues are left alone).
+**Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
+The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues
+are left alone).
 
 **Managing passwords** (from `backend/`):
 
