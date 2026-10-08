@@ -4,14 +4,13 @@ import { fail, isCoordinator, withChanges } from "./shared";
 /**
  * Coordinators can only be assigned while an event is still live: once it has
  * been submitted and until it is closed. Drafts still belong to the organiser,
- * and rejected / cancelled / completed events need no coordinator.
+ * and rejected / cancelled events need no coordinator.
  */
 export const ASSIGNABLE_STATUSES: readonly EventStatus[] = [
   "submitted",
   "under_review",
   "pending_clarification",
   "approved",
-  "planning",
   "confirmed",
 ];
 

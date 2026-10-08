@@ -6,7 +6,7 @@ import { BoardColumn } from "@/components/board/BoardColumn";
 const COLUMNS: Array<[string, string, string]> = [
   ["submitted", "Submitted", "#1466FF"],
   ["under_review", "Under review", "#FFBF00"],
-  ["planning", "Approved · planning", "#00C2A8"],
+  ["approved", "Approved", "#00C2A8"],
   ["confirmed", "Confirmed", "#0A0E1A"],
 ];
 
@@ -19,9 +19,7 @@ export default function BoardPage() {
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start", overflowX: "auto", paddingBottom: 8 }}>
         {COLUMNS.map(([key, label, color]) => {
           const cards = events.filter((e) =>
-            key === "planning"
-              ? e.status === "planning" || e.status === "approved"
-              : key === "under_review"
+            key === "under_review"
                 ? e.status === "under_review" || e.status === "pending_clarification"
                 : e.status === key
           );

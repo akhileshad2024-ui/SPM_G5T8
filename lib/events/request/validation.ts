@@ -1,5 +1,17 @@
 import type { EventRequestDraft, ValidationResult } from "../../types";
 
+/**
+ * Today's date as YYYY-MM-DD in the user's own time zone. Not toISOString(),
+ * which gives the UTC date: in Singapore that is still "yesterday" until 8am,
+ * so a past date would slip through the "cannot be in the past" check.
+ */
+export function localDateISO(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 /** Returns true when a text field is empty or contains spaces only. */
 function isBlank(value: string): boolean {
   return value.trim().length === 0;
@@ -115,6 +127,17 @@ export function validateEventRequest(
     if (closingDate === null || isBlank(closingDate)) {
       errors["registration.closingDate"] =
         "Registration closing date is required.";
+    } else if (closingDate < today) {
+      errors["registration.closingDate"] =
+        "Registration closing date cannot be in the past.";
+    } else if (
+      !isBlank(request.preferredDate) &&
+      request.preferredDate >= today && // an invalid event date already has its own error
+      closingDate > request.preferredDate
+    ) {
+      // Attendees can't sign up for an event that has already happened.
+      errors["registration.closingDate"] =
+        "Registration must close on or before the event date.";
     }
   }
 

@@ -45,7 +45,7 @@ export function approveRequest(
         title: "Request approved",
         body: text
           ? `${event.name} has been approved. ${text}`
-          : `${event.name} has been approved and moved into planning.`,
+          : `${event.name} has been approved.`,
       },
     ],
   };

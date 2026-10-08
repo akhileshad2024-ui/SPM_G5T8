@@ -22,12 +22,13 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, apiFetch } from "../api/client";
-import { COORDINATORS, PEOPLE, SEED_VENUE_NAMES, seedEvents, seedNotifs } from "../data/seed";
+import { COORDINATORS, PEOPLE } from "../data/seed";
 import { DEFAULT_ROUTE } from "../auth/route-access";
 import { EQUIP } from "../data/options";
 import { eventRequestFromForm } from "../events/request/form-adapter";
+import { eventFromApi, eventKey, eventRequestBody, type SavedEvent, type StoredEvent } from "../events/request/api";
 import { submitEventRequest } from "../events/request/submission";
-import { validateEventRequest } from "../events/request/validation";
+import { localDateISO, validateEventRequest } from "../events/request/validation";
 import { assignCoordinator } from "../events/review/assignment";
 import { requestClarification } from "../events/review/clarification";
 import { approveRequest, rejectRequest } from "../events/review/decision";
@@ -51,6 +52,7 @@ import type {
   VenueFilter,
   WorkflowResult,
   VenueInput,
+  NotificationRecord,
 } from "../types";
 
 const BASIC_FIELDS = new Set([
@@ -127,7 +129,7 @@ interface AppState {
   events: EventRecord[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
-  notifs: ReturnType<typeof seedNotifs>;
+  notifs: NotificationRecord[];
   selectedId: string;
   tab: EventTab;
   queueFilter: QueueFilter;
@@ -169,11 +171,11 @@ function initialForm(): NewRequestForm {
 /**
  * Per-user UI state (drafts, selections, filters, open dialogs). Reset whenever
  * the signed-in user changes so nothing carries over to the next person on the
- * same browser. `events`/`notifs` stand in for server data and are kept.
+ * same browser. Events are loaded from the server for each user (GET /events).
  */
 function sessionUiState() {
   return {
-    selectedId: "EVT-2041",
+    selectedId: "",
     tab: "request",
     queueFilter: "action",
     search: "",
@@ -197,9 +199,9 @@ function initialState(): AppState {
     user: null,
     signInNotice: null,
     role: "coordinator",
-    events: seedEvents(),
+    events: [],
     venues: [],
-    notifs: seedNotifs(),
+    notifs: [],
     ...sessionUiState(),
   };
 }
@@ -329,20 +331,13 @@ export type SaveVenueResult =
   | { ok: true; venue: Venue; flagged: EventRecord[] }
   | { ok: false; error: string; fields: Record<string, string> };
 
-/** Sample events use placeholder venue ids ("V1"...); point them at the real venue with the same name. */
-function resolveSeedVenues(events: EventRecord[], venues: Venue[]): EventRecord[] {
-  return events.map((e) => {
-    const name = e.venue ? SEED_VENUE_NAMES[e.venue] : undefined;
-    const real = name ? venues.find((v) => v.name === name) : undefined;
-    return real ? { ...e, venue: real.id } : e;
-  });
-}
-
 const AppContext = createContext<AppApi | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const router = useRouter();
+  // Ignores repeat clicks while an event request is being saved, so one click = one row.
+  const savingRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const patch = (update: Partial<AppState> | ((s: AppState) => Partial<AppState>)) =>
@@ -389,7 +384,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role, signInNotice: null });
 
   const endSession = (signInNotice: string | null = null) =>
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], signInNotice });
+    // Events and notifications belong to the user who was signed in, so they go too.
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], notifs: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
@@ -413,7 +409,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return rows.map(venueFromApi);
   };
 
-  const applyVenues = (venues: Venue[]) => patch((s) => ({ venues, events: resolveSeedVenues(s.events, venues) }));
+  const applyVenues = (venues: Venue[]) => patch({ venues });
 
   /** Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2). */
   const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[]): EventRecord[] => {
@@ -431,6 +427,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     apiFetch<AuthUser>("/auth/me").then(startSession, () => endSession());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load the event requests this user may see (the server applies the role rules).
+  useEffect(() => {
+    if (!state.authed) return;
+    apiFetch<StoredEvent[]>("/events").then(
+      (stored) => patch({ events: stored.map(eventFromApi) }),
+      handleApiError,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
 
   useIdleSignOut(
     state.authed,
@@ -458,6 +464,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
       : PEOPLE[state.role];
     /** Who is performing a workflow action — always from the session. */
     const actor = { name: me.person, role: state.role };
+
+    /**
+     * Saves the wizard form through POST /events and puts the stored event in the list.
+     * Returns the event, or null after showing why it wasn't saved.
+     */
+    const saveRequest = async (submit: boolean): Promise<EventRecord | null> => {
+      if (savingRequest.current) return null;
+      savingRequest.current = true;
+      try {
+        // A draft already stored on the server is updated in place, never saved as a second request.
+        const storedId = getEvent(state.events, state.editingEventId)?.backendId;
+        const saved = await apiFetch<SavedEvent>(storedId ? `/events/${storedId}` : "/events", {
+          method: storedId ? "PUT" : "POST",
+          body: JSON.stringify(eventRequestBody(state.form, EQUIP, submit)),
+        });
+        const e = {
+          ...buildEventFromForm(submit ? "submitted" : "draft", saved.submittedAt ?? undefined),
+          id: eventKey(saved.id),
+          backendId: saved.id,
+          organiser: saved.organiser,
+        };
+        patch((s) => ({
+          // An edited local draft is replaced by the stored copy.
+          events: [e, ...s.events.filter((item) => item.id !== s.editingEventId)],
+          step: 1,
+          formErrors: {},
+          editingEventId: null,
+          form: initialForm(),
+        }));
+        return e;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 422 && Object.keys(err.fields).length) {
+          patch({ formErrors: err.fields });
+          flash(err.message, "warn");
+        } else {
+          handleApiError(err);
+        }
+        return null;
+      } finally {
+        savingRequest.current = false;
+      }
+    };
 
     const buildEventFromForm = (
       status: "draft" | "submitted",
@@ -680,7 +728,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const previous = e.venue && e.venue !== venueId ? getVenue(state.venues, e.venue) : undefined;
         patchEvent(
           eventId,
-          { venue: venueId, bookingState: "pending", status: e.status === "approved" ? "planning" : e.status },
+          { venue: venueId, bookingState: "pending" },
           {
             title: previous ? "Replacement venue requested" : "Venue booking requested",
             body: `${v.name} requested for ${e.date}, ${e.start}–${e.end}${previous ? `, replacing ${previous.name}` : ""}.`,
@@ -702,7 +750,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         patchEvent(
           eventId,
-          { bookingState: "approved", status: e.status === "approved" ? "planning" : e.status },
+          { bookingState: "approved" },
           { title: "Venue booking approved", body: `${v.name} confirmed for ${e.date}, ${e.start}–${e.end}.` }
         );
         notify("coordinator", "Venue booking approved", `${v.name} confirmed for ${e.name}.`);
@@ -748,7 +796,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      submitDraft: (eventId) => {
+      submitDraft: async (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
         const form = formFromEvent(e, state.venues);
@@ -756,7 +804,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!result.ok) {
           const validation = validateEventRequest(
             eventRequestFromForm(form, EQUIP),
-            new Date().toISOString().slice(0, 10),
+            localDateISO(new Date()),
           );
           const firstStep = Object.keys(errorsForStep(validation.errors, 1)).length
             ? 1
@@ -773,12 +821,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
           router.push("/new-request");
           return;
         }
+        // A stored draft is submitted on the server, so the change is saved and recorded in its status history (US13).
+        let submittedAt = result.request.submittedAt;
+        if (e.backendId !== undefined) {
+          try {
+            const saved = await apiFetch<SavedEvent>(`/events/${e.backendId}`, {
+              method: "PUT",
+              body: JSON.stringify(eventRequestBody(form, EQUIP, true)),
+            });
+            submittedAt = saved.submittedAt ?? submittedAt;
+          } catch (err) {
+            handleApiError(err);
+            return;
+          }
+        }
         patchEvent(
           eventId,
           {
             status: "submitted",
             submittedAgo: "submitted just now",
-            submittedAt: result.request.submittedAt,
+            submittedAt,
             draftForm: undefined,
           },
           { title: "Request submitted", body: `${e.organiser} submitted the request for review.` }
@@ -810,10 +872,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const next = Math.max(0, Math.min(total, cur + delta));
           return { form: { ...s.form, equip: { ...s.form.equip, [id]: next } } };
         }),
-      nextStep: () => {
+      nextStep: async () => {
         const draft = eventRequestFromForm(state.form, EQUIP);
-        const today = new Date().toISOString().slice(0, 10);
-        const validation = validateEventRequest(draft, today);
+        const validation = validateEventRequest(draft, localDateISO(new Date()));
 
         if (state.step < 3) {
           const stepErrors = errorsForStep(validation.errors, state.step);
@@ -835,32 +896,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           flash("Complete the outstanding fields before submission.", "warn");
           return;
         }
-        const e = buildEventFromForm("submitted", result.request.submittedAt);
-        patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
-          step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
-        }));
+        const e = await saveRequest(true);
+        if (!e) return;
         notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
         flash(`${e.name} submitted for review.`);
         router.push("/my-events");
       },
       backStep: () => patch((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 })),
-      saveDraft: () => {
-        const e = buildEventFromForm("draft");
-        patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
-          step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
-        }));
+      saveDraft: async () => {
+        const e = await saveRequest(false);
+        if (!e) return;
         flash("Draft saved. You can finish it later.");
         router.push("/my-events");
       },

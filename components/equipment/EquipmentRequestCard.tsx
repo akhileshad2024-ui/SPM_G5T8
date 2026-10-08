@@ -3,6 +3,7 @@
 import { useApp } from "@/lib/state/app-context";
 import { Dot } from "@/components/ui/Dot";
 import { Tag } from "@/components/ui/Pill";
+import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
 export function EquipmentRequestCard({ event }: { event: EventRecord }) {
@@ -64,6 +65,9 @@ export function EquipmentRequestCard({ event }: { event: EventRecord }) {
           </button>
           <div style={{ fontSize: 11, color: "var(--text-subtle)", lineHeight: 1.45, textAlign: "center" }}>{note}</div>
         </div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <StatusHistoryToggle event={event} />
       </div>
     </div>
   );

@@ -127,7 +127,7 @@ function describeWindow(w: Window, venue: Venue): string {
 
 // ---------------------------------------------------------------- availability checks
 
-const CLOSED_STATUSES = new Set(["cancelled", "rejected", "completed"]);
+const CLOSED_STATUSES = new Set(["cancelled", "rejected"]);
 
 /** Events that currently hold (or have asked for) a venue. */
 export function holdsBooking(e: EventRecord): boolean {

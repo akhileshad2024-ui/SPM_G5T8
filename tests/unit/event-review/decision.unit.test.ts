@@ -32,7 +32,7 @@ describe("US10 - Approve or Reject Event Request", () => {
       {
         to: "organiser",
         title: "Request approved",
-        body: "Alumni Homecoming Dinner has been approved and moved into planning.",
+        body: "Alumni Homecoming Dinner has been approved.",
       },
     ]);
   });

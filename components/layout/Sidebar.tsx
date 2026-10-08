@@ -21,7 +21,7 @@ export function Sidebar() {
     "/queue": events.filter(needsCoordinatorAction).length,
     "/bookings": events.filter((e) => e.bookingState === "pending").length,
     "/equipment": events.filter(
-      (e) => e.equipState === "requested" && (e.status === "planning" || e.status === "approved" || e.status === "confirmed")
+      (e) => e.equipState === "requested" && (e.status === "approved" || e.status === "confirmed")
     ).length,
   };
 

@@ -42,7 +42,9 @@ REPORTS = ROOT / "coverage_reports"
 # Backend files each story's tests are meant to cover. Add a line when you add a story.
 STORY_FILES = {
     "us01": ["login/auth.py", "login/security.py", "login/schemas.py", "login/models.py", "login/set_password.py"],
-    "us02": ["login/security.py", "main.py"],
+    "us02": ["login/security.py", "event_access.py", "main.py"],
+    "us03": ["main.py", "schemas.py", "models.py"],
+    "us13": ["event_status.py", "event_access.py", "main.py", "schemas.py", "models.py"],
     "us17": ["main.py", "schemas.py", "models.py", "venue_audit.py"],
 }
 
@@ -50,12 +52,22 @@ STORY_FILES = {
 STORY_DIRS = {
     "us01": "tests/us01_secure_login",
     "us02": "tests/us02_rbac",
+    "us03": "tests/us03_us04_event_request",
+    "us13": "tests/us13_event_status",
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.
 STORY_FRONTEND = {
     "us01": ["lib/auth/idle-timeout.ts"],
     "us02": ["lib/auth/route-access.ts", "lib/events/visibility.ts"],
+    "us03": ["lib/events/request/validation.ts", "lib/events/request/api.ts",
+             "lib/events/request/form-adapter.ts", "lib/events/request/submission.ts"],
+    "us13": ["lib/events/status-history.ts"],
+}
+
+# Where a story's Vitest tests live, when not in its STORY_DIRS folder.
+STORY_FRONTEND_TESTS = {
+    "us03": "tests/unit/event-request",
 }
 
 
@@ -98,7 +110,7 @@ def run_frontend_tests(story: str, out: Path) -> str | None:
     folder = out / "frontend"
     run = subprocess.run(
         [
-            npx, "vitest", "run", STORY_DIRS[story], "--coverage",
+            npx, "vitest", "run", STORY_FRONTEND_TESTS.get(story, STORY_DIRS[story]), "--coverage",
             *[f"--coverage.include={f}" for f in STORY_FRONTEND[story]],
             "--coverage.reporter=text", "--coverage.reporter=json-summary", "--coverage.reporter=html",
             f"--coverage.reportsDirectory={folder / 'htmlcov'}",

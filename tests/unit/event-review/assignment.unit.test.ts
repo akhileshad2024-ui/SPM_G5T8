@@ -65,7 +65,7 @@ describe("US11 - Assign Event Coordinator", () => {
     expect(result).toEqual({ ok: false, error: "That person is not an Event Coordinator." });
   });
 
-  it.each<EventStatus>(["draft", "rejected", "cancelled", "completed"])(
+  it.each<EventStatus>(["draft", "rejected", "cancelled"])(
     "[US11-AC4] cannot assign a coordinator to a %s event",
     (status) => {
       const event = createEvent({ status });

@@ -41,6 +41,11 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
     try {
       const body = await res.json();
       if (typeof body?.detail === "string") message = body.detail;
+      // Our own rule checks (e.g. POST /events submission) send { message, errors: { field: message } }.
+      if (body?.detail && typeof body.detail === "object" && !Array.isArray(body.detail)) {
+        message = body.detail.message ?? message;
+        fields = body.detail.errors ?? {};
+      }
       if (Array.isArray(body?.detail)) {
         fields = validationFields(body.detail);
         message = Object.entries(fields)

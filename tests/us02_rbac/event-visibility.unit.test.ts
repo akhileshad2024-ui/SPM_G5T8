@@ -1,14 +1,25 @@
 /**
  * US02 — "can view only the events they are associated with or authorised to see".
  *
- * Unit tests for the per-role event lists in lib/events/visibility.ts, using the seed data.
+ * Unit tests for the per-role event lists in lib/events/visibility.ts, using a fixed set of
+ * events that covers every status and several organisers and coordinators.
  */
 import { describe, expect, it } from "vitest";
-import { seedEvents } from "../../lib/data/seed";
 import { organiserEvents, publishedEvents, reviewQueue } from "../../lib/events/visibility";
 import type { EventRecord } from "../../lib/types";
+import { createEvent } from "../unit/event-review/fixtures";
 
-const events = seedEvents();
+const events: EventRecord[] = [
+  createEvent({ id: "EVT-2041", name: "Alumni Homecoming Dinner", organiser: "Maya Rahman", status: "submitted" }),
+  createEvent({ id: "EVT-2038", name: "Research Symposium", organiser: "Lin Chen", status: "pending_clarification", coordinator: "Priya Tan" }),
+  createEvent({ id: "EVT-2044", name: "Startup Pitch Night", organiser: "Ana Silva", status: "submitted" }),
+  createEvent({ id: "EVT-2045", name: "Faculty Onboarding Workshop", organiser: "Kwame Osei", status: "submitted", reg: false }),
+  createEvent({ id: "EVT-2030", name: "Design Week Keynote", organiser: "Maya Rahman", status: "approved", coordinator: "Priya Tan" }),
+  createEvent({ id: "EVT-2028", name: "Industry Career Fair", organiser: "Jihoon Park", status: "approved", coordinator: "Priya Tan" }),
+  createEvent({ id: "EVT-2035", name: "Sustainability Forum", organiser: "Jihoon Park", status: "approved", coordinator: "Priya Tan" }),
+  createEvent({ id: "EVT-2012", name: "Open House 2026", organiser: "Tariq Ibrahim", status: "confirmed", coordinator: "Priya Tan" }),
+  createEvent({ id: "EVT-2050", name: "Postgrad Mixer", organiser: "Maya Rahman", status: "draft", reg: false }),
+];
 const ids = (list: EventRecord[]) => list.map((e) => e.id).sort();
 const byId = (id: string) => events.find((e) => e.id === id)!;
 
@@ -31,11 +42,15 @@ describe("organiser: My events", () => {
 });
 
 describe("attendee: Browse events", () => {
-  it("lists only published events open for registration", () => {
-    expect(ids(publishedEvents(events))).toEqual(["EVT-2012", "EVT-2028", "EVT-2030", "EVT-2035"]);
+  it("shows confirmed events open for registration", () => {
+    expect(publishedEvents([{ ...byId("EVT-2030"), status: "confirmed" }])).toHaveLength(1);
   });
 
-  it.each(["draft", "submitted", "under_review", "pending_clarification", "approved", "rejected", "cancelled", "completed"] as const)(
+  it("lists only confirmed events open for registration", () => {
+    expect(ids(publishedEvents(events))).toEqual(["EVT-2012"]);
+  });
+
+  it.each(["draft", "submitted", "under_review", "pending_clarification", "approved", "rejected", "cancelled"] as const)(
     "hides events that are %s",
     (status) => {
       const e = { ...byId("EVT-2030"), status };

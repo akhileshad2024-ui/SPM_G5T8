@@ -3,6 +3,7 @@
 import { useApp } from "@/lib/state/app-context";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tag } from "@/components/ui/Pill";
+import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
 export function PublicEventCard({ event }: { event: EventRecord }) {
@@ -58,6 +59,9 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
         <button className={`btn ${btnVariant}`} style={{ justifyContent: "center", padding: "0 20px" }} onClick={onClick}>
           {btnLabel}
         </button>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <StatusHistoryToggle event={event} />
       </div>
     </div>
   );

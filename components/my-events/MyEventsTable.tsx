@@ -1,13 +1,16 @@
 "use client";
 
+import { Fragment, useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { StatusPill } from "@/components/ui/Pill";
+import { StatusHistory } from "@/components/ui/StatusHistory";
 import { canDirectlyEditEventRequest } from "@/lib/events/request/submission";
 import type { EventRecord } from "@/lib/types";
 import styles from "./MyEventsTable.module.css";
 
 export function MyEventsTable({ events }: { events: EventRecord[] }) {
   const app = useApp();
+  const [historyFor, setHistoryFor] = useState<string | null>(null);
 
   return (
     <div className={`card ${styles.card}`}>
@@ -26,7 +29,8 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
       </div>
 
       {events.map((e) => (
-        <div key={e.id} className={styles.row}>
+        <Fragment key={e.id}>
+        <div className={styles.row}>
           <div style={{ minWidth: 0 }}>
             <div className={styles.eventName}>{e.name}</div>
             <div className={styles.eventId}>{e.id}</div>
@@ -60,8 +64,21 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
                 Request change
               </button>
             )}
+            <button
+              className="btn btn-ghost btn-sm"
+              aria-expanded={historyFor === e.id}
+              onClick={() => setHistoryFor(historyFor === e.id ? null : e.id)}
+            >
+              {historyFor === e.id ? "Hide history" : "History"}
+            </button>
           </div>
         </div>
+        {historyFor === e.id && (
+          <div style={{ padding: "4px 22px 18px" }}>
+            <StatusHistory event={e} />
+          </div>
+        )}
+        </Fragment>
       ))}
     </div>
   );

@@ -12,7 +12,7 @@ export function getPageMeta(pathname: string, events: EventRecord[], venues: Ven
     case pathname.startsWith("/board"):
       return { title: "Pipeline", subtitle: "Every event by stage, across all coordinators" };
     case pathname.startsWith("/my-events"):
-      return { title: "My events", subtitle: "Drafts, submitted requests, and events in planning" };
+      return { title: "My events", subtitle: "Drafts, submitted requests, and approved and confirmed events" };
     case pathname.startsWith("/new-request"):
       return { title: "New event request", subtitle: "Three steps. You can save a draft at any point." };
     case pathname.startsWith("/bookings"):

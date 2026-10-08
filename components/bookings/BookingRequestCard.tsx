@@ -2,6 +2,7 @@
 
 import { useApp } from "@/lib/state/app-context";
 import { Tag } from "@/components/ui/Pill";
+import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 import { availabilityIssues } from "@/lib/venues/rules";
 
@@ -55,6 +56,9 @@ export function BookingRequestCard({ event }: { event: EventRecord }) {
             Reject with reason
           </button>
         </div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <StatusHistoryToggle event={event} />
       </div>
     </div>
   );

@@ -13,9 +13,7 @@ export type EventStatus =
   | "under_review"
   | "pending_clarification"
   | "approved"
-  | "planning"
   | "confirmed"
-  | "completed"
   | "rejected"
   | "cancelled";
 
@@ -108,6 +106,8 @@ export interface ActivityEntry {
 
 export interface EventRecord {
   id: string;
+  /** Database id once the request is stored by the backend (US03); absent for sample data. */
+  backendId?: number;
   name: string;
   organiser: string;
   status: EventStatus;

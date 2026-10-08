@@ -113,6 +113,12 @@ export function StepRequirements() {
                 </div>
               </div>
               {selectedIndex >= 0 && (
+                <div style={{ padding: "0 14px" }}>
+                  {error(`equipment.${selectedIndex}.type`)}
+                  {error(`equipment.${selectedIndex}.quantity`)}
+                </div>
+              )}
+              {selectedIndex >= 0 && (
                 <div className="field" style={{ padding: "10px 14px 13px" }}>
                   <label className="eyebrow">Technical requirements for {x.name}</label>
                   <input

@@ -2,7 +2,7 @@ import type {
   EventRequestDraft,
   SubmissionResult,
 } from "../../types";
-import { validateEventRequest } from "./validation";
+import { localDateISO, validateEventRequest } from "./validation";
 
 /**
  * Submits a complete and valid event request for review.
@@ -16,7 +16,7 @@ export function submitEventRequest(
   now: Date,
 ): SubmissionResult {
   // Reuse the US03 rules so every submission path applies the same validation.
-  const today = now.toISOString().slice(0, 10);
+  const today = localDateISO(now);
   const validation = validateEventRequest(request, today);
 
   if (!validation.valid) {

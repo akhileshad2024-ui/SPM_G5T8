@@ -19,7 +19,7 @@ function eventsByStatus() {
     createEvent({ id: "EVT-2", name: "Pitch Night", status: "submitted", organiser: "Ana Silva" }),
     createEvent({ id: "EVT-3", name: "Symposium", status: "under_review", coordinator: "Priya Tan" }),
     createEvent({ id: "EVT-4", name: "Workshop", status: "pending_clarification", coordinator: null }),
-    createEvent({ id: "EVT-5", name: "Keynote", status: "planning", coordinator: "Marcus Lee" }),
+    createEvent({ id: "EVT-5", name: "Keynote", status: "approved", coordinator: "Marcus Lee" }),
     createEvent({ id: "EVT-6", name: "Career Fair", status: "rejected", coordinator: "Priya Tan" }),
   ];
 }

@@ -10,9 +10,12 @@ export function organiserEvents(events: EventRecord[], organiser: string): Event
   return events.filter((e) => e.organiser === organiser);
 }
 
-/** Attendee's "Browse events": only published events (planning/confirmed) open for registration. */
+/**
+ * Attendee's "Browse events": only confirmed events open for registration. An approved event
+ * can still change venue or date while it is being arranged, so it is published once confirmed.
+ */
 export function publishedEvents(events: EventRecord[]): EventRecord[] {
-  return events.filter((e) => e.reg && (e.status === "confirmed" || e.status === "planning"));
+  return events.filter((e) => e.reg && e.status === "confirmed");
 }
 
 /** Coordinator's review queue. Drafts are private to their organiser, so never listed. */
