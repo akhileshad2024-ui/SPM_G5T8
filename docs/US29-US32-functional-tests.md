@@ -18,6 +18,8 @@ These cases cover the Sprint 2 attendee registration workflow. Record the deploy
 | FT-US32-03 | US32 | A managed event is selected | Select Export CSV | A CSV containing the filtered records downloads |
 | FT-US32-04 | US32 | User does not manage an event | Attempt to find the event in the selector | The event and its registrations are not available |
 
-## Current prototype limitation
+## Storage and rules
 
-The repository is still an in-memory frontend prototype. Reloading resets registrations, and “email queued” is represented by an in-app notification. Persistent storage, transactional capacity enforcement, server-side authorization, and delivery through a real email provider require the planned backend/Supabase implementation.
+Registrations are saved in the database (`registrations` table) and survive reloads; every user sees the same records and places-taken count. The server (`backend/registrations.py`) checks the rules, counts places while the event is locked so two attendees can't take the last place, and moves the longest-waiting attendee up when a registered attendee withdraws. Withdrawal closes 7 days before registration closes (or on the event date when there is no closing date).
+
+Remaining limitation: "email queued" is still an in-app notification; delivery through a real email provider is not implemented.

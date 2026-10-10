@@ -12,7 +12,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
   const app = useApp();
   const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
   const venue = event.venue ? app.venue(event.venue) : undefined;
-  const full = event.registered >= event.regCap;
+  const full = event.regCap > 0 && event.registered >= event.regCap;
   const registration = app.state.registrations.find((r) => r.eventId === event.id && r.attendeeEmail === app.me.email && r.status !== "withdrawn");
   const mine = !!registration;
 
@@ -53,7 +53,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 120 }}>
-          <ProgressBar pct={(event.registered / event.regCap) * 100} color={full ? "#FF4D5E" : "#1466FF"} thin />
+          <ProgressBar pct={event.regCap ? (event.registered / event.regCap) * 100 : 0} color={full ? "#FF4D5E" : "#1466FF"} thin />
           <div className="tabular" style={{ fontSize: 11.5, color: "var(--text-faint)", marginTop: 6 }}>
             {event.registered} of {event.regCap} places taken{full ? " · full" : ""}
           </div>

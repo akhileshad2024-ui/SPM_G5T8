@@ -65,6 +65,9 @@ export interface StoredEvent {
   reg?: boolean;
   regCap?: number | null;
   regClose?: string | null;
+  /** Places taken (US29), and the last day an attendee may withdraw (US31). */
+  registered?: number;
+  withdrawalClose?: string | null;
   venue?: number | null;
   venueName?: string | null;
   bookingState?: string | null;
@@ -114,7 +117,8 @@ export function eventFromApi(e: StoredEvent): EventRecord {
     equipState: (e.equipState ?? null) as EquipmentState,
     reg: e.reg ?? false,
     regCap: e.regCap ?? 0,
-    registered: 0,
+    registered: e.registered ?? 0,
+    withdrawalClose: e.withdrawalClose ?? undefined,
     submittedAgo: draft ? "draft · saved" : "submitted",
     activity: [
       draft

@@ -114,6 +114,10 @@ export function detailSections(
     row(has(e, "reg"), "Attendee registration", () => (e.reg ? "Open" : "Not required")),
     row(has(e, "regCap") && !!e.reg, "Capacity limit", () => (e.regCap == null ? NOT_SET : String(e.regCap))),
     row(has(e, "regClose") && !!e.reg, "Closes", () => formatDate(e.regClose)),
+    row(has(e, "registered") && !!e.reg, "Places taken", () =>
+      e.regCap ? `${e.registered ?? 0} of ${e.regCap}` : String(e.registered ?? 0),
+    ),
+    row(has(e, "withdrawalClose") && !!e.reg, "Withdraw by", () => formatDate(e.withdrawalClose)),
   ]);
 
   add("Review", [

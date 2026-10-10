@@ -24,7 +24,13 @@ export type RegistrationStatus = "registered" | "waitlisted" | "withdrawn" | "ca
 
 export interface RegistrationRecord {
   id: string;
+  /** The event's frontend id ("EVT-12"). */
   eventId: string;
+  /** The event as it was when listed, so My registrations can show it even once it leaves Browse (e.g. cancelled). */
+  eventName?: string;
+  eventDate?: string;
+  eventStart?: string;
+  eventEnd?: string;
   attendeeName: string;
   attendeeEmail: string;
   status: RegistrationStatus;

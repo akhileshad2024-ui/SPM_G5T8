@@ -21,9 +21,10 @@ export default function BrowsePage() {
         <h2 style={{ fontSize: 18, margin: "8px 0 12px" }}>My registrations</h2>
         <div className="card" style={{ overflow: "hidden" }}>
           {mine.length === 0 ? <div className="empty-state">You have not registered for an event yet.</div> : mine.map((r) => {
+            // The saved record carries the event's details, so cancelled events (no longer on Browse) still show.
             const event = app.event(r.eventId);
             return <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderBottom: "1px solid var(--border)" }}>
-              <div><strong>{event?.name ?? r.eventId}</strong><div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{event?.date} · {event?.start}–{event?.end}</div></div>
+              <div><strong>{r.eventName ?? event?.name ?? r.eventId}</strong><div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{r.eventDate ?? event?.date} · {r.eventStart ?? event?.start}–{r.eventEnd ?? event?.end}</div></div>
               <Tag label={event?.status === "cancelled" ? "cancelled" : r.status} bg="var(--neutral-bg)" fg="var(--neutral-fg)" />
             </div>;
           })}
