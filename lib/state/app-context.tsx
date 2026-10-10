@@ -296,6 +296,15 @@ export interface AppApi {
   setModalText: (text: string) => void;
   confirmModal: () => void;
 
+  // ---- event information (US15) ----
+  /**
+   * Loads one stored event's latest saved details (GET /events/{id}), as the backend sends
+   * them: only the fields the signed-in role may see. Throws ApiError (403 not involved,
+   * 404 not found). It does not replace the event in the list, because review, booking and
+   * equipment actions are still kept in the browser until their stories save them.
+   */
+  loadEvent: (backendId: number) => Promise<StoredEvent>;
+
   // ---- venue catalogue (US17) ----
   reloadVenues: () => Promise<void>;
   /** Create (id null) or edit a venue. Bookings the change puts in trouble are flagged, never removed. */
@@ -684,6 +693,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         patch({ modal: null, modalText: "" });
       },
+
+      loadEvent: (backendId) => apiFetch<StoredEvent>(`/events/${backendId}`),
 
       reloadVenues: async () => {
         try {

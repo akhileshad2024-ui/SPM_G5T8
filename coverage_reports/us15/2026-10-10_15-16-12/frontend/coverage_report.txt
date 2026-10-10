@@ -1,0 +1,29 @@
+Frontend coverage for US15
+Measured files: lib/events/details.ts
+Tests  19 passed (19)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  15:16:49
+   Duration  848ms (import 49%, transform 34%, tests 11%, worker 6%)
+
+ % Coverage report from v8
+------------|---------|----------|---------|---------|-------------------
+File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------|---------|----------|---------|---------|-------------------
+All files   |     100 |    94.36 |     100 |     100 |                   
+ details.ts |     100 |    94.36 |     100 |     100 | 83,115,121,124    
+------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 52/52 )
+Branches     : 94.36% ( 67/71 )
+Functions    : 100% ( 34/34 )
+Lines        : 100% ( 48/48 )
+================================================================================

@@ -140,6 +140,10 @@ export interface EventRecord {
   venueCapacity?: number;
   regClose?: string | null;
   submittedAt?: string;
+  /** US15: name of the booked venue, for roles that see where the event is but not the booking. */
+  venueName?: string | null;
+  /** US15: when the event's details were last saved (ISO, UTC). */
+  updatedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
   /** US08: the latest clarification / amendment request sent to the organiser. */

@@ -10,6 +10,7 @@ from login.security import enforce_https, get_current_user, require_roles
 import models, schemas, venue_search
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
+from event_fields import for_role
 from event_status import change_status, record_initial_status
 
 Base.metadata.create_all(bind=engine)
@@ -133,10 +134,16 @@ def get_venue_history(venue_id: int, db: Session = Depends(get_db), _user: User 
     )
 
 
+def utc(value: datetime | None) -> datetime | None:
+    """Mark a stored timestamp as UTC (SQLite drops the timezone), so browsers convert it to local time."""
+    return value.replace(tzinfo=timezone.utc) if value is not None and value.tzinfo is None else value
+
+
 def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
-    """Build the API view of an event, with organiser/coordinator names looked up."""
+    """Build the full API view of an event, with organiser/coordinator/venue names looked up."""
     organiser = db.get(User, event.organiser_id)
     coordinator = db.get(User, event.coordinator_id) if event.coordinator_id else None
+    venue = db.get(models.Venue, event.venue_id) if event.venue_id else None
     return schemas.EventResponse(
         id=event.id,
         status=event.status.value,
@@ -161,15 +168,22 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
         regCap=event.registration_cap,
         regClose=event.registration_close,
         venue=event.venue_id,
+        venueName=venue.name if venue else None,
         bookingState=event.booking_state,
         equipState=event.equipment_state,
         clarification=event.clarification,
         decision=event.decision,
         draftForm=event.draft_form,
-        submittedAt=event.submitted_at,
-        createdAt=event.created_at,
-        updatedAt=event.updated_at,
+        submittedAt=utc(event.submitted_at),
+        createdAt=utc(event.created_at),
+        updatedAt=utc(event.updated_at),
     )
+
+
+def event_view(db: Session, event: models.Event, user: User) -> schemas.EventView:
+    """The event as `user`'s role may see it (US15): their hidden fields are left out, not blanked."""
+    full = event_response(db, event).model_dump()
+    return schemas.EventView(**for_role(full, user))
 
 
 # Fulfills US03 (save a draft) and US04 (submit for review) — Event Organisers only.
@@ -188,12 +202,24 @@ def create_event(request: schemas.EventRequestIn, db: Session = Depends(get_db),
     return event_response(db, event)
 
 
-# The events the signed-in user is involved in, with their current status (US02, US13).
-# The rule for who is involved lives in event_access.py.
-@app.get("/events", response_model=List[schemas.EventResponse])
+# The events the signed-in user is involved in, with their current status (US02, US13) and
+# only the details their role may see (US15). Who is involved: event_access.py; which
+# fields each role sees: event_fields.py.
+@app.get("/events", response_model=List[schemas.EventView], response_model_exclude_unset=True)
 def list_events(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     query = involved_events(db.query(models.Event), user)
-    return [event_response(db, event) for event in query.order_by(models.Event.id.desc()).all()]
+    return [event_view(db, event, user) for event in query.order_by(models.Event.id.desc()).all()]
+
+
+# Fulfills US15: the latest saved details of one event, as the user's role may see them.
+@app.get("/events/{event_id}", response_model=schemas.EventView, response_model_exclude_unset=True)
+def get_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    return event_view(db, event, user)
 
 
 # Fulfills US13: an event's timestamped status history, oldest first — only for users involved in it.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel } from "@/lib/events/details";
 import { Dot } from "@/components/ui/Dot";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord } from "@/lib/types";
@@ -21,7 +22,7 @@ export function BoardColumn({ label, color, cards }: { label: string; color: str
         <button key={e.id} className={styles.card} onClick={() => app.selectAndGoToQueue(e.id)}>
           <div className={styles.cardName}>{e.name}</div>
           <div className={styles.cardMeta}>
-            {e.pax} pax · {e.date}
+            {attendanceLabel(e.pax, "pax")} · {e.date}
           </div>
           <div className={styles.cardChips}>
             <Tag

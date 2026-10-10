@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel, lastUpdatedLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord, EventTab } from "@/lib/types";
 import { RequestTab } from "./tabs/RequestTab";
@@ -56,8 +57,13 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
             <StatusPill status={event.status} />
           </div>
           <div className={styles.line}>
-            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {event.pax} expected
+            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {attendanceLabel(event.pax, "expected")}
           </div>
+          {event.updatedAt && (
+            <div className={`${styles.line} tabular`}>
+              <time dateTime={event.updatedAt}>{lastUpdatedLabel({ updatedAt: event.updatedAt })}</time>
+            </div>
+          )}
         </div>
         <div className={styles.actions}>
           {actions.map((a) => (

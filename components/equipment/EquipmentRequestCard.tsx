@@ -3,6 +3,7 @@
 import { useApp } from "@/lib/state/app-context";
 import { Dot } from "@/components/ui/Dot";
 import { Tag } from "@/components/ui/Pill";
+import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
@@ -37,7 +38,7 @@ export function EquipmentRequestCard({ event }: { event: EventRecord }) {
             />
           </div>
           <div className="tabular" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>
-            {event.date}, {event.start}–{event.end} · {venue ? venue.name : "venue not booked"}
+            {event.date}, {event.start}–{event.end} · {venue?.name ?? event.venueName ?? "venue not booked"}
           </div>
           <div style={{ marginTop: 13, display: "flex", flexDirection: "column", gap: 7 }}>
             {event.equip.map((it) => {
@@ -67,6 +68,7 @@ export function EquipmentRequestCard({ event }: { event: EventRecord }) {
         </div>
       </div>
       <div style={{ marginTop: 12 }}>
+        <EventDetailsToggle event={event} />
         <StatusHistoryToggle event={event} />
       </div>
     </div>

@@ -417,6 +417,7 @@ class EventResponse(BaseModel):
     regCap: Optional[int] = None
     regClose: Optional[Date] = None
     venue: Optional[int] = None
+    venueName: Optional[str] = None
     bookingState: Optional[str] = None
     equipState: Optional[str] = None
     clarification: Optional[Dict[str, Any]] = None
@@ -425,3 +426,41 @@ class EventResponse(BaseModel):
     submittedAt: Optional[datetime] = None
     createdAt: datetime
     updatedAt: datetime
+
+
+class EventView(BaseModel):
+    """An event as one role may see it (US15): EventResponse with the role's hidden
+    fields left out. Every field is optional here because which ones are present depends
+    on the role; fields that are present but empty are sent as null / [] as usual."""
+    id: int
+    status: Optional[str] = None
+    name: Optional[str] = None
+    organiserId: Optional[int] = None
+    organiser: Optional[str] = None
+    coordinatorId: Optional[int] = None
+    coordinator: Optional[str] = None
+    purpose: Optional[str] = None
+    eventType: Optional[str] = None
+    pax: Optional[int] = None
+    date: Optional[Date] = None
+    start: Optional[Time] = None
+    end: Optional[Time] = None
+    venueLocation: Optional[str] = None
+    venueCapacity: Optional[int] = None
+    layout: Optional[str] = None
+    facilities: Optional[List[str]] = None
+    access: Optional[List[str]] = None
+    equip: Optional[List[EventEquipmentResponse]] = None
+    reg: Optional[bool] = None
+    regCap: Optional[int] = None
+    regClose: Optional[Date] = None
+    venue: Optional[int] = None
+    venueName: Optional[str] = None
+    bookingState: Optional[str] = None
+    equipState: Optional[str] = None
+    clarification: Optional[Dict[str, Any]] = None
+    decision: Optional[Dict[str, Any]] = None
+    draftForm: Optional[Dict[str, Any]] = None
+    submittedAt: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None

@@ -39,29 +39,41 @@ export interface SavedEvent {
   submittedAt: string | null;
 }
 
-/** A stored event in full, as GET /events returns it (backend/schemas.py EventResponse). */
-export interface StoredEvent extends SavedEvent {
+/**
+ * A stored event as GET /events and GET /events/{id} return it (backend/schemas.py EventView).
+ * US15: fields the signed-in role may not see are left out by the backend, so most are optional.
+ */
+export interface StoredEvent {
+  id: number;
+  status: string;
   name: string;
-  coordinator: string | null;
-  purpose: string;
-  eventType: string;
-  pax: number | null;
-  date: string | null;
-  start: string | null;
-  end: string | null;
-  venueLocation: string;
-  venueCapacity: number | null;
-  layout: string | null;
-  facilities: string[];
-  access: string[];
-  equip: Array<{ id: string; qty: number; technicalRequirements: string }>;
-  reg: boolean;
-  regCap: number | null;
-  regClose: string | null;
-  venue: number | null;
-  bookingState: string | null;
-  equipState: string | null;
-  draftForm: NewRequestForm | null;
+  organiser: string;
+  updatedAt: string;
+  purpose?: string;
+  eventType?: string;
+  date?: string | null;
+  start?: string | null;
+  end?: string | null;
+  coordinator?: string | null;
+  pax?: number | null;
+  venueLocation?: string;
+  venueCapacity?: number | null;
+  layout?: string | null;
+  facilities?: string[];
+  access?: string[];
+  equip?: Array<{ id: string; qty: number; technicalRequirements: string }>;
+  reg?: boolean;
+  regCap?: number | null;
+  regClose?: string | null;
+  venue?: number | null;
+  venueName?: string | null;
+  bookingState?: string | null;
+  equipState?: string | null;
+  submittedAt?: string | null;
+  createdAt?: string;
+  clarification?: { kind?: string; message?: string; requestedBy?: string; requestedAt?: string } | null;
+  decision?: { outcome?: string; reason?: string; by?: string; at?: string } | null;
+  draftForm?: NewRequestForm | null;
 }
 
 /** Frontend id for an event stored in the backend. */
@@ -84,21 +96,23 @@ export function eventFromApi(e: StoredEvent): EventRecord {
     name: e.name,
     organiser: e.organiser,
     status: e.status as EventStatus,
-    date: dateLabel(e.date),
+    date: dateLabel(e.date ?? null),
     day: null,
     start: e.start?.slice(0, 5) ?? "",
     end: e.end?.slice(0, 5) ?? "",
     pax: e.pax ?? 0,
     purpose: e.purpose || "No description provided yet.",
     layout: (e.layout ?? "banquet") as Layout,
-    facilities: e.facilities,
-    access: e.access,
-    coordinator: e.coordinator,
-    venue: e.venue === null ? null : String(e.venue),
-    bookingState: e.bookingState as BookingState,
-    equip: e.equip,
-    equipState: e.equipState as EquipmentState,
-    reg: e.reg,
+    // Fields the role may not see are absent (US15); default them so lists and filters still work.
+    facilities: e.facilities ?? [],
+    access: e.access ?? [],
+    coordinator: e.coordinator ?? null,
+    venue: e.venue == null ? null : String(e.venue),
+    venueName: e.venueName ?? null,
+    bookingState: (e.bookingState ?? null) as BookingState,
+    equip: e.equip ?? [],
+    equipState: (e.equipState ?? null) as EquipmentState,
+    reg: e.reg ?? false,
     regCap: e.regCap ?? 0,
     registered: 0,
     submittedAgo: draft ? "draft · saved" : "submitted",
@@ -107,11 +121,12 @@ export function eventFromApi(e: StoredEvent): EventRecord {
         ? { title: "Draft saved", when: "", body: "Saved without submitting. Still editable." }
         : { title: "Request submitted", when: "", body: `${e.organiser} submitted the request for review.` },
     ],
-    eventType: e.eventType,
-    venueLocation: e.venueLocation,
+    eventType: e.eventType ?? "",
+    venueLocation: e.venueLocation ?? "",
     venueCapacity: e.venueCapacity ?? 0,
-    regClose: e.regClose,
+    regClose: e.regClose ?? null,
     submittedAt: e.submittedAt ?? undefined,
+    updatedAt: e.updatedAt,
     draftForm: e.draftForm ?? undefined,
   };
 }

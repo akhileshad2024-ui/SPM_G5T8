@@ -1,7 +1,9 @@
 "use client";
 
 import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel } from "@/lib/events/details";
 import { Tag } from "@/components/ui/Pill";
+import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 import { availabilityIssues } from "@/lib/venues/rules";
@@ -24,7 +26,7 @@ export function BookingRequestCard({ event }: { event: EventRecord }) {
         <div style={{ flex: 1, minWidth: 250 }}>
           <div style={{ fontSize: 16, fontWeight: 700 }}>{event.name}</div>
           <div className="tabular" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>
-            {venue.name} · {event.date}, {event.start}–{event.end} · {event.pax} pax · requested by{" "}
+            {venue.name} · {event.date}, {event.start}–{event.end} · {attendanceLabel(event.pax, "pax")} · requested by{" "}
             {event.coordinator || "coordinator"}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -58,6 +60,7 @@ export function BookingRequestCard({ event }: { event: EventRecord }) {
         </div>
       </div>
       <div style={{ marginTop: 12 }}>
+        <EventDetailsToggle event={event} />
         <StatusHistoryToggle event={event} />
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useApp } from "@/lib/state/app-context";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tag } from "@/components/ui/Pill";
+import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
@@ -41,7 +42,8 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
             {event.date} · {event.start}–{event.end}
           </div>
           <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
-            {venue ? `${venue.name} · ${venue.location}` : "Venue to be confirmed"}
+            {/* Attendees get the venue's name only, not the booking (US15). */}
+            {venue ? `${venue.name} · ${venue.location}` : event.venueName ?? "Venue to be confirmed"}
           </div>
         </div>
         {mine && <Tag label="Registered" bg="var(--ok-bg)" fg="var(--ok-fg)" />}
@@ -61,6 +63,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
         </button>
       </div>
       <div style={{ marginTop: 12 }}>
+        <EventDetailsToggle event={event} />
         <StatusHistoryToggle event={event} />
       </div>
     </div>

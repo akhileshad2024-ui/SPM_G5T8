@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Fragment, useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { StatusPill } from "@/components/ui/Pill";
@@ -38,11 +39,17 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
           <div className={styles.cell}>
             {e.date} · {e.start}
           </div>
-          <div className={styles.cell}>{e.pax}</div>
+          <div className={styles.cell}>{e.pax > 0 ? e.pax : "—"}</div>
           <div>
             <StatusPill status={e.status} />
           </div>
           <div className={styles.actionsCell}>
+            {e.backendId !== undefined && (
+              // US15: the event's full, latest details.
+              <Link className="btn btn-ghost btn-sm" href={`/my-events/${e.backendId}`}>
+                View
+              </Link>
+            )}
             {canDirectlyEditEventRequest(e.status) ? (
               <>
                 <button className="btn btn-ghost btn-sm" onClick={() => app.beginNewRequest(e.id)}>

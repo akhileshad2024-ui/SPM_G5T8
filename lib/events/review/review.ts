@@ -86,7 +86,7 @@ export function requestDetails(
     ["Event type", event.eventType || "Not specified"],
     ["Proposed date", event.date],
     ["Time", `${event.start} – ${event.end}`],
-    ["Expected attendance", String(event.pax)],
+    ["Expected attendance", event.pax > 0 ? String(event.pax) : "Not specified"],
     ["Venue requirements", venueNeeds || "Not specified"],
     ["Required layout", layout],
     ["Facilities", event.facilities.join(", ") || "None specified"],
