@@ -49,6 +49,7 @@ from pydantic import ValidationError
 import main
 import models
 import schemas
+import venue_availability
 import venue_search
 from login.models import Role
 from login.security import require_roles
@@ -400,6 +401,11 @@ class TestFreeForPeriod(unittest.TestCase):
 
                 self.assertEqual(found_ids([venue], date=MON, start="10:30", end="11:30"), [1])
 
+    def test_a_deactivated_venue_is_never_free(self):
+        venue = make_venue(is_active=False)
+
+        self.assertFalse(venue_availability.is_free(venue, date.fromisoformat(MON), "10:00", "12:00", []))
+
     def test_a_venue_with_no_unavailability_recorded_is_free(self):
         self.assertEqual(found_ids([make_venue(unavailability=None)], date=MON, start="10:00", end="12:00"), [1])
 
@@ -440,14 +446,14 @@ class TestFreeForPeriod(unittest.TestCase):
         venue = make_venue(setupMinutes=30, turnaroundMinutes=45)
         day = date.fromisoformat(MON).toordinal() * 24 * 60
 
-        window = venue_search.occupied_window(venue_search.event_window(date.fromisoformat(MON), "10:00", "12:00"), venue)
+        window = venue_availability.occupied_window(venue_availability.event_window(date.fromisoformat(MON), "10:00", "12:00"), venue)
 
         self.assertEqual(window, (day + 9 * 60 + 30, day + 12 * 60 + 45))
 
     def test_a_venue_with_no_setup_or_turnaround_recorded_occupies_only_the_event(self):
         venue = make_venue(setupMinutes=None, turnaroundMinutes=None)
 
-        self.assertEqual(venue_search.occupied_window((600, 720), venue), (600, 720))
+        self.assertEqual(venue_availability.occupied_window((600, 720), venue), (600, 720))
 
 
 # ---------------------------------------------------------------- AC4: no match, with the filters shown

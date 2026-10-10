@@ -20,9 +20,10 @@ export const EQUIP: EquipmentCatalogueItem[] = [
 ];
 
 export const FACILITY_OPTIONS = ["Stage", "PA system", "Projector", "Hearing loop", "Whiteboard", "Natural light"];
-export const ACCESS_OPTIONS = ["Step-free access", "Hearing loop", "Accessible restrooms", "Reserved seating"];
 /** The accessibility features Venue Staff can record for a venue (a fixed set, per the customer clarification). */
 export const VENUE_ACCESSIBILITY_OPTIONS = ["Wheelchair Access", "Special Physical Seating", "Mobility/Facility Arrangements"];
+/** An event states its accessibility needs from the same fixed set, so a venue can be checked against them (US21). */
+export const ACCESS_OPTIONS = VENUE_ACCESSIBILITY_OPTIONS;
 /** Venue catalogue choices use the same words as event requests, so suitability checks can match them. */
 export const VENUE_FACILITY_OPTIONS = [...FACILITY_OPTIONS, "Microphone", "Video conferencing", "Wi-Fi"];
 export const LAYOUT_OPTIONS: Layout[] = ["banquet", "theatre", "standing", "boardroom", "classroom"];

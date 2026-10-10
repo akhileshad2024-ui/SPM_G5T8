@@ -5,7 +5,6 @@
  */
 import { EQUIP } from "./data/options";
 import type { EventRecord, Venue } from "./types";
-import { availabilityIssues, venueHas } from "./venues/rules";
 
 export function getEvent(events: EventRecord[], id: string | null | undefined): EventRecord | undefined {
   return events.find((e) => e.id === id);
@@ -34,39 +33,4 @@ export function freeQty(events: EventRecord[], equipId: string, excludeEventId?:
   const item = EQUIP.find((x) => x.id === equipId);
   if (!item) return 0;
   return item.total - reservedQty(events, equipId, excludeEventId);
-}
-
-export interface SuitabilityReason {
-  level: "block" | "warn";
-  text: string;
-}
-
-export interface Suitability {
-  verdict: "Suitable" | "Suitable with caveats" | "Not suitable";
-  blocked: boolean;
-  reasons: SuitabilityReason[];
-}
-
-/** Whether `venue` can host `event`, and why not / with what caveats. */
-export function suitability(events: EventRecord[], venue: Venue, event: EventRecord): Suitability {
-  const reasons: SuitabilityReason[] = [];
-  if (event.pax > venue.cap) {
-    reasons.push({ level: "block", text: `Capacity ${venue.cap} is below the expected attendance of ${event.pax}.` });
-  }
-  if (event.layout && !venueHas(venue.layouts, event.layout)) {
-    reasons.push({ level: "block", text: `Does not support a ${event.layout} layout.` });
-  }
-  (event.facilities || []).forEach((f) => {
-    if (!venueHas(venue.facilities, f)) {
-      reasons.push({ level: "warn", text: `${f} is not available at this venue.` });
-    }
-  });
-  // Date/time checks use the occupied window: setup and turnaround included (Week 7 change #1).
-  reasons.push(...availabilityIssues(events, venue, event));
-  const blocked = reasons.some((r) => r.level === "block");
-  return {
-    verdict: blocked ? "Not suitable" : reasons.length ? "Suitable with caveats" : "Suitable",
-    blocked,
-    reasons,
-  };
 }

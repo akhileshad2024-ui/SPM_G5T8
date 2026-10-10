@@ -7,8 +7,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
-import models, registrations, schemas, venue_search
-import event_review, models, schemas, venue_search
+import booking_request, event_review, models, registrations, schemas, venue_search, venue_suitability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -38,6 +37,8 @@ VENUE_MANAGERS = (Role.venue,)
 INACTIVE_VENUE_VIEWERS = (Role.venue, Role.coordinator)
 # Who may search and filter venues (US20).
 VENUE_SEARCHERS = (Role.coordinator,)
+# Who may check a venue's suitability for an event (US21) and request a booking (US22).
+BOOKING_REQUESTERS = (Role.coordinator,)
 # Who may create event requests (US03/US04).
 EVENT_REQUESTERS = (Role.organiser,)
 # Who may register for events (US29-US31).
@@ -72,6 +73,43 @@ def search_venues(criteria: schemas.VenueSearchRequest, db: Session = Depends(ge
         total=len(found),
         applied_filters=applied,
         message=None if found else venue_search.no_match_message(applied),
+    )
+
+# Fulfills US21: how well each active venue (or only the venues asked about) fits an event's recorded
+# venue needs: a verdict plus every need compared with what the venue offers, with the reason when unmet.
+@app.post("/venues/suitability", response_model=schemas.SuitabilityResponse)
+def check_venue_suitability(needs: schemas.SuitabilityRequest, db: Session = Depends(get_db), _user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
+    active = db.query(models.Venue).filter(models.Venue.is_active == True).order_by(models.Venue.id).all()
+    return schemas.SuitabilityResponse(results=[
+        schemas.VenueSuitability(venue=schemas.VenueResponse.model_validate(venue), verdict=verdict, checks=checks)
+        for venue, verdict, checks in venue_suitability.assess_venues(active, needs)
+    ])
+
+# Fulfills US22 (and the override half of US21): request a venue for an approved event. The venue is
+# provisionally held (status "pending") and Venue Staff are told. A venue that is not fully suitable is
+# refused unless the coordinator has acknowledged the warning, and the acknowledgement is returned to be
+# kept against the event. Rules broken -> 409 with the reason.
+@app.post("/venues/{venue_id}/booking-requests", response_model=schemas.BookingRequestResponse)
+def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
+    venue = db.get(models.Venue, venue_id)
+    if venue is None:
+        raise HTTPException(status_code=404, detail="Venue not found")
+
+    here = [b for b in request.bookings if b.venue_id == venue.id]
+    try:
+        booking_request.require_bookable_event(request.event_status, request.rebooking)
+        booking_request.require_active_venue(venue)
+        booking_request.require_no_pending_duplicate(venue, request)
+        verdict, checks = venue_suitability.assess(venue, request, here)
+        booking_request.require_acknowledgement(verdict, checks, request.acknowledged)
+    except booking_request.BookingRefused as refusal:
+        raise HTTPException(status_code=409, detail=refusal.message)
+
+    now = datetime.now(timezone.utc)
+    override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, now)
+    return schemas.BookingRequestResponse(
+        booking=booking_request.build_booking(venue, request, verdict, user.email, now, override),
+        notification=booking_request.build_notification(venue, request, override),
     )
 
 # Fulfills US18: full details of one active venue — any signed-in user.
