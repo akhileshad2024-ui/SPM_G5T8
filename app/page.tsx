@@ -11,8 +11,9 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!app.state.authChecked) return;
     router.replace(app.state.authed ? DEFAULT_ROUTE[app.state.role] : "/login");
-  }, [app.state.authed, app.state.role, router]);
+  }, [app.state.authChecked, app.state.authed, app.state.role, router]);
 
   return null;
 }

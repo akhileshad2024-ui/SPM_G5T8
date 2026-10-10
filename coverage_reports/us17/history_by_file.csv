@@ -1,0 +1,21 @@
+timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
+2026-10-06 16:28:01,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 16:28:01,unit,test_us17_venue_validation,43,passed,100.0,unit/test_us17_venue_validation
+2026-10-06 16:28:01,integration,test_us17_venue_catalogue_integration,69,passed,100.0,integration/test_us17_venue_catalogue_integration
+2026-10-06 17:05:38,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 17:05:38,unit,test_us17_venue_validation,43,passed,100.0,unit/test_us17_venue_validation
+2026-10-06 17:10:17,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 17:10:17,unit,test_us17_venue_endpoints,16,passed,100.0,unit/test_us17_venue_endpoints
+2026-10-06 17:10:17,unit,test_us17_venue_validation,43,passed,100.0,unit/test_us17_venue_validation
+2026-10-06 22:15:32,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 22:15:32,unit,test_us17_venue_endpoints,12,passed,84.4,unit/test_us17_venue_endpoints
+2026-10-06 22:15:32,unit,test_us17_venue_validation,43,passed,100.0,unit/test_us17_venue_validation
+2026-10-06 22:16:08,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 22:16:08,unit,test_us17_venue_endpoints,12,passed,100.0,unit/test_us17_venue_endpoints
+2026-10-06 22:16:08,unit,test_us17_venue_validation,43,passed,100.0,unit/test_us17_venue_validation
+2026-10-06 23:09:31,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-06 23:09:31,unit,test_us17_venue_endpoints,12,passed,100.0,unit/test_us17_venue_endpoints
+2026-10-06 23:09:31,unit,test_us17_venue_validation,48,passed,100.0,unit/test_us17_venue_validation
+2026-10-08 20:19:07,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-08 20:19:07,unit,test_us17_venue_endpoints,12,passed,100.0,unit/test_us17_venue_endpoints
+2026-10-08 20:19:07,unit,test_us17_venue_validation,48,passed,100.0,unit/test_us17_venue_validation

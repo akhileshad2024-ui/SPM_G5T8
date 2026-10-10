@@ -3,15 +3,16 @@
  * Kept separate from `app-context.tsx` so they can be unit tested or
  * reused without pulling in React.
  */
-import { EQUIP, VENUES } from "./data";
+import { EQUIP } from "./data";
 import type { EventRecord, Venue } from "./types";
+import { availabilityIssues, venueHas } from "./venue-rules";
 
 export function getEvent(events: EventRecord[], id: string | null | undefined): EventRecord | undefined {
   return events.find((e) => e.id === id);
 }
 
-export function getVenue(id: string | null | undefined): Venue | undefined {
-  return VENUES.find((v) => v.id === id);
+export function getVenue(venues: Venue[], id: string | null | undefined): Venue | undefined {
+  return venues.find((v) => v.id === id);
 }
 
 export function equipName(id: string): string {
@@ -52,23 +53,16 @@ export function suitability(events: EventRecord[], venue: Venue, event: EventRec
   if (event.pax > venue.cap) {
     reasons.push({ level: "block", text: `Capacity ${venue.cap} is below the expected attendance of ${event.pax}.` });
   }
-  if (event.layout && venue.layouts.indexOf(event.layout) === -1) {
+  if (event.layout && !venueHas(venue.layouts, event.layout)) {
     reasons.push({ level: "block", text: `Does not support a ${event.layout} layout.` });
   }
   (event.facilities || []).forEach((f) => {
-    if (venue.facilities.indexOf(f) === -1) {
+    if (!venueHas(venue.facilities, f)) {
       reasons.push({ level: "warn", text: `${f} is not available at this venue.` });
     }
   });
-  if ((event.access || []).indexOf("Step-free access") > -1 && !venue.stepFree) {
-    reasons.push({ level: "block", text: "No step-free access, which this event requires." });
-  }
-  const clash = events.find(
-    (o) => o.id !== event.id && o.venue === venue.id && o.date === event.date && (o.bookingState === "approved" || o.bookingState === "pending")
-  );
-  if (clash) {
-    reasons.push({ level: "block", text: `Already booked for ${clash.name} on ${event.date}.` });
-  }
+  // Date/time checks use the occupied window: setup and turnaround included (Week 7 change #1).
+  reasons.push(...availabilityIssues(events, venue, event));
   const blocked = reasons.some((r) => r.level === "block");
   return {
     verdict: blocked ? "Not suitable" : reasons.length ? "Suitable with caveats" : "Suitable",

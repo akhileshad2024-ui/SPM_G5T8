@@ -1,11 +1,11 @@
 import type {
   EventRecord,
   EquipmentCatalogueItem,
+  Layout,
   NotificationRecord,
   Person,
   RegistrationRecord,
   Role,
-  Venue,
 } from "./types";
 
 export const PEOPLE: Record<Role, Person> = {
@@ -20,6 +20,7 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
   draft: { label: "Draft", bg: "#EFF0F5", fg: "#4A5169" },
   submitted: { label: "Submitted", bg: "#E7EEFF", fg: "#0A33FF" },
   under_review: { label: "Under review", bg: "#FFF6DB", fg: "#7A5C00" },
+  pending_clarification: { label: "Pending clarification", bg: "#FFF6DB", fg: "#7A5C00" },
   approved: { label: "Approved", bg: "#E0F7F4", fg: "#006B60" },
   planning: { label: "Planning", bg: "#EAF3FF", fg: "#0B5D96" },
   confirmed: { label: "Confirmed", bg: "#0A0E1A", fg: "#FFFFFF" },
@@ -28,13 +29,25 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
   cancelled: { label: "Cancelled", bg: "#EFF0F5", fg: "#4A5169" },
 };
 
-export const VENUES: Venue[] = [
-  { id: "V1", name: "Grand Hall", location: "Central campus · Level 1", cap: 300, layouts: ["banquet", "theatre", "standing"], facilities: ["Stage", "PA system", "Projector", "Hearing loop"], stepFree: true },
-  { id: "V2", name: "The Atrium", location: "Central campus · Ground", cap: 220, layouts: ["standing", "banquet"], facilities: ["PA system", "Natural light"], stepFree: true },
-  { id: "V3", name: "Lecture Theatre 1", location: "North wing · Level 2", cap: 150, layouts: ["theatre"], facilities: ["Projector", "PA system", "Hearing loop"], stepFree: true },
-  { id: "V4", name: "Seminar Room 4-2", location: "East block · Level 4", cap: 40, layouts: ["boardroom", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: true },
-  { id: "V5", name: "Innovation Studio", location: "West annex · Level 3", cap: 80, layouts: ["standing", "classroom"], facilities: ["Projector", "Whiteboard"], stepFree: false },
-];
+/**
+ * Staff holding the Event Coordinator role, who can be assigned to events
+ * (US11). Only Priya Tan has a login in the demo; the others show that a
+ * request can be given to a coordinator other than the person assigning it.
+ */
+export const COORDINATORS: readonly string[] = [PEOPLE.coordinator.person, "Marcus Lee", "Aisha Noor"];
+
+/**
+ * The sample events below refer to venues by these placeholder ids. Once the real
+ * catalogue loads from the backend, each is pointed at the venue with the same name
+ * (run `python -m seed_venues` in backend/ to add them).
+ */
+export const SEED_VENUE_NAMES: Record<string, string> = {
+  V1: "Grand Hall",
+  V2: "The Atrium",
+  V3: "Lecture Theatre 1",
+  V4: "Seminar Room 4-2",
+  V5: "Innovation Studio",
+};
 
 export const EQUIP: EquipmentCatalogueItem[] = [
   { id: "E1", name: "Wireless microphone", total: 12 },
@@ -46,6 +59,11 @@ export const EQUIP: EquipmentCatalogueItem[] = [
 
 export const FACILITY_OPTIONS = ["Stage", "PA system", "Projector", "Hearing loop", "Whiteboard", "Natural light"];
 export const ACCESS_OPTIONS = ["Step-free access", "Hearing loop", "Accessible restrooms", "Reserved seating"];
+/** The accessibility features Venue Staff can record for a venue (a fixed set, per the customer clarification). */
+export const VENUE_ACCESSIBILITY_OPTIONS = ["Wheelchair Access", "Special Physical Seating", "Mobility/Facility Arrangements"];
+/** Venue catalogue choices use the same words as event requests, so suitability checks can match them. */
+export const VENUE_FACILITY_OPTIONS = [...FACILITY_OPTIONS, "Microphone", "Video conferencing", "Wi-Fi"];
+export const LAYOUT_OPTIONS: Layout[] = ["banquet", "theatre", "standing", "boardroom", "classroom"];
 
 /** Route each role lands on immediately after signing in. */
 export const DEFAULT_ROUTE: Record<Role, string> = {
@@ -66,6 +84,7 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   coordinator: [
     ["/queue", "Review queue"],
     ["/board", "Pipeline"],
+    ["/venues", "Venues"],
     ["/registrations", "Event registrations"],
   ],
   venue: [
@@ -75,6 +94,14 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   tech: [["/equipment", "Equipment"]],
   attendee: [["/browse", "Browse events"]],
 };
+
+/**
+ * Client-side route guard: a role may only open the pages in its own nav.
+ * This only hides UI — the backend enforces the real permissions.
+ */
+export function canAccessRoute(role: Role, pathname: string): boolean {
+  return NAV_FOR[role].some(([route]) => pathname === route || pathname.startsWith(`${route}/`));
+}
 
 export function seedRegistrations(): RegistrationRecord[] {
   return [
@@ -88,7 +115,8 @@ export function seedEvents(): EventRecord[] {
   return [
     { id: "EVT-2041", name: "Alumni Homecoming Dinner", organiser: "Maya Rahman", status: "submitted", date: "14 Mar 2026", start: "19:00", end: "23:00", pax: 180, day: 3, purpose: "An annual reunion dinner for alumni of the last twenty cohorts, with a short address from the Dean and table-side networking over a seated meal.", layout: "banquet", facilities: ["Stage", "PA system", "Projector"], access: ["Step-free access", "Hearing loop"], coordinator: null, venue: null, bookingState: null, equip: [{ id: "E1", qty: 2 }, { id: "E2", qty: 1 }, { id: "E3", qty: 1 }], equipState: "requested", reg: true, regCap: 200, registered: 0, submittedAgo: "submitted 2 days ago",
       activity: [{ title: "Request submitted", when: "2 days ago", body: "Maya Rahman submitted the request for review." }, { title: "Draft saved", when: "4 days ago", body: "Draft created with venue and equipment requirements." }] },
-    { id: "EVT-2038", name: "Research Symposium — Day 1", organiser: "Lin Chen", status: "under_review", date: "02 Apr 2026", start: "09:00", end: "17:00", pax: 320, day: null, purpose: "A full-day symposium presenting funded research across four faculties, with parallel poster sessions and an external keynote.", layout: "theatre", facilities: ["Projector", "PA system", "Hearing loop"], access: ["Step-free access"], coordinator: "Priya Tan", venue: null, bookingState: null, equip: [{ id: "E2", qty: 2 }, { id: "E1", qty: 4 }, { id: "E5", qty: 1 }], equipState: "requested", reg: true, regCap: 300, registered: 46, submittedAgo: "awaiting organiser reply · 2 days",
+    { id: "EVT-2038", name: "Research Symposium — Day 1", organiser: "Lin Chen", status: "pending_clarification", date: "02 Apr 2026", start: "09:00", end: "17:00", pax: 320, day: null, purpose: "A full-day symposium presenting funded research across four faculties, with parallel poster sessions and an external keynote.", layout: "theatre", facilities: ["Projector", "PA system", "Hearing loop"], access: ["Step-free access"], coordinator: "Priya Tan", venue: null, bookingState: null, equip: [{ id: "E2", qty: 2 }, { id: "E1", qty: 4 }, { id: "E5", qty: 1 }], equipState: "requested", reg: true, regCap: 300, registered: 46, submittedAgo: "awaiting organiser reply · 2 days",
+      clarification: { kind: "clarification", message: "Can the 320 attendees be split across two rooms? No single venue meets that capacity.", requestedBy: "Priya Tan", requestedAt: "2026-03-01T09:00:00.000Z" },
       activity: [{ title: "Clarification requested", when: "2 days ago", body: "Priya Tan asked whether 320 attendees can be split across two rooms, as no single venue meets that capacity." }, { title: "Assigned to Priya Tan", when: "3 days ago", body: "Coordinator assigned." }, { title: "Request submitted", when: "3 days ago", body: "Lin Chen submitted the request for review." }] },
     { id: "EVT-2044", name: "Startup Pitch Night", organiser: "Ana Silva", status: "submitted", date: "21 Mar 2026", start: "18:30", end: "21:00", pax: 95, day: null, purpose: "Eight student ventures pitch to a panel of investors, followed by an informal networking reception.", layout: "standing", facilities: ["Projector", "PA system"], access: ["Step-free access"], coordinator: null, venue: null, bookingState: null, equip: [{ id: "E2", qty: 1 }, { id: "E1", qty: 2 }], equipState: "requested", reg: true, regCap: 120, registered: 0, submittedAgo: "submitted 6 hours ago",
       activity: [{ title: "Request submitted", when: "6 hours ago", body: "Ana Silva submitted the request for review." }] },

@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --experimental-strip-types tests/registration-rules.test.ts"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:us03": "vitest run tests/unit/event-request/validation.unit.test.ts",
+    "test:us04": "vitest run tests/unit/event-request/submission.unit.test.ts",
+    "test:us07": "vitest run tests/unit/event-review/review.unit.test.ts",
+    "test:us08": "vitest run tests/unit/event-review/clarification.unit.test.ts",
+    "test:us10": "vitest run tests/unit/event-review/decision.unit.test.ts",
+    "test:us11": "vitest run tests/unit/event-review/assignment.unit.test.ts",
+    "test:registration": "vitest run tests/registration-rules.test.ts"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -18,6 +27,8 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.7.0"
+    "@vitest/coverage-v8": "^5.0.2",
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.2"
   }
 }

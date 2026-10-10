@@ -23,10 +23,17 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
   const tab = app.state.tab;
 
   const actions: Array<{ label: string; onClick: () => void; variant: "primary" | "ghost" | "danger" | "muted" }> = [];
-  if (event.status === "submitted" || event.status === "under_review") {
+  if (event.status === "submitted") {
+    actions.push({ label: "Start review", onClick: () => app.startReview(event.id), variant: "primary" });
+  } else if (event.status === "under_review") {
     actions.push({ label: "Request clarification", onClick: () => app.openModal("clarify", event.id), variant: "ghost" });
+    actions.push({ label: "Request amendment", onClick: () => app.openModal("amend", event.id), variant: "ghost" });
     actions.push({ label: "Reject", onClick: () => app.openModal("reject", event.id), variant: "danger" });
-    actions.push({ label: "Approve", onClick: () => app.approve(event.id), variant: "primary" });
+    actions.push({ label: "Approve", onClick: () => app.openModal("approve", event.id), variant: "primary" });
+  } else if (event.status === "pending_clarification") {
+    actions.push({ label: "Awaiting organiser reply", onClick: () => app.flash(`Waiting for ${event.organiser} to respond.`, "warn"), variant: "muted" });
+  } else if (event.status === "rejected" || event.status === "cancelled" || event.status === "completed") {
+    // Closed: nothing left for the coordinator to do.
   } else if (event.bookingState === "pending") {
     actions.push({ label: "Awaiting venue decision", onClick: () => app.flash("Venue Staff have this booking request.", "warn"), variant: "muted" });
   } else if (!event.venue) {

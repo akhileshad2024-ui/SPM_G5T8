@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import { decideRegistration, withdrawalError } from "../lib/registration.ts";
-import type { EventRecord, RegistrationRecord } from "../lib/types.ts";
+import { describe, expect, it } from "vitest";
+import { decideRegistration, withdrawalError } from "../lib/registration";
+import type { EventRecord, RegistrationRecord } from "../lib/types";
 
 const future = Date.parse("2026-06-01T00:00:00Z");
 const event = (overrides: Partial<EventRecord> = {}): EventRecord => ({
@@ -14,36 +14,34 @@ const registration = (overrides: Partial<RegistrationRecord> = {}): Registration
   status: "registered", registeredAt: "2026-05-01T00:00:00Z", updatedAt: "2026-05-01T00:00:00Z", ...overrides,
 });
 
-function test(name: string, body: () => void) {
-  body();
-  console.log(`PASS ${name}`);
-}
+describe("US29 registration rules", () => {
+  it("registers when registration is open and capacity remains", () => {
+    expect(decideRegistration(event(), undefined, Date.parse("2026-05-01T00:00:00Z"))).toEqual({ ok: true, status: "registered" });
+  });
 
-test("US29 registers when registration is open and capacity remains", () => {
-  assert.deepEqual(decideRegistration(event(), undefined, Date.parse("2026-05-01T00:00:00Z")), { ok: true, status: "registered" });
+  it("waitlists when capacity is full", () => {
+    expect(decideRegistration(event({ registered: 10 }), undefined, Date.parse("2026-05-01T00:00:00Z"))).toEqual({ ok: true, status: "waitlisted" });
+  });
+
+  it("rejects a duplicate active registration", () => {
+    expect(decideRegistration(event(), registration(), Date.parse("2026-05-01T00:00:00Z")).ok).toBe(false);
+  });
+
+  it("rejects registration after closing time", () => {
+    expect(decideRegistration(event(), undefined, future)).toEqual({ ok: false, reason: "Registration for Test Event has closed." });
+  });
 });
 
-test("US29 waitlists when capacity is full", () => {
-  assert.deepEqual(decideRegistration(event({ registered: 10 }), undefined, Date.parse("2026-05-01T00:00:00Z")), { ok: true, status: "waitlisted" });
-});
+describe("US31 withdrawal rules", () => {
+  it("allows withdrawal before the deadline", () => {
+    expect(withdrawalError(event(), registration(), Date.parse("2026-05-01T00:00:00Z"))).toBeNull();
+  });
 
-test("US29 rejects a duplicate active registration", () => {
-  assert.equal(decideRegistration(event(), registration(), Date.parse("2026-05-01T00:00:00Z")).ok, false);
-});
+  it("rejects withdrawal after the deadline", () => {
+    expect(withdrawalError(event(), registration(), future)).toBe("The withdrawal deadline for Test Event has passed.");
+  });
 
-test("US29 rejects registration after closing time", () => {
-  const result = decideRegistration(event(), undefined, future);
-  assert.deepEqual(result, { ok: false, reason: "Registration for Test Event has closed." });
-});
-
-test("US31 allows withdrawal before the deadline", () => {
-  assert.equal(withdrawalError(event(), registration(), Date.parse("2026-05-01T00:00:00Z")), null);
-});
-
-test("US31 rejects withdrawal after the deadline", () => {
-  assert.equal(withdrawalError(event(), registration(), future), "The withdrawal deadline for Test Event has passed.");
-});
-
-test("US31 rejects withdrawal without an active registration", () => {
-  assert.equal(withdrawalError(event(), registration({ status: "withdrawn" }), Date.parse("2026-05-01T00:00:00Z")), "No active registration was found.");
+  it("rejects withdrawal without an active registration", () => {
+    expect(withdrawalError(event(), registration({ status: "withdrawn" }), Date.parse("2026-05-01T00:00:00Z"))).toBe("No active registration was found.");
+  });
 });

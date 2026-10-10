@@ -1,0 +1,23 @@
+Coverage report for test_us18_view_venue_details  (unit tests)
+Generated: 2026-10-06 22:15:37
+Test file: tests/unit/venue/test_us18_view_venue_details.py
+Result: 8 tests, all passed
+Measured files: all of backend/
+
+Name                            Stmts   Miss  Cover   Missing
+-------------------------------------------------------------
+backend\database.py                18      5    72%   17, 26-30
+backend\login\__init__.py           0      0   100%
+backend\login\auth.py              65     47    28%   27, 31-35, 42-46, 51-72, 77-82, 87, 97-117
+backend\login\models.py            22      0   100%
+backend\login\schemas.py           15      0   100%
+backend\login\security.py          64     32    50%   25, 45, 49-52, 56, 61, 67-74, 78, 90, 95-109, 115-118, 126-128
+backend\login\set_password.py      33     33     0%   10-51
+backend\main.py                    64     25    61%   59-67, 72-87, 92-94, 102-104
+backend\models.py                  28      0   100%
+backend\schemas.py                123     34    72%   30-35, 40, 44-52, 56-63, 81-85, 124-128
+backend\seed_venues.py             24     24     0%   9-66
+backend\testing.py                  4      4     0%   1-4
+backend\venue_audit.py             21     14    33%   20, 25-31, 36-38, 43-45
+-------------------------------------------------------------
+TOTAL                             481    218    55%

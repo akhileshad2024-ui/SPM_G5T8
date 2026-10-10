@@ -1,0 +1,3 @@
+timestamp,tests_run,result,coverage_percent,report_folder
+2026-10-03 20:17:10,137,passed,99.6,2026-10-03_20-17-10
+2026-10-03 20:38:19,129,passed,100.0,2026-10-03_20-38-19
