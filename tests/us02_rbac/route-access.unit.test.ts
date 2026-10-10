@@ -11,11 +11,13 @@ import type { Role } from "../../lib/types";
 
 const ROLES: Role[] = ["organiser", "coordinator", "venue", "tech", "attendee"];
 const ALL_PAGES = ROLES.flatMap((r) => NAV_FOR[r].map(([route]) => route));
+// Pages deliberately in more than one role's navigation (each role sees its own events there).
+const SHARED_PAGES: Record<string, Role[]> = { "/registrations": ["organiser", "coordinator"] }; // US32
 
 describe("sidebar per role", () => {
   it.each<[Role, string[]]>([
-    ["organiser", ["My events", "New request"]],
-    ["coordinator", ["Review queue", "Pipeline", "Venues"]],
+    ["organiser", ["My events", "New request", "Event registrations"]],
+    ["coordinator", ["Review queue", "Pipeline", "Venues", "Event registrations"]],
     ["venue", ["Booking requests", "Venue catalogue"]],
     ["tech", ["Equipment"]],
     ["attendee", ["Browse events"]],
@@ -23,8 +25,12 @@ describe("sidebar per role", () => {
     expect(NAV_FOR[role].map(([, label]) => label)).toEqual(labels);
   });
 
-  it("no page appears in two roles' navigation", () => {
-    expect(new Set(ALL_PAGES).size).toBe(ALL_PAGES.length);
+  it("no page appears in two roles' navigation, except the listed shared pages", () => {
+    const own = ALL_PAGES.filter((p) => !(p in SHARED_PAGES));
+    expect(new Set(own).size).toBe(own.length);
+    for (const [page, roles] of Object.entries(SHARED_PAGES)) {
+      expect(ROLES.filter((r) => NAV_FOR[r].some(([route]) => route === page))).toEqual(roles);
+    }
   });
 });
 

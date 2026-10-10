@@ -14,11 +14,13 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   organiser: [
     ["/my-events", "My events"],
     ["/new-request", "New request"],
+    ["/registrations", "Event registrations"],
   ],
   coordinator: [
     ["/queue", "Review queue"],
     ["/board", "Pipeline"],
     ["/venues", "Venues"],
+    ["/registrations", "Event registrations"],
   ],
   venue: [
     ["/bookings", "Booking requests"],

@@ -25,6 +25,8 @@ export function getPageMeta(pathname: string, events: EventRecord[], venues: Ven
       return { title: "Equipment", subtitle: "Availability is calculated against overlapping reservations" };
     case pathname.startsWith("/browse"):
       return { title: "Events open for registration", subtitle: "Register or withdraw at any time before registration closes" };
+    case pathname.startsWith("/registrations"):
+      return { title: "Event registrations", subtitle: "Monitor attendance, filter statuses, and export event lists" };
     default:
       return { title: "ConnectSphere", subtitle: "" };
   }

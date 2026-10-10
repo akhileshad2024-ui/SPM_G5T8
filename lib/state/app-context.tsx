@@ -36,10 +36,12 @@ import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "../selectors";
 import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "../venues/rules";
+import { decideRegistration, withdrawalError } from "../registration";
 import type {
   ApiVenue,
   AuthUser,
   EventRecord,
+  RegistrationRecord,
   EventRequestErrors,
   EventTab,
   ModalKind,
@@ -127,6 +129,7 @@ interface AppState {
   signInNotice: string | null;
   role: Role;
   events: EventRecord[];
+  registrations: RegistrationRecord[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
   notifs: NotificationRecord[];
@@ -200,6 +203,7 @@ function initialState(): AppState {
     signInNotice: null,
     role: "coordinator",
     events: [],
+    registrations: [],
     venues: [],
     notifs: [],
     ...sessionUiState(),
@@ -322,7 +326,8 @@ export interface AppApi {
   releaseEquipment: (eventId: string) => void;
 
   // ---- attendee registration ----
-  toggleRegistration: (eventId: string) => void;
+  registerForEvent: (eventId: string) => void;
+  withdrawRegistration: (eventId: string) => void;
 
   // ---- organiser / new request form ----
   submitDraft: (eventId: string) => void;
@@ -393,7 +398,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const endSession = (signInNotice: string | null = null) =>
     // Events and notifications belong to the user who was signed in, so they go too.
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], notifs: [], signInNotice });
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], notifs: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
@@ -787,22 +792,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
         flash("Reservation released.", "warn");
       },
 
-      toggleRegistration: (eventId) => {
+      registerForEvent: (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
-        if (e.myReg) {
-          patchEvent(eventId, { myReg: false, registered: Math.max(0, e.registered - 1) });
-          notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
-          flash(`Withdrawn from ${e.name}.`, "warn");
-        } else {
-          if (e.registered >= e.regCap) {
-            flash(`${e.name} is full.`, "warn");
-            return;
-          }
-          patchEvent(eventId, { myReg: true, registered: e.registered + 1 });
-          notify("attendee", "Registration confirmed", `You are registered for ${e.name} on ${e.date}.`);
-          flash(`Registered for ${e.name}.`);
+        const existing = state.registrations.find(
+          (r) => r.eventId === eventId && r.attendeeEmail === me.email && r.status !== "withdrawn",
+        );
+        const decision = decideRegistration(e, existing);
+        if (!decision.ok) {
+          flash(decision.reason, "warn");
+          return;
         }
+        const status = decision.status;
+        const now = new Date().toISOString();
+        const registration: RegistrationRecord = {
+          id: `REG-${Date.now()}`,
+          eventId,
+          attendeeName: me.person,
+          attendeeEmail: me.email,
+          status,
+          registeredAt: now,
+          updatedAt: now,
+        };
+        patch((s) => ({
+          registrations: [registration, ...s.registrations],
+          events: s.events.map((item) =>
+            item.id === eventId && status === "registered"
+              ? { ...item, registered: item.registered + 1 }
+              : item,
+          ),
+        }));
+        notify(
+          "attendee",
+          status === "registered" ? "Registration confirmed" : "Added to waitlist",
+          `${e.name} on ${e.date}. Confirmation email queued for ${me.email}.`,
+        );
+        flash(
+          status === "registered"
+            ? `Registered for ${e.name}. Confirmation email queued.`
+            : `${e.name} is full. You have been waitlisted.`,
+        );
+      },
+      withdrawRegistration: (eventId) => {
+        const e = getEvent(state.events, eventId);
+        const current = state.registrations.find(
+          (r) =>
+            r.eventId === eventId &&
+            r.attendeeEmail === me.email &&
+            (r.status === "registered" || r.status === "waitlisted"),
+        );
+        if (!e) {
+          flash("No active registration was found.", "warn");
+          return;
+        }
+        const error = withdrawalError(e, current);
+        if (error || !current) {
+          flash(error ?? "No active registration was found.", "warn");
+          return;
+        }
+        const now = new Date().toISOString();
+        patch((s) => ({
+          registrations: s.registrations.map((r) =>
+            r.id === current.id ? { ...r, status: "withdrawn", updatedAt: now } : r,
+          ),
+          events: s.events.map((item) =>
+            item.id === eventId && current.status === "registered"
+              ? { ...item, registered: Math.max(0, item.registered - 1) }
+              : item,
+          ),
+        }));
+        notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
+        flash(`Withdrawal recorded for ${e.name}.`, "warn");
       },
 
       submitDraft: async (eventId) => {
