@@ -56,3 +56,16 @@ class EventDraftResponse(BaseModel):
     draft_form: Dict[str, Any]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EventSubmissionSave(EventDraftSave):
+    draft_id: Optional[int] = None
+
+
+class EventRequestResponse(BaseModel):
+    id: int
+    status: str
+    draft_form: Optional[Dict[str, Any]] = None
+    submitted_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

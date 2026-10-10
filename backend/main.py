@@ -6,7 +6,8 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import get_current_user, require_roles
-import event_drafts, models, schemas
+import event_drafts, event_submission, models, schemas
+from datetime import datetime, timezone
 
 Base.metadata.create_all(bind=engine)
 
@@ -57,6 +58,36 @@ def save_event_draft(
     db.commit()
     db.refresh(saved)
     return saved
+
+# US04: the organiser sees persisted Draft and Submitted requests after reload.
+@app.get("/event-requests", response_model=List[schemas.EventRequestResponse])
+def list_event_requests(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return db.query(models.Event).filter(models.Event.organiser_id == user.id).all()
+
+
+@app.post("/event-requests/submit", response_model=schemas.EventRequestResponse, status_code=201)
+def submit_event_request(
+    request: schemas.EventSubmissionSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    # A saved draft transitions in place; another user's or submitted row is rejected.
+    saved = find_editable_draft(request.draft_id, db, user, for_update=True) if request.draft_id is not None else models.Event(
+        organiser_id=user.id, facilities=[], accessibility=[], equipment=[], registration_required=False,
+    )
+    prepared = event_submission.prepare_submission(request.event_information, datetime.now(timezone.utc))
+    for field, value in prepared.items():
+        setattr(saved, field, value)
+    saved.name = request.event_information.get("name", "")
+    saved.purpose = request.event_information.get("purpose")
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+    return saved
+
 
 # US06: the session determines whose drafts are listed; no owner parameter is accepted.
 @app.get("/event-requests/drafts", response_model=List[schemas.EventDraftResponse])

@@ -21,10 +21,8 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, apiFetch } from "./api";
+import { createPendingRequestGuard } from "./event-request/pending-request";
 import { DEFAULT_ROUTE, EQUIP, PEOPLE, seedEvents, seedNotifs } from "./data";
-import { eventRequestFromForm } from "./event-request/form-adapter";
-import { submitEventRequest } from "./event-request/submission";
-import { validateEventRequest } from "./event-request/validation";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
   ApiEventDraft,
@@ -44,32 +42,6 @@ import type {
 
 /** Business rule: a request can't be approved until a coordinator owns it. */
 const REQUIRE_COORDINATOR = true;
-
-const BASIC_FIELDS = new Set([
-  "name",
-  "description",
-  "eventType",
-  "expectedAttendance",
-  "preferredDate",
-  "startTime",
-  "endTime",
-]);
-
-/** Keeps only the errors belonging to the current wizard step. */
-function errorsForStep(
-  errors: EventRequestErrors,
-  step: 1 | 2 | 3,
-): EventRequestErrors {
-  return Object.fromEntries(
-    Object.entries(errors).filter(([field]) => {
-      if (step === 1) return BASIC_FIELDS.has(field);
-      if (step === 2) {
-        return field.startsWith("venue.") || field.startsWith("equipment.");
-      }
-      return field.startsWith("registration.");
-    }),
-  );
-}
 
 /** Converts an existing saved event back into editable HTML form values. */
 function formFromEvent(event: EventRecord): NewRequestForm {
@@ -179,14 +151,14 @@ function sessionUiState() {
 }
 
 /** US05/US06: turn a saved database draft into the existing table's display shape. */
-function eventFromSavedDraft(saved: ApiEventDraft, organiser: string): EventRecord {
+function eventFromSavedDraft(saved: ApiEventDraft & { submitted_at?: string | null }, organiser: string): EventRecord {
   // Draft fields may be incomplete. Defaults support the form UI, not submission rules.
   const f = { ...initialForm(), ...saved.draft_form };
   return {
     id: String(saved.id),
     name: f.name.trim() || "Untitled request",
     organiser,
-    status: "draft",
+    status: saved.status,
     date: f.date || "Date to confirm",
     day: null,
     start: f.start,
@@ -206,7 +178,8 @@ function eventFromSavedDraft(saved: ApiEventDraft, organiser: string): EventReco
     reg: f.reg,
     regCap: parseInt(f.regCap, 10) || 0,
     registered: 0,
-    submittedAgo: "draft",
+    submittedAgo: saved.status === "draft" ? "draft" : "submitted",
+    submittedAt: saved.submitted_at ?? undefined,
     activity: [],
     eventType: f.eventType,
     venueLocation: f.venueLocation,
@@ -265,6 +238,7 @@ const MODAL_CONTENT: Record<ModalKind, Omit<ModalState, "id">> = {
 
 export interface AppApi {
   state: AppState;
+  isSavingDraft: boolean;
   me: (typeof PEOPLE)[Role];
 
   // ---- lookups ----
@@ -332,6 +306,9 @@ const AppContext = createContext<AppApi | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  // Keep the same lock across renders, including clicks before the next render.
+  const draftSaveGuard = useRef(createPendingRequestGuard());
   const router = useRouter();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -375,11 +352,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const user = state.user;
     if (!user || user.role !== "organiser") return;
     let cancelled = false;
-    apiFetch<ApiEventDraft[]>("/event-requests/drafts").then(
+    apiFetch<ApiEventDraft[]>("/event-requests").then(
       (drafts) => {
         if (!cancelled) patch((s) => ({
-          events: [...drafts.map((draft) => eventFromSavedDraft(draft, user.name)),
-            ...s.events.filter((event) => event.status !== "draft")],
+          events: drafts.map((draft) => eventFromSavedDraft(draft, user.name)),
         }));
       },
       (err) => {
@@ -392,70 +368,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.user]);
 
   const api = useMemo<AppApi>(() => {
+    // US04: the server owns submission status, identity and persistence.
+    async function persistSubmission(form: NewRequestForm, draftId: string | null) {
+      try {
+        const saved = await apiFetch<ApiEventDraft>("/event-requests/submit", {
+          method: "POST",
+          body: JSON.stringify({ event_information: form, draft_id: draftId ? Number(draftId) : null }),
+        });
+        const event = eventFromSavedDraft(saved, state.user!.name);
+        patch((s) => ({ events: [event, ...s.events.filter((e) => e.id !== event.id)],
+          step: 1, formErrors: {}, editingEventId: null, form: initialForm() }));
+        // Lead assignment/notifications are a separate, unfinished dependency.
+        flash(`${event.name} submitted for review.`);
+        router.push("/my-events");
+      } catch (err) {
+        flash(err instanceof Error ? err.message : "Couldn't submit the request.", "warn");
+      }
+    }
     const me = state.user
       ? { person: state.user.name, label: PEOPLE[state.role].label, email: state.user.email }
       : PEOPLE[state.role];
 
-    const buildEventFromForm = (
-      status: "draft" | "submitted",
-      submittedAt?: string,
-    ): EventRecord => {
-      const f = state.form;
-      const d = f.date ? new Date(`${f.date}T00:00:00`) : null;
-      const dateLabel = d
-        ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-        : "Date to confirm";
-      const equip = EQUIP.filter((item) => (f.equip[item.id] ?? 0) > 0).map(
-        (item) => ({
-          id: item.id,
-          qty: f.equip[item.id],
-          technicalRequirements: f.equipTechnical[item.id] ?? "",
-        }),
-      );
-      return {
-        id: state.editingEventId ?? `EVT-${2050 + state.events.length + 1}`,
-        name: f.name.trim() || "Untitled request",
-        organiser: PEOPLE.organiser.person,
-        status,
-        date: dateLabel,
-        start: f.start,
-        end: f.end,
-        pax: parseInt(f.pax, 10) || 0,
-        day: null,
-        purpose: f.purpose.trim() || "No description provided yet.",
-        layout: f.layout,
-        facilities: f.facilities,
-        access: f.access,
-        coordinator: null,
-        venue: null,
-        bookingState: null,
-        equip,
-        equipState: equip.length ? "requested" : null,
-        reg: f.reg,
-        regCap: parseInt(f.regCap, 10) || 0,
-        registered: 0,
-        submittedAgo: status === "draft" ? "draft · just saved" : "submitted just now",
-        activity: [
-          {
-            title: status === "draft" ? "Draft saved" : "Request submitted",
-            when: "just now",
-            body:
-              status === "draft"
-                ? "Saved without submitting. Still editable."
-                : "Submitted for coordinator review.",
-          },
-        ],
-        eventType: f.eventType,
-        venueLocation: f.venueLocation,
-        venueCapacity: parseInt(f.venueCapacity, 10) || 0,
-        regClose: f.reg ? f.regClose : null,
-        submittedAt,
-        draftForm: status === "draft" ? structuredClone(f) : undefined,
-      };
-    };
 
     return {
       state,
+      isSavingDraft,
       me,
 
       event: (id) => getEvent(state.events, id),
@@ -663,43 +600,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      submitDraft: (eventId) => {
+      submitDraft: async (eventId) => {
         const e = getEvent(state.events, eventId);
         if (!e) return;
-        const form = formFromEvent(e);
-        const result = submitEventRequest(eventRequestFromForm(form, EQUIP), new Date());
-        if (!result.ok) {
-          const validation = validateEventRequest(
-            eventRequestFromForm(form, EQUIP),
-            new Date().toISOString().slice(0, 10),
-          );
-          const firstStep = Object.keys(errorsForStep(validation.errors, 1)).length
-            ? 1
-            : Object.keys(errorsForStep(validation.errors, 2)).length
-              ? 2
-              : 3;
-          patch({
-            form,
-            formErrors: validation.errors,
-            editingEventId: eventId,
-            step: firstStep,
-          });
-          flash("Complete the outstanding fields before submission.", "warn");
-          router.push("/new-request");
-          return;
-        }
-        patchEvent(
-          eventId,
-          {
-            status: "submitted",
-            submittedAgo: "submitted just now",
-            submittedAt: result.request.submittedAt,
-            draftForm: undefined,
-          },
-          { title: "Request submitted", body: `${e.organiser} submitted the request for review.` }
-        );
-        notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
-        flash(`${e.name} submitted for review.`);
+        await persistSubmission(formFromEvent(e), eventId);
       },
       beginNewRequest: async (eventId) => {
         try {
@@ -732,75 +636,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const next = Math.max(0, Math.min(total, cur + delta));
           return { form: { ...s.form, equip: { ...s.form.equip, [id]: next } } };
         }),
-      nextStep: () => {
-        const draft = eventRequestFromForm(state.form, EQUIP);
-        const today = new Date().toISOString().slice(0, 10);
-        const validation = validateEventRequest(draft, today);
-
+      nextStep: async () => {
+        // Wizard navigation does not invent submission-required fields.
         if (state.step < 3) {
-          const stepErrors = errorsForStep(validation.errors, state.step);
-          if (Object.keys(stepErrors).length) {
-            patch({ formErrors: stepErrors });
-            flash("Complete the highlighted fields before continuing.", "warn");
-            return;
-          }
-          patch({
-            step: (state.step + 1) as 1 | 2 | 3,
-            formErrors: {},
-          });
+          patch({ step: (state.step + 1) as 1 | 2 | 3, formErrors: {} });
           return;
         }
-
-        const result = submitEventRequest(draft, new Date());
-        if (!result.ok) {
-          patch({ formErrors: validation.errors });
-          flash("Complete the outstanding fields before submission.", "warn");
-          return;
-        }
-        const e = buildEventFromForm("submitted", result.request.submittedAt);
-        patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
-          step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
-        }));
-        notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
-        flash(`${e.name} submitted for review.`);
-        router.push("/my-events");
+        await persistSubmission(state.form, state.editingEventId);
       },
       backStep: () => patch((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 })),
       saveDraft: async () => {
-        try {
-          // The browser sends only event information. FastAPI gets the
-          // organiser identity from the HttpOnly-cookie session, not this form.
-          // US05 creates a draft; US06 updates that same draft when Continue was used.
-          const path = state.editingEventId
-            ? `/event-requests/drafts/${state.editingEventId}`
-            : "/event-requests/drafts";
-          const saved = await apiFetch<ApiEventDraft>(path, {
-            method: state.editingEventId ? "PUT" : "POST",
-            body: JSON.stringify({ event_information: state.form }),
-          });
-          const e = eventFromSavedDraft(saved, state.user!.name);
-          patch((s) => ({
-            events: [e, ...s.events.filter((item) => item.id !== e.id)],
-            step: 1,
-            formErrors: {},
-            editingEventId: null,
-            form: initialForm(),
-          }));
-          flash("Draft saved. You can finish it later.");
-          router.push("/my-events");
-        } catch (err) {
-          flash(err instanceof ApiError ? err.message : "Couldn't save the draft. Please try again.", "warn");
-        }
+        await draftSaveGuard.current(async () => {
+          setIsSavingDraft(true);
+          try {
+            // The browser sends only event information. FastAPI gets the
+            // organiser identity from the HttpOnly-cookie session, not this form.
+            // US05 creates a draft; US06 updates that same draft when Continue was used.
+            const path = state.editingEventId
+              ? `/event-requests/drafts/${state.editingEventId}`
+              : "/event-requests/drafts";
+            const saved = await apiFetch<ApiEventDraft>(path, {
+              method: state.editingEventId ? "PUT" : "POST",
+              body: JSON.stringify({ event_information: state.form }),
+            });
+            const e = eventFromSavedDraft(saved, state.user!.name);
+            patch((s) => ({
+              events: [e, ...s.events.filter((item) => item.id !== e.id)],
+              step: 1,
+              formErrors: {},
+              editingEventId: null,
+              form: initialForm(),
+            }));
+            flash("Draft saved. You can finish it later.");
+            router.push("/my-events");
+          } catch (err) {
+            flash(err instanceof ApiError ? err.message : "Couldn't save the draft. Please try again.", "warn");
+          } finally {
+            setIsSavingDraft(false);
+          }
+        });
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, isSavingDraft]);
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;
 }

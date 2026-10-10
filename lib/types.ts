@@ -52,10 +52,11 @@ export interface Venue {
   operatingDays?: string[];
 }
 
-/** Response returned when FastAPI persists an event-request draft. */
+/** Persisted organiser request returned by FastAPI (Draft or Submitted). */
 export interface ApiEventDraft {
   id: number;
-  status: "draft";
+  status: EventStatus;
+  submitted_at?: string | null;
   draft_form: NewRequestForm;
 }
 
