@@ -37,7 +37,7 @@ import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "../selectors";
 import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "../venues/rules";
-import { decideRegistration, withdrawalError } from "../registration";
+import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
 import type {
   ApiVenue,
   AuthUser,
@@ -329,9 +329,11 @@ export interface AppApi {
   reserveEquipment: (eventId: string) => void;
   releaseEquipment: (eventId: string) => void;
 
-  // ---- attendee registration ----
+  // ---- attendee registration (US29-US32), saved on the server ----
   registerForEvent: (eventId: string) => void;
   withdrawRegistration: (eventId: string) => void;
+  /** An event's registrations, for its organiser or assigned coordinator (US32). Throws ApiError. */
+  loadRegistrations: (backendId: number) => Promise<RegistrationRecord[]>;
 
   // ---- organiser / new request form ----
   submitDraft: (eventId: string) => void;
@@ -476,13 +478,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadEvents = () =>
+    apiFetch<StoredEvent[]>("/events").then((stored) => patch({ events: stored.map(eventFromApi) }), handleApiError);
+
+  /** The attendee's own registrations (US30), as saved on the server. */
+  const loadMyRegistrations = () =>
+    apiFetch<StoredRegistration[]>("/registrations/me").then(
+      (stored) => patch({ registrations: stored.map(registrationFromApi) }),
+      handleApiError,
+    );
+
   // Load the event requests this user may see (the server applies the role rules).
   useEffect(() => {
     if (!state.authed) return;
-    apiFetch<StoredEvent[]>("/events").then(
-      (stored) => patch({ events: stored.map(eventFromApi) }),
-      handleApiError,
-    );
+    loadEvents();
+    if (state.user?.role === "attendee") loadMyRegistrations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);
 
@@ -849,9 +859,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         flash("Reservation released.", "warn");
       },
 
-      registerForEvent: (eventId) => {
+      // The browser checks the rules for an instant answer; the server decides (capacity, waitlist)
+      // and saves. Afterwards the events and registrations are reloaded so counts are the saved ones.
+      registerForEvent: async (eventId) => {
         const e = getEvent(state.events, eventId);
-        if (!e) return;
+        if (!e || e.backendId === undefined) return;
         const existing = state.registrations.find(
           (r) => r.eventId === eventId && r.attendeeEmail === me.email && r.status !== "withdrawn",
         );
@@ -860,37 +872,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
           flash(decision.reason, "warn");
           return;
         }
-        const status = decision.status;
-        const now = new Date().toISOString();
-        const registration: RegistrationRecord = {
-          id: `REG-${Date.now()}`,
-          eventId,
-          attendeeName: me.person,
-          attendeeEmail: me.email,
-          status,
-          registeredAt: now,
-          updatedAt: now,
-        };
-        patch((s) => ({
-          registrations: [registration, ...s.registrations],
-          events: s.events.map((item) =>
-            item.id === eventId && status === "registered"
-              ? { ...item, registered: item.registered + 1 }
-              : item,
-          ),
-        }));
+        let saved: RegistrationRecord;
+        try {
+          saved = registrationFromApi(
+            await apiFetch<StoredRegistration>(`/events/${e.backendId}/registrations`, { method: "POST" }),
+          );
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) flash(err.message, "warn");
+          else handleApiError(err);
+          return;
+        }
+        await Promise.all([loadEvents(), loadMyRegistrations()]);
         notify(
           "attendee",
-          status === "registered" ? "Registration confirmed" : "Added to waitlist",
+          saved.status === "registered" ? "Registration confirmed" : "Added to waitlist",
           `${e.name} on ${e.date}. Confirmation email queued for ${me.email}.`,
         );
         flash(
-          status === "registered"
+          saved.status === "registered"
             ? `Registered for ${e.name}. Confirmation email queued.`
             : `${e.name} is full. You have been waitlisted.`,
         );
       },
-      withdrawRegistration: (eventId) => {
+      withdrawRegistration: async (eventId) => {
         const e = getEvent(state.events, eventId);
         const current = state.registrations.find(
           (r) =>
@@ -898,7 +902,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             r.attendeeEmail === me.email &&
             (r.status === "registered" || r.status === "waitlisted"),
         );
-        if (!e) {
+        if (!e || e.backendId === undefined) {
           flash("No active registration was found.", "warn");
           return;
         }
@@ -907,20 +911,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           flash(error ?? "No active registration was found.", "warn");
           return;
         }
-        const now = new Date().toISOString();
-        patch((s) => ({
-          registrations: s.registrations.map((r) =>
-            r.id === current.id ? { ...r, status: "withdrawn", updatedAt: now } : r,
-          ),
-          events: s.events.map((item) =>
-            item.id === eventId && current.status === "registered"
-              ? { ...item, registered: Math.max(0, item.registered - 1) }
-              : item,
-          ),
-        }));
+        try {
+          await apiFetch<StoredRegistration>(`/events/${e.backendId}/registrations/me`, { method: "DELETE" });
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) flash(err.message, "warn");
+          else handleApiError(err);
+          return;
+        }
+        await Promise.all([loadEvents(), loadMyRegistrations()]);
         notify("attendee", "Registration withdrawn", `You withdrew from ${e.name}.`);
         flash(`Withdrawal recorded for ${e.name}.`, "warn");
       },
+      loadRegistrations: async (backendId) =>
+        (await apiFetch<StoredRegistration[]>(`/events/${backendId}/registrations`)).map(registrationFromApi),
 
       submitDraft: async (eventId) => {
         const e = getEvent(state.events, eventId);

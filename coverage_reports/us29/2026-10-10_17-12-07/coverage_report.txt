@@ -1,0 +1,14 @@
+Coverage report for US29
+Generated: 2026-10-10 17:12:07
+Tests: tests/us29_us32_registration/test_registration_api.py
+Result: 43 tests, all passed
+Measured files: registrations.py, main.py, schemas.py, models.py
+
+Name                       Stmts   Miss  Cover   Missing
+--------------------------------------------------------
+backend\main.py              195    103    47%   51-57, 64-67, 78-81, 86-94, 99-114, 119-121, 129-131, 196-206, 214-215, 223, 225, 232-244, 260-275, 335-339, 347-372
+backend\models.py             91      0   100%
+backend\registrations.py      72      1    99%   112
+backend\schemas.py           281     89    68%   30-35, 40, 44-52, 56-63, 72-77, 96-100, 139-143, 178, 183, 219-221, 225-230, 326-371
+--------------------------------------------------------
+TOTAL                        639    193    70%

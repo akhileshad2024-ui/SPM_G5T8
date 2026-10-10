@@ -77,6 +77,7 @@ STORY_DIRS = {
     "us03": "tests/us03_us04_event_request",
     "us13": "tests/us13_event_status",
     "us15": "tests/us15_event_information",
+    "us29": "tests/us29_us32_registration",
 }
 
 # Backend files each of those stories' tests are meant to cover.
@@ -86,6 +87,7 @@ STORY_FILES = {
     "us03": ["main.py", "schemas.py", "models.py"],
     "us13": ["event_status.py", "event_access.py", "main.py", "schemas.py", "models.py"],
     "us15": ["event_fields.py", "main.py", "schemas.py"],
+    "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.
@@ -96,6 +98,7 @@ STORY_FRONTEND = {
              "lib/events/request/form-adapter.ts", "lib/events/request/submission.ts"],
     "us13": ["lib/events/status-history.ts"],
     "us15": ["lib/events/details.ts"],
+    "us29": ["lib/registration.ts"],
 }
 
 # Where a story's Vitest tests live, when not in its STORY_DIRS folder.

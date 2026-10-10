@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Date, Time, Text, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Date, Time, Text, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from database import Base
 
@@ -129,3 +129,29 @@ class EventStatusChange(Base):
     changed_at = Column(DateTime(timezone=True), nullable=False)
     # Why, where the story asks for one (e.g. a rejection or cancellation reason).
     reason = Column(Text, nullable=True)
+
+class RegistrationStatus(str, enum.Enum):
+    """Must stay in sync with `RegistrationStatus` in lib/types.ts (which also has the
+    display-only "cancelled", shown when the event itself is cancelled)."""
+    registered = "registered"
+    waitlisted = "waitlisted"
+    withdrawn = "withdrawn"
+
+
+class Registration(Base):
+    """US29-US32: an attendee's registration for an event, written only by registrations.py.
+
+    One row per attendee per event: registering again after withdrawing reuses the row
+    (and joins the back of the queue), so an attendee can never hold two places.
+    """
+    __tablename__ = "registrations"
+    __table_args__ = (UniqueConstraint("event_id", "attendee_id", name="uq_registration_event_attendee"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    attendee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(Enum(RegistrationStatus, name="registration_status", native_enum=False, create_constraint=True,
+                         length=20), nullable=False)
+    # When the attendee last joined (registered or waitlisted): the waitlist is served in this order.
+    registered_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
