@@ -73,9 +73,10 @@ def login(body: schemas.LoginRequest, response: Response, db: Session = Depends(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+def logout(request: Request, response: Response, all_sessions: bool = True, db: Session = Depends(get_db)):
+    # all_sessions=false (used by the inactivity sign-out) ends only this browser's session.
     user = user_from_request(request, db)
-    if user is not None:
+    if user is not None and all_sessions:
         # Invalidates this token server-side (and the user's other sessions), not just the cookie.
         user.session_version += 1
         db.commit()

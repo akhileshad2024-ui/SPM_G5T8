@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { VenueDetails } from "@/components/venues/VenueDetails";
 import { VenueSearch } from "@/components/venues/VenueSearch";
-import { ApiError, apiFetch } from "@/lib/api";
-import { useApp } from "@/lib/app-context";
+import { ApiError, apiFetch } from "@/lib/api/client";
+import { useApp } from "@/lib/state/app-context";
 import type { ApiVenue, Venue } from "@/lib/types";
-import { venueFromApi } from "@/lib/venue-rules";
+import { venueFromApi } from "@/lib/venues/rules";
 
 /** Event Coordinator: read-only look at every active venue (US18), narrowed by the search (US20). Nothing here can edit a venue. */
 export default function VenuesPage() {

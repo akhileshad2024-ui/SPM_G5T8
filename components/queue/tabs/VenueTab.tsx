@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useApp } from "@/lib/app-context";
-import { apiFetch } from "@/lib/api";
+import { useApp } from "@/lib/state/app-context";
+import { apiFetch } from "@/lib/api/client";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout, RequirementCheck, VenueSuitability } from "@/lib/types";
-import { bookingProblem } from "@/lib/venue-booking";
-import { VERDICT_COLOURS, VERDICT_LABEL, buildSuitabilityRequest, unmetChecks } from "@/lib/venue-suitability";
-import { bookingProblems, venueHas } from "@/lib/venue-rules";
+import { bookingProblem } from "@/lib/venues/booking";
+import { VERDICT_COLOURS, VERDICT_LABEL, buildSuitabilityRequest, unmetChecks } from "@/lib/venues/suitability";
+import { bookingProblems, venueHas } from "@/lib/venues/rules";
 import styles from "./VenueTab.module.css";
 
 const LAYOUTS: Array<[Layout | "any", string]> = [

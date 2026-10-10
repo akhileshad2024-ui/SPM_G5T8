@@ -3,7 +3,7 @@
  * Kept separate from `app-context.tsx` so they can be unit tested or
  * reused without pulling in React.
  */
-import { EQUIP } from "./data";
+import { EQUIP } from "./data/options";
 import type { EventRecord, Venue } from "./types";
 
 export function getEvent(events: EventRecord[], id: string | null | undefined): EventRecord | undefined {

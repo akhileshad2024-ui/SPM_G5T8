@@ -1,33 +1,42 @@
 """
-Run one user story's UNIT tests under coverage, one test file at a time, and save
-a timestamped report for each file.
+Run one user story's tests under coverage and save a timestamped report.
 
     python run_coverage.py us17          (from the project root)
 
-Every tests/unit/**/test_us17_*.py file is run on its own, so each report shows
-what THAT file covers. Under coverage_reports/us17/<YYYY-MM-DD_HH-MM-SS>/ you get:
+Two kinds of story are supported:
 
-    unit/<test_file>/htmlcov/index.html          one folder per unit test file
-    unit/<test_file>/coverage_report.txt
-    unit/<test_file>/test_output.txt
-    summary.txt                                  one line per test file
+1. Stories whose unit tests are unittest files named tests/unit/**/test_<story>_*.py
+   (e.g. us17, us18). Every such file is run on its own, so each report shows what
+   THAT file covers. Under coverage_reports/<story>/<YYYY-MM-DD_HH-MM-SS>/ you get:
 
-and one line per test file is appended to coverage_reports/us17/history_by_file.csv
-(history.csv holds the older combined runs and is left untouched).
+       unit/<test_file>/htmlcov/index.html          one folder per unit test file
+       unit/<test_file>/coverage_report.txt
+       unit/<test_file>/test_output.txt
+       summary.txt                                  one line per test file
 
-Integration tests (tests/integration/) are not part of this automation; run them
-by hand if wanted (see README).
+   and one line per test file is appended to coverage_reports/<story>/history_by_file.csv
+   (history.csv holds the older combined runs and is left untouched). Each test file is
+   measured against the backend code it is meant to test (TARGETS below), so a unit test
+   of schemas.py is not marked down for main.py; a file not listed is measured against
+   all of backend/. Integration tests (tests/integration/) are not part of this mode;
+   run them by hand if wanted (see README).
 
-Each test file is measured against the backend files it is meant to test
-(TARGETS below), so a unit test of schemas.py is not marked down for main.py.
-A test file not listed is measured against all of backend/.
+2. Stories with their own test folder in STORY_DIRS (e.g. us01 -> tests/us01_secure_login/),
+   whose pytest tests (unit/ and API) are run together. Under
+   coverage_reports/<story>/<YYYY-MM-DD_HH-MM-SS>/ you get htmlcov/index.html,
+   coverage_report.txt and test_output.txt, measured against STORY_FILES, plus a line
+   in coverage_reports/<story>/history.csv. A story listed in STORY_FRONTEND also gets
+   its Vitest unit tests run under coverage for those lib/ files:
+   frontend/coverage_report.txt and frontend/htmlcov/index.html in the same folder.
 """
 
 import argparse
 import ast
 import csv
 import io
+import json
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -39,6 +48,8 @@ ROOT = Path(__file__).resolve().parent
 BACKEND = ROOT / "backend"
 REPORTS = ROOT / "coverage_reports"
 UNIT_TESTS = ROOT / "tests" / "unit"
+
+# ---------------------------------------------------------------- mode 1: one report per unit test file
 
 # What each unit test file is meant to cover. Add a line when you add a test file.
 #   "schemas.py"                          the whole file
@@ -69,6 +80,43 @@ TARGETS = {
     ],
 }
 
+# ---------------------------------------------------------------- mode 2: one report per story folder
+
+# Stories whose tests live in their own folder and run with pytest.
+STORY_DIRS = {
+    "us01": "tests/us01_secure_login",
+    "us02": "tests/us02_rbac",
+    "us03": "tests/us03_us04_event_request",
+    "us13": "tests/us13_event_status",
+    "us15": "tests/us15_event_information",
+}
+
+# Backend files each of those stories' tests are meant to cover.
+STORY_FILES = {
+    "us01": ["login/auth.py", "login/security.py", "login/schemas.py", "login/models.py", "login/set_password.py"],
+    "us02": ["login/security.py", "event_access.py", "main.py"],
+    "us03": ["main.py", "schemas.py", "models.py"],
+    "us13": ["event_status.py", "event_access.py", "main.py", "schemas.py", "models.py"],
+    "us15": ["event_fields.py", "main.py", "schemas.py"],
+}
+
+# Frontend files each story's Vitest unit tests are meant to cover.
+STORY_FRONTEND = {
+    "us01": ["lib/auth/idle-timeout.ts"],
+    "us02": ["lib/auth/route-access.ts", "lib/events/visibility.ts"],
+    "us03": ["lib/events/request/validation.ts", "lib/events/request/api.ts",
+             "lib/events/request/form-adapter.ts", "lib/events/request/submission.ts"],
+    "us13": ["lib/events/status-history.ts"],
+    "us15": ["lib/events/details.ts"],
+}
+
+# Where a story's Vitest tests live, when not in its STORY_DIRS folder.
+STORY_FRONTEND_TESTS = {
+    "us03": "tests/unit/event-request",
+}
+
+
+# ---------------------------------------------------------------- mode 1 helpers
 
 def split_target(spec: str) -> tuple:
     """"main.py:a,b" -> ("main.py", ["a", "b"]); "schemas.py" -> ("schemas.py", [])."""
@@ -167,11 +215,8 @@ def run_one(test_file: Path, stamp_dir: Path, now: datetime) -> dict:
     return {"kind": "unit", "name": name, "tests": tests_run, "passed": passed, "coverage": total, "folder": out}
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Timestamped unit-test coverage report per test file for one user story.")
-    parser.add_argument("story", help='story id as used in the test file names, e.g. "us17"')
-    story = parser.parse_args().story.lower()
-
+def run_unit_files(story: str) -> int:
+    """Mode 1: one coverage report per tests/unit/**/test_<story>_*.py file."""
     pattern = f"test_{story}_*.py"
     found = sorted(UNIT_TESTS.rglob(pattern))
     if not found:
@@ -203,6 +248,107 @@ def main() -> int:
     print(f"Report folder: {stamp_dir}")
     print(f'Open one with:  start "" "{results[0]["folder"] / "htmlcov" / "index.html"}"')
     return 0 if all(r["passed"] for r in results) else 1
+
+
+# ---------------------------------------------------------------- mode 2 helpers
+
+def run_story_backend(story: str, data_file: Path) -> tuple:
+    """Run the story folder's pytest tests under coverage: (test files, output, tests run, all passed)."""
+    folder = ROOT / STORY_DIRS[story]
+    test_files = sorted(p.relative_to(ROOT) for p in folder.rglob("test_*.py"))
+    run = subprocess.run(
+        [sys.executable, "-m", "coverage", "run", f"--data-file={data_file}", f"--source={BACKEND}",
+         "-m", "pytest", str(folder), "-v", "-p", "no:cacheprovider"],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    output = run.stdout + run.stderr
+    summaries = re.findall(r"^=+ (.+) in [\d.]+s", output, flags=re.MULTILINE)  # e.g. "128 passed, 1 warning"
+    counts = re.findall(r"(\d+) (?:passed|failed|errors?)\b", summaries[-1]) if summaries else []
+    return test_files, output, sum(int(n) for n in counts), run.returncode == 0
+
+
+def run_frontend_tests(story: str, out: Path) -> str | None:
+    """Vitest unit tests + coverage for the story's lib/ files; returns a one-line summary."""
+    if story not in STORY_FRONTEND:
+        return None
+    npx = shutil.which("npx")
+    if npx is None:
+        return "frontend: skipped (npx not found - install Node.js and run npm install)"
+    folder = out / "frontend"
+    run = subprocess.run(
+        [
+            npx, "vitest", "run", STORY_FRONTEND_TESTS.get(story, STORY_DIRS[story]), "--coverage",
+            *[f"--coverage.include={f}" for f in STORY_FRONTEND[story]],
+            "--coverage.reporter=text", "--coverage.reporter=json-summary", "--coverage.reporter=html",
+            f"--coverage.reportsDirectory={folder / 'htmlcov'}",
+        ],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    output = re.sub(r"\x1b\[[0-9;]*m", "", run.stdout + run.stderr)  # drop terminal colours
+    folder.mkdir(exist_ok=True)
+    tests = m.group(0) if (m := re.search(r"Tests\s+.*", output)) else "Tests: unknown"
+    summary_file = folder / "htmlcov" / "coverage-summary.json"
+    lines = json.loads(summary_file.read_text())["total"]["lines"]["pct"] if summary_file.exists() else 0.0
+    (folder / "coverage_report.txt").write_text(
+        f"Frontend coverage for {story.upper()}\nMeasured files: {', '.join(STORY_FRONTEND[story])}\n"
+        f"{tests.strip()}\nLine coverage: {lines}%\n\n{output}",
+        encoding="utf-8",
+    )
+    result = "all passed" if run.returncode == 0 else "FAILURES"
+    return f"frontend: {tests.strip()} ({result}); line coverage {lines}% of {', '.join(STORY_FRONTEND[story])}"
+
+
+def run_story_folder(story: str) -> int:
+    """Mode 2: one coverage report for the story's whole test folder (+ its frontend tests)."""
+    now = datetime.now()
+    out = REPORTS / story / now.strftime("%Y-%m-%d_%H-%M-%S")
+    out.mkdir(parents=True)
+    data_file = out / ".coverage"
+
+    test_files, test_output, tests_run, passed = run_story_backend(story, data_file)
+    (out / "test_output.txt").write_text(test_output, encoding="utf-8")
+
+    cov = coverage.Coverage(data_file=str(data_file))
+    cov.load()
+    include = [str(BACKEND / f) for f in STORY_FILES[story]] if story in STORY_FILES else None
+    buffer = io.StringIO()
+    total = cov.report(include=include, file=buffer, show_missing=True)
+    scope = ", ".join(STORY_FILES[story]) if include else "all of backend/"
+    header = (
+        f"Coverage report for {story.upper()}\n"
+        f"Generated: {now:%Y-%m-%d %H:%M:%S}\n"
+        f"Tests: {', '.join(p.as_posix() for p in test_files)}\n"
+        f"Result: {tests_run} tests, {'all passed' if passed else 'FAILURES'}\n"
+        f"Measured files: {scope}\n\n"
+    )
+    (out / "coverage_report.txt").write_text(header + buffer.getvalue(), encoding="utf-8")
+    cov.html_report(directory=str(out / "htmlcov"), include=include, title=f"{story.upper()} coverage {now:%Y-%m-%d %H:%M}")
+
+    history = REPORTS / story / "history.csv"
+    new_file = not history.exists()
+    with history.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if new_file:
+            writer.writerow(["timestamp", "tests_run", "result", "coverage_percent", "report_folder"])
+        writer.writerow([now.strftime("%Y-%m-%d %H:%M:%S"), tests_run, "passed" if passed else "FAILED", f"{total:.1f}", out.name])
+
+    frontend = run_frontend_tests(story, out)
+
+    print(buffer.getvalue())
+    print(f"{story.upper()}: {tests_run} tests, {'all passed' if passed else 'FAILURES - see test_output.txt'}; coverage {total:.1f}%")
+    if frontend:
+        print(f"{story.upper()} {frontend}")
+    print(f"Report folder: {out}")
+    print(f'Open it with:  start "" "{out / "htmlcov" / "index.html"}"')
+    frontend_failed = frontend is not None and "FAILURES" in frontend
+    return 0 if passed and not frontend_failed else 1
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Timestamped coverage report for one user story's tests.")
+    parser.add_argument("story", help='story id, e.g. "us17" (unit test files) or "us01" (story test folder)')
+    story = parser.parse_args().story.lower()
+    return run_story_folder(story) if story in STORY_DIRS else run_unit_files(story)
 
 
 if __name__ == "__main__":

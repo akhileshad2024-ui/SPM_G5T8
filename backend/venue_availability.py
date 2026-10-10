@@ -3,7 +3,7 @@ Venue availability rules shared by venue search (US20), the suitability check (U
 requests (US22). Kept free of FastAPI and the database so it can be unit tested directly.
 
 All times are local wall-clock times, counted in minutes from day 1, so no time zones are
-involved. The rules mirror lib/venue-rules.ts:
+involved. The rules mirror lib/venues/rules.ts:
   * a booking occupies its venue from (start - setup) to (end + turnaround), Week 7 change #1
   * a venue is not free during one of its unavailability periods, Week 7 change #2
   * touching windows (one ends exactly when the next starts) do not overlap

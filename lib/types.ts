@@ -2,7 +2,7 @@
  * Shared domain types for the ConnectSphere prototype.
  *
  * Users and venues come from the FastAPI backend; everything else describes
- * the in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
+ * the in-memory data held in `AppProvider` (see `lib/state/app-context.tsx`).
  */
 
 export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";
@@ -13,14 +13,24 @@ export type EventStatus =
   | "under_review"
   | "pending_clarification"
   | "approved"
-  | "planning"
   | "confirmed"
-  | "completed"
   | "rejected"
   | "cancelled";
 
 export type BookingState = "pending" | "approved" | "rejected" | null;
 export type EquipmentState = "requested" | "reserved" | null;
+
+export type RegistrationStatus = "registered" | "waitlisted" | "withdrawn" | "cancelled";
+
+export interface RegistrationRecord {
+  id: string;
+  eventId: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  status: RegistrationStatus;
+  registeredAt: string;
+  updatedAt: string;
+}
 
 export type Layout = "banquet" | "theatre" | "standing" | "boardroom" | "classroom";
 
@@ -161,6 +171,8 @@ export interface ActivityEntry {
 
 export interface EventRecord {
   id: string;
+  /** Database id once the request is stored by the backend (US03); absent for sample data. */
+  backendId?: number;
   name: string;
   organiser: string;
   status: EventStatus;
@@ -192,14 +204,57 @@ export interface EventRecord {
   venueLocation?: string;
   venueCapacity?: number;
   regClose?: string | null;
+  withdrawalClose?: string;
   submittedAt?: string;
+  /** US15: name of the booked venue, for roles that see where the event is but not the booking. */
+  venueName?: string | null;
+  /** US15: when the event's details were last saved (ISO, UTC). */
+  updatedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
   /** US22: the venue booking request as the backend recorded it (pending, venue held from setup to teardown). */
   bookingRequest?: VenueBookingRecord;
   /** US21: each time the coordinator went ahead with a venue that was not fully suitable, oldest first. */
   venueOverrides?: BookingOverride[];
+  /** US08: the latest clarification / amendment request sent to the organiser. */
+  clarification?: ClarificationRequest;
+  /** US10: the coordinator's final review outcome, visible to the organiser. */
+  decision?: ReviewDecision;
 }
+
+/** The person performing a review action (taken from the session, never from input). */
+export interface Actor {
+  name: string;
+  role: Role;
+}
+
+export type ClarificationKind = "clarification" | "amendment";
+
+export interface ClarificationRequest {
+  kind: ClarificationKind;
+  message: string;
+  requestedBy: string;
+  requestedAt: string;
+}
+
+export interface ReviewDecision {
+  outcome: "approved" | "rejected";
+  by: string;
+  at: string;
+  /** Mandatory when rejected; optional note when approved. */
+  reason?: string;
+}
+
+/** A notification produced by a workflow step; the context adds id/when/read. */
+export type WorkflowNotification = Pick<NotificationRecord, "to" | "title" | "body">;
+
+/**
+ * Every review-workflow step either returns the updated event plus the
+ * notifications it triggers, or explains why the action is not allowed.
+ */
+export type WorkflowResult =
+  | { ok: true; event: EventRecord; notifications: WorkflowNotification[] }
+  | { ok: false; error: string };
 
 export interface NotificationRecord {
   id: number;
@@ -212,7 +267,13 @@ export interface NotificationRecord {
 
 export type ToastKind = "ok" | "warn" | "bad";
 
-export type ModalKind = "clarify" | "reject" | "rejectBooking" | "change";
+export type ModalKind =
+  | "clarify"
+  | "amend"
+  | "approve"
+  | "reject"
+  | "rejectBooking"
+  | "change";
 
 export interface ModalState {
   kind: ModalKind;
@@ -224,7 +285,7 @@ export interface ModalState {
   confirm: string;
 }
 
-export type QueueFilter = "action" | "mine" | "all";
+export type QueueFilter = "action" | "unassigned" | "mine" | "all";
 export type EventTab = "request" | "venue" | "equipment" | "registration" | "activity";
 
 export interface VenueFilter {

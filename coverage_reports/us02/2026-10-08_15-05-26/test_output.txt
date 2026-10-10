@@ -1,0 +1,68 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 54 items
+
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[GET-/auth/me] PASSED [  1%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[POST-/auth/change-password] PASSED [  3%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[GET-/venues] PASSED [  5%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[POST-/venues] PASSED [  7%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[PUT-/venues/1] PASSED [  9%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[organiser] PASSED [ 11%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[coordinator] PASSED [ 12%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[venue] PASSED [ 14%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[tech] PASSED [ 16%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[attendee] PASSED [ 18%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_can_create_a_venue PASSED [ 20%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[organiser] PASSED [ 22%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[coordinator] PASSED [ 24%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[tech] PASSED [ 25%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[attendee] PASSED [ 27%]
+tests/us02_rbac/test_rbac.py::test_refused_create_saves_nothing PASSED   [ 29%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_can_edit_a_venue PASSED   [ 31%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[organiser] PASSED [ 33%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[coordinator] PASSED [ 35%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[tech] PASSED [ 37%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[attendee] PASSED [ 38%]
+tests/us02_rbac/test_rbac.py::test_editing_a_venue_that_does_not_exist_returns_404 PASSED [ 40%]
+tests/us02_rbac/test_rbac.py::test_editor_is_taken_from_the_session_not_the_request PASSED [ 42%]
+tests/us02_rbac/test_rbac.py::test_role_change_takes_effect_immediately PASSED [ 44%]
+tests/us02_rbac/test_rbac.py::test_deactivated_user_loses_access_immediately PASSED [ 46%]
+tests/us02_rbac/test_rbac.py::test_me_reports_the_role_the_frontend_uses_for_page_access PASSED [ 48%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_and_coordinators_can_list_deactivated_venues[venue] PASSED [ 50%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_and_coordinators_can_list_deactivated_venues[coordinator] PASSED [ 51%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_list_deactivated_venues[organiser] PASSED [ 53%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_list_deactivated_venues[tech] PASSED [ 55%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_list_deactivated_venues[attendee] PASSED [ 57%]
+tests/us02_rbac/test_rbac.py::test_deactivated_venues_are_hidden_from_the_normal_list PASSED [ 59%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_can_view_a_venues_change_history PASSED [ 61%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_view_change_history[organiser] PASSED [ 62%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_view_change_history[coordinator] PASSED [ 64%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_view_change_history[tech] PASSED [ 66%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_view_change_history[attendee] PASSED [ 68%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_attempt_to_delete_a_venue[organiser] PASSED [ 70%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_attempt_to_delete_a_venue[coordinator] PASSED [ 72%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_attempt_to_delete_a_venue[tech] PASSED [ 74%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_attempt_to_delete_a_venue[attendee] PASSED [ 75%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_are_told_venues_cannot_be_deleted PASSED [ 77%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_get_404_for_a_venue_that_does_not_exist[GET-/history] PASSED [ 79%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_get_404_for_a_venue_that_does_not_exist[DELETE-] PASSED [ 81%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_allowed_role_passes_and_gets_the_user_back PASSED [ 83%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[organiser] PASSED [ 85%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[coordinator] PASSED [ 87%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[tech] PASSED [ 88%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[attendee] PASSED [ 90%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_several_roles_can_be_allowed PASSED [ 92%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_no_roles_allowed_means_nobody_passes PASSED [ 94%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_the_check_uses_the_role_on_the_user_not_a_cached_copy PASSED [ 96%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_each_endpoint_gets_its_own_check PASSED [ 98%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_roles_match_the_frontend PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 54 passed, 1 warning in 24.91s ========================

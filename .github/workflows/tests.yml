@@ -1,7 +1,7 @@
-# Runs the Python unit tests automatically.
+# Runs the backend and frontend tests automatically.
 #
-# The log of each run is the evidence of unit testing:
-# GitHub repo -> Actions tab -> the run -> the "test" job.
+# The log of each run is the evidence of testing:
+# GitHub repo -> Actions tab -> the run -> the "test" (backend) and "frontend" jobs.
 name: Tests
 
 on:
@@ -22,11 +22,43 @@ jobs:
           python-version: "3.13"
 
       # The tests import the backend (FastAPI, SQLAlchemy, ...), so its packages are needed.
+      # pytest runs the per-story test folders; httpx is what FastAPI's TestClient uses.
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt pytest httpx
 
       # Unit tests only. They use an in-memory database and never touch Supabase,
       # so no secrets or .env file are needed. "-s tests/unit" is needed because plain
       # "python -m unittest discover" finds nothing: the tests live in tests/unit/.
       - name: Run unit tests
         run: python -m unittest discover -s tests/unit -v
+
+      # Every Python test: the per-story folders (tests/us01_secure_login, tests/us02_rbac,
+      # tests/us03_us04_event_request, tests/us13_event_status), tests/unit and tests/integration.
+      # tests/conftest.py points them at a throwaway SQLite database, never Supabase.
+      - name: Run all backend tests (pytest)
+        run: python -m pytest tests -v -p no:cacheprovider
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Vitest unit tests for every story (tests/**/*.unit.test.ts).
+      - name: Run frontend unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

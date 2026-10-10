@@ -1,12 +1,12 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
-import { apiFetch } from "@/lib/api";
-import { useApp } from "@/lib/app-context";
-import { LAYOUT_OPTIONS, VENUE_ACCESSIBILITY_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data";
+import { apiFetch } from "@/lib/api/client";
+import { useApp } from "@/lib/state/app-context";
+import { LAYOUT_OPTIONS, VENUE_ACCESSIBILITY_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data/options";
 import type { AppliedVenueFilter, Venue, VenueSearchFilters, VenueSearchResponse } from "@/lib/types";
-import { EMPTY_FILTERS, buildSearchRequest, clearFilter, filterProblem } from "@/lib/venue-search";
-import { venueFromApi } from "@/lib/venue-rules";
+import { EMPTY_FILTERS, buildSearchRequest, clearFilter, filterProblem } from "@/lib/venues/search";
+import { venueFromApi } from "@/lib/venues/rules";
 
 const eyebrow: CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)" };
 

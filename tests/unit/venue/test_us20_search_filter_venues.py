@@ -632,7 +632,7 @@ class TestPageMatchesBackend(unittest.TestCase):
 
     def test_the_page_can_clear_every_filter_the_backend_reports(self):
         keys = typing.get_args(schemas.AppliedFilter.model_fields["key"].annotation)
-        clearing = self.source("lib/venue-search.ts")
+        clearing = self.source("lib/venues/search.ts")
 
         self.assertEqual(set(keys), set(FILTER_FIELDS))
         for key in keys:
@@ -641,7 +641,7 @@ class TestPageMatchesBackend(unittest.TestCase):
 
     def test_the_page_sends_the_field_names_the_backend_expects(self):
         # Only the code that builds the request counts, not the form's own state, which uses the same words.
-        source = self.source("lib/venue-search.ts")
+        source = self.source("lib/venues/search.ts")
         building = source[source.index("export function heldBookings"):]
 
         for model in (schemas.VenueSearchRequest, schemas.BookedPeriod):

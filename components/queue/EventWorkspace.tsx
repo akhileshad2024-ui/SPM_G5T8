@@ -1,6 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel, lastUpdatedLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord, EventTab } from "@/lib/types";
 import { RequestTab } from "./tabs/RequestTab";
@@ -23,18 +24,31 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
   const tab = app.state.tab;
 
   const actions: Array<{ label: string; onClick: () => void; variant: "primary" | "ghost" | "danger" | "muted" }> = [];
-  if (event.status === "submitted" || event.status === "under_review") {
+  if (event.status === "submitted") {
+    actions.push({ label: "Start review", onClick: () => app.startReview(event.id), variant: "primary" });
+  } else if (event.status === "under_review") {
     actions.push({ label: "Request clarification", onClick: () => app.openModal("clarify", event.id), variant: "ghost" });
+    actions.push({ label: "Request amendment", onClick: () => app.openModal("amend", event.id), variant: "ghost" });
     actions.push({ label: "Reject", onClick: () => app.openModal("reject", event.id), variant: "danger" });
-    actions.push({ label: "Approve", onClick: () => app.approve(event.id), variant: "primary" });
+    actions.push({ label: "Approve", onClick: () => app.openModal("approve", event.id), variant: "primary" });
+  } else if (event.status === "pending_clarification") {
+    actions.push({ label: "Awaiting organiser reply", onClick: () => app.flash(`Waiting for ${event.organiser} to respond.`, "warn"), variant: "muted" });
+  } else if (event.status === "rejected" || event.status === "cancelled") {
+    // Closed: nothing left for the coordinator to do.
   } else if (event.bookingState === "pending") {
     actions.push({ label: "Awaiting venue decision", onClick: () => app.flash("Venue Staff have this booking request.", "warn"), variant: "muted" });
   } else if (!event.venue) {
     actions.push({ label: "Find a venue", onClick: () => app.setTab("venue"), variant: "primary" });
   } else if (event.equipState === "requested") {
     actions.push({ label: "Equipment pending with Technical Support", onClick: () => app.setTab("equipment"), variant: "muted" });
-  } else if (event.status === "planning") {
-    actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
+  } else if (event.status === "approved" && event.bookingState === "approved") {
+    // Approved with the venue booked and equipment settled: ready to confirm (US14).
+    // Confirming isn't saved yet (US14 is still to be built), so it isn't offered on stored events.
+    if (event.backendId === undefined) {
+      actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
+    } else {
+      actions.push({ label: "Ready to confirm (not available yet)", onClick: () => app.flash("Confirming events isn't available yet.", "warn"), variant: "muted" });
+    }
   }
 
   const variantClass = { primary: "btn-primary", ghost: "btn-ghost", danger: "btn-danger", muted: "btn-muted" } as const;
@@ -48,8 +62,13 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
             <StatusPill status={event.status} />
           </div>
           <div className={styles.line}>
-            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {event.pax} expected
+            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {attendanceLabel(event.pax, "expected")}
           </div>
+          {event.updatedAt && (
+            <div className={`${styles.line} tabular`}>
+              <time dateTime={event.updatedAt}>{lastUpdatedLabel({ updatedAt: event.updatedAt })}</time>
+            </div>
+          )}
         </div>
         <div className={styles.actions}>
           {actions.map((a) => (

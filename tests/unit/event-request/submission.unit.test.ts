@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canDirectlyEditEventRequest,
   submitEventRequest,
-} from "../../../lib/event-request/submission";
+} from "../../../lib/events/request/submission";
 import type { EventRequestDraft } from "../../../lib/types";
 
 const NOW = new Date("2030-05-10T08:30:00.000Z");

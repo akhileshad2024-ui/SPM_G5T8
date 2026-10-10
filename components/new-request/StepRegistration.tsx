@@ -1,6 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { localDateISO } from "@/lib/events/request/validation";
 
 export function StepRegistration() {
   const app = useApp();
@@ -60,6 +61,9 @@ export function StepRegistration() {
             <label className="eyebrow">Registration cap</label>
             <input
               className="text-input tabular"
+              type="number"
+              min="1"
+              step="1"
               value={form.regCap}
               onChange={(e) => app.setFormField("regCap", e.target.value)}
             />
@@ -72,6 +76,8 @@ export function StepRegistration() {
             <input
               className="text-input"
               type="date"
+              min={localDateISO(new Date())}
+              max={form.date || undefined}
               value={form.regClose}
               onChange={(e) => app.setFormField("regClose", e.target.value)}
             />

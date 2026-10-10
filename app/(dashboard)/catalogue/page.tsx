@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { VenueCard } from "@/components/catalogue/VenueCard";
 import { VenueForm } from "@/components/catalogue/VenueForm";
 

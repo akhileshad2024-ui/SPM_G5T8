@@ -1,16 +1,17 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { organiserEvents } from "@/lib/events/visibility";
 import { MyEventsTable } from "@/components/my-events/MyEventsTable";
 
 export default function MyEventsPage() {
   const app = useApp();
-  const mine = app.state.events.filter((e) => e.organiser === app.me.person);
+  const mine = organiserEvents(app.state.events, app.me.person);
 
   const stats: Array<[string, string]> = [
     [String(mine.filter((x) => x.status === "draft").length), "Drafts"],
-    [String(mine.filter((x) => x.status === "submitted" || x.status === "under_review").length), "Awaiting decision"],
-    [String(mine.filter((x) => x.status === "planning" || x.status === "approved").length), "In planning"],
+    [String(mine.filter((x) => x.status === "submitted" || x.status === "under_review" || x.status === "pending_clarification").length), "Awaiting decision"],
+    [String(mine.filter((x) => x.status === "approved").length), "Approved"],
     [String(mine.filter((x) => x.status === "confirmed").length), "Confirmed"],
   ];
 

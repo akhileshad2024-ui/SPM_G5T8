@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateEventRequest } from "../../../lib/event-request/validation";
+import { localDateISO, validateEventRequest } from "../../../lib/events/request/validation";
 import type { EventRequestDraft } from "../../../lib/types";
 
 const TODAY = "2030-05-10";
@@ -241,5 +241,59 @@ describe("US03 - Create Event Request - validation unit tests", () => {
     // Then: an empty equipment list does not make the request invalid.
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual({});
+  });
+});
+
+describe("localDateISO (today in the organiser's own time zone)", () => {
+  it("formats a local date as YYYY-MM-DD", () => {
+    expect(localDateISO(new Date(2026, 9, 8, 14, 0))).toBe("2026-10-08");
+  });
+
+  it("pads single-digit months and days", () => {
+    expect(localDateISO(new Date(2026, 0, 5, 9, 0))).toBe("2026-01-05");
+  });
+
+  it("uses the local calendar date just after midnight, not the UTC date", () => {
+    // 01:30 local time is still the previous day in UTC east of Greenwich (e.g. Singapore).
+    expect(localDateISO(new Date(2026, 9, 8, 1, 30))).toBe("2026-10-08");
+  });
+
+  it("makes yesterday count as past just after midnight", () => {
+    const justAfterMidnight = new Date(2026, 9, 8, 0, 30);
+    const result = validateEventRequest(
+      { ...createValidRequest(), preferredDate: "2026-10-07" },
+      localDateISO(justAfterMidnight),
+    );
+    expect(result.errors.preferredDate).toBe("Preferred date cannot be in the past.");
+  });
+});
+
+describe("registration closing date", () => {
+  const withClosing = (closingDate: string) => ({
+    ...createValidRequest(),
+    registration: { required: true, capacityLimit: 120, closingDate },
+  });
+
+  it("cannot be in the past", () => {
+    const result = validateEventRequest(withClosing("2030-05-09"), TODAY);
+    expect(result.errors["registration.closingDate"]).toBe("Registration closing date cannot be in the past.");
+  });
+
+  it("can be today", () => {
+    expect(validateEventRequest(withClosing(TODAY), TODAY).errors["registration.closingDate"]).toBeUndefined();
+  });
+
+  it("can be the event date itself", () => {
+    expect(validateEventRequest(withClosing("2030-06-15"), TODAY).errors["registration.closingDate"]).toBeUndefined();
+  });
+
+  it("cannot be after the event", () => {
+    const result = validateEventRequest(withClosing("2030-06-16"), TODAY);
+    expect(result.errors["registration.closingDate"]).toBe("Registration must close on or before the event date.");
+  });
+
+  it("is not checked when registration is turned off", () => {
+    const request = { ...createValidRequest(), registration: { required: false, capacityLimit: null, closingDate: "2000-01-01" } };
+    expect(validateEventRequest(request, TODAY).valid).toBe(true);
   });
 });

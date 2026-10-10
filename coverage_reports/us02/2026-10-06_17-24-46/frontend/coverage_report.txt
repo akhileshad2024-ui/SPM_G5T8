@@ -1,0 +1,29 @@
+Frontend coverage for US02
+Measured files: lib/data.ts, lib/event-visibility.ts
+Tests  67 passed (67)
+Line coverage: 95%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  2 passed (2)
+      Tests  67 passed (67)
+   Start at  17:25:11
+   Duration  1.00s (transform 67%, import 19%, tests 8%, worker 5%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   95.83 |      100 |      90 |      95 |                   
+ data.ts           |   94.73 |      100 |      80 |   94.11 | 136               
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 95.83% ( 23/24 )
+Branches     : 100% ( 8/8 )
+Functions    : 90% ( 9/10 )
+Lines        : 95% ( 19/20 )
+================================================================================

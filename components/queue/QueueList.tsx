@@ -1,12 +1,14 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord } from "@/lib/types";
 import styles from "./QueueList.module.css";
 
 const FILTERS: Array<[string, string]> = [
   ["action", "Needs action"],
+  ["unassigned", "Unassigned"],
   ["mine", "Mine"],
   ["all", "All"],
 ];
@@ -22,7 +24,7 @@ export function QueueList({ events, selectedId }: { events: EventRecord[]; selec
           className={styles.search}
           value={search}
           onChange={(e) => app.setSearch(e.target.value)}
-          placeholder="Search events or organisers"
+          placeholder="Search events, organisers or IDs"
         />
         <div className={styles.filters}>
           {FILTERS.map(([id, label]) => (
@@ -48,8 +50,9 @@ export function QueueList({ events, selectedId }: { events: EventRecord[]; selec
               <StatusPill status={e.status} />
             </div>
             <div className={styles.rowMeta}>
-              {e.organiser} · {e.pax} pax · {e.date}
+              {e.organiser} · {attendanceLabel(e.pax, "pax")} · {e.date}
             </div>
+            <div className={styles.rowMeta}>{e.coordinator ? `Coordinator: ${e.coordinator}` : "Unassigned"}</div>
             <div className={styles.rowAge}>{e.submittedAgo}</div>
           </button>
         ))}
