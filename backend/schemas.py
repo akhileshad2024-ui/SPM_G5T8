@@ -490,3 +490,25 @@ class RegistrationResponse(BaseModel):
     status: str
     registeredAt: datetime
     updatedAt: datetime
+# ---------------------------------------------------------------- event review (US07/US08/US10/US11)
+# Texts are checked in event_review.py (with the same messages as lib/events/review/), not here,
+# so a too-short reason gets a sentence the page can show instead of a pydantic error list.
+
+class CoordinatorResponse(BaseModel):
+    """An Event Coordinator account that an event can be assigned to (US11)."""
+    id: int
+    name: str
+
+
+class AssignCoordinatorIn(BaseModel):
+    coordinatorId: int
+
+
+class ClarificationIn(BaseModel):
+    kind: Literal["clarification", "amendment"]
+    message: str = ""
+
+
+class DecisionIn(BaseModel):
+    outcome: Literal["approved", "rejected"]
+    reason: str = ""  # required (10-1000 characters) to reject; an optional note to approve

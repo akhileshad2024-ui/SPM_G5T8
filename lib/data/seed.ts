@@ -13,9 +13,3 @@ export const PEOPLE: Record<Role, Person> = {
   attendee: { person: "Sam Adeyemi", label: "Attendee", email: "sam.adeyemi@student.connectsphere.edu" },
 };
 
-/**
- * Staff holding the Event Coordinator role, who can be assigned to events
- * (US11). Only Priya Tan has a login in the demo; the others show that a
- * request can be given to a coordinator other than the person assigning it.
- */
-export const COORDINATORS: readonly string[] = [PEOPLE.coordinator.person, "Marcus Lee", "Aisha Noor"];

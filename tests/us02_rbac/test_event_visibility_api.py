@@ -40,7 +40,8 @@ EVENTS = {
 
 VISIBLE_TO = {
     Role.organiser:   {"draft_mine", "submitted_mine", "review_other_coord", "approved_booked"},
-    Role.coordinator: {"submitted_mine", "submitted_other", "review_priya", "approved_booked", "confirmed_open"},
+    Role.coordinator: {"submitted_mine", "submitted_other", "review_priya", "review_unassigned", "approved_booked",
+                       "confirmed_open"},
     Role.venue:       {"approved_booked", "confirmed_open", "confirmed_closed", "cancelled_booked"},
     Role.tech:        {"submitted_mine", "review_unassigned", "approved_booked", "cancelled_booked"},
     Role.attendee:    {"confirmed_open"},
@@ -119,12 +120,12 @@ def test_a_coordinator_does_not_see_events_assigned_to_another_coordinator(signe
     assert "confirmed_closed" not in visible
 
 
-def test_a_coordinator_only_sees_unassigned_events_while_they_await_pickup(signed_in, seeded):
+def test_a_coordinator_sees_unassigned_events_while_they_are_live(signed_in, seeded):
     visible = visible_names(signed_in(Role.coordinator), seeded)
 
-    assert {"submitted_mine", "submitted_other"} <= visible
-    assert "review_unassigned" not in visible   # already under review, but not assigned to them
-    assert "cancelled_booked" not in visible
+    # nobody is assigned yet, so any coordinator must be able to review it or assign one (US07/US11)
+    assert {"submitted_mine", "submitted_other", "review_unassigned"} <= visible
+    assert "cancelled_booked" not in visible    # closed: needs no coordinator
 
 
 def test_attendees_see_only_confirmed_events_with_registration_open(signed_in, seeded):

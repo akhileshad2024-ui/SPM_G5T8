@@ -28,8 +28,9 @@ def expected(event, user):
         return False  # drafts are only ever visible to their organiser
     if user.role == Role.coordinator:
         assigned_to_me = event.coordinator_id == user.id
-        awaiting_pickup = event.coordinator_id is None and event.status == S.submitted
-        return assigned_to_me or awaiting_pickup
+        # nobody assigned yet and still live (not rejected / cancelled): any coordinator may pick it up
+        needs_a_coordinator = event.coordinator_id is None and event.status not in (S.rejected, S.cancelled)
+        return assigned_to_me or needs_a_coordinator
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:

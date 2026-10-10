@@ -8,6 +8,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import models, registrations, schemas, venue_search
+import event_review, models, schemas, venue_search
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -41,6 +42,8 @@ VENUE_SEARCHERS = (Role.coordinator,)
 EVENT_REQUESTERS = (Role.organiser,)
 # Who may register for events (US29-US31).
 REGISTRANTS = (Role.attendee,)
+# Who may review event requests and assign coordinators (US07, US08, US10, US11).
+EVENT_REVIEWERS = (Role.coordinator,)
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 
@@ -252,6 +255,62 @@ def get_event_history(event_id: int, db: Session = Depends(get_db), user: User =
         )
         for c in changes
     ]
+
+
+# ---------------------------------------------------------------- event review (US07/US08/US10/US11)
+# The rules are in event_review.py (the same as lib/events/review/ on the page); each endpoint
+# returns the saved event as the coordinator sees it, so the page shows what was stored.
+
+# Fulfills US11: the Event Coordinator accounts an event can be assigned to.
+@app.get("/coordinators", response_model=List[schemas.CoordinatorResponse])
+def list_coordinators(db: Session = Depends(get_db), _user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return [schemas.CoordinatorResponse(id=u.id, name=u.name) for u in event_review.active_coordinators(db)]
+
+
+def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventView:
+    """Run one review step on an event the coordinator can see, and save it (404 / 403 / 409 / 422)."""
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    try:
+        step(event, datetime.now(timezone.utc))
+    except event_review.ReviewError as err:
+        db.rollback()
+        raise HTTPException(status_code=err.status_code, detail=err.message)
+    db.commit()
+    db.refresh(event)
+    return event_view(db, event, user)
+
+
+# Fulfills US11: assign an Event Coordinator to an unassigned event.
+@app.post("/events/{event_id}/assign", response_model=schemas.EventView, response_model_exclude_unset=True)
+def assign_coordinator(event_id: int, body: schemas.AssignCoordinatorIn, db: Session = Depends(get_db),
+                       user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId))
+
+
+# Fulfills US07: start reviewing a submitted request.
+@app.post("/events/{event_id}/review", response_model=schemas.EventView, response_model_exclude_unset=True)
+def start_review(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return review_step(event_id, db, user, lambda event, now: event_review.start_review(db, event, user, now))
+
+
+# Fulfills US08: ask the organiser for a clarification or an amendment.
+@app.post("/events/{event_id}/clarification", response_model=schemas.EventView, response_model_exclude_unset=True)
+def request_clarification(event_id: int, body: schemas.ClarificationIn, db: Session = Depends(get_db),
+                          user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return review_step(event_id, db, user,
+                       lambda event, now: event_review.request_clarification(db, event, user, body.kind, body.message, now))
+
+
+# Fulfills US10: approve or reject a request under review.
+@app.post("/events/{event_id}/decision", response_model=schemas.EventView, response_model_exclude_unset=True)
+def decide_request(event_id: int, body: schemas.DecisionIn, db: Session = Depends(get_db),
+                   user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return review_step(event_id, db, user,
+                       lambda event, now: event_review.decide(db, event, user, body.outcome, body.reason, now))
 
 
 # Fulfills US03: keep editing a saved draft (and US04: submit it) without creating a new request.

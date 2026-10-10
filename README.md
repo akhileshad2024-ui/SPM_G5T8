@@ -84,6 +84,8 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `POST /events`, `PUT /events/{id}` | Event Organiser — `PUT` only on their own drafts |
 | `GET /events` | any signed-in user — only events they are involved in (below) |
 | `GET /events/{id}/history` | users involved in that event |
+| `GET /coordinators` | Event Coordinator — the coordinator accounts an event can be assigned to (US11) |
+| `POST /events/{id}/assign`, `/review`, `/clarification`, `/decision` | Event Coordinator — the review steps below |
 
 ## Event status (US13)
 
@@ -109,9 +111,26 @@ is what `GET /events/{id}/history` and the "Status history" timeline show.
 
 **Who is involved in an event** (`backend/event_access.py`) — and so may see it,
 its status and its history: the organiser who created it (drafts are visible only
-to them); a coordinator assigned to it, or any coordinator while it is submitted
-and unassigned; Venue Staff once it has a venue booking; Technical Support once it
-requests equipment; attendees once it is Confirmed with registration open.
+to them); a coordinator assigned to it, or any coordinator while it is live
+(submitted, not rejected or cancelled) and unassigned; Venue Staff once it has a
+venue booking; Technical Support once it requests equipment; attendees once it is
+Confirmed with registration open.
+
+## Event review (US07, US08, US10, US11)
+
+The coordinator's review steps are checked on the page (`lib/events/review/`, instant
+messages) and saved by the backend, which checks them again with the same rules
+(`backend/event_review.py`) and records each status change in the history.
+
+| Step | Endpoint | Status change | Rules |
+|---|---|---|---|
+| Assign a coordinator (US11) | `POST /events/{id}/assign` `{coordinatorId}` | — | event unassigned and live; the account must be an active Event Coordinator |
+| Start review (US07) | `POST /events/{id}/review` | Submitted → Under Review | only Submitted requests |
+| Clarification / amendment (US08) | `POST /events/{id}/clarification` `{kind, message}` | Under Review → Pending Clarification | assigned coordinator only; message 1–1000 characters |
+| Approve / reject (US10) | `POST /events/{id}/decision` `{outcome, reason}` | Under Review → Approved / Rejected | assigned coordinator only; reject needs a 10–1000 character reason, approve takes an optional note |
+
+Not built yet: the organiser's reply to a clarification (US09, Pending Clarification →
+Under Review) and confirming an event (US14, Approved → Confirmed).
 
 ## Venue catalogue (US17 + Week 7 changes)
 

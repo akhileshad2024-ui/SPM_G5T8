@@ -43,7 +43,12 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
     actions.push({ label: "Equipment pending with Technical Support", onClick: () => app.setTab("equipment"), variant: "muted" });
   } else if (event.status === "approved" && event.bookingState === "approved") {
     // Approved with the venue booked and equipment settled: ready to confirm (US14).
-    actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
+    // Confirming isn't saved yet (US14 is still to be built), so it isn't offered on stored events.
+    if (event.backendId === undefined) {
+      actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
+    } else {
+      actions.push({ label: "Ready to confirm (not available yet)", onClick: () => app.flash("Confirming events isn't available yet.", "warn"), variant: "muted" });
+    }
   }
 
   const variantClass = { primary: "btn-primary", ghost: "btn-ghost", danger: "btn-danger", muted: "btn-muted" } as const;
