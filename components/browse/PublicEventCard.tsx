@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tag } from "@/components/ui/Pill";
@@ -7,19 +8,18 @@ import type { EventRecord } from "@/lib/types";
 
 export function PublicEventCard({ event }: { event: EventRecord }) {
   const app = useApp();
+  const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
   const venue = event.venue ? app.venue(event.venue) : undefined;
   const full = event.registered >= event.regCap;
-  const mine = !!event.myReg;
+  const registration = app.state.registrations.find((r) => r.eventId === event.id && r.attendeeEmail === app.me.email && r.status !== "withdrawn");
+  const mine = !!registration;
 
-  const btnLabel = mine ? "Withdraw" : full ? "Full" : "Register";
-  const btnVariant = mine ? "btn-danger" : full ? "btn-muted" : "btn-primary";
+  const btnLabel = mine ? "Withdraw" : full ? "Join waitlist" : "Register";
+  const btnVariant = mine ? "btn-danger" : "btn-primary";
 
   const onClick = () => {
-    if (full && !mine) {
-      app.flash(`${event.name} is full.`, "warn");
-      return;
-    }
-    app.toggleRegistration(event.id);
+    if (mine) setConfirmWithdrawal(true);
+    else app.registerForEvent(event.id);
   };
 
   return (
@@ -43,7 +43,7 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
             {venue ? `${venue.name} · ${venue.location}` : "Venue to be confirmed"}
           </div>
         </div>
-        {mine && <Tag label="Registered" bg="var(--ok-bg)" fg="var(--ok-fg)" />}
+        {registration && <Tag label={registration.status} bg={registration.status === "waitlisted" ? "var(--warn-bg)" : "var(--ok-bg)"} fg={registration.status === "waitlisted" ? "var(--warn-fg)" : "var(--ok-fg)"} />}
       </div>
 
       <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 12 }}>{event.purpose}</div>
@@ -59,6 +59,13 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
           {btnLabel}
         </button>
       </div>
+      {confirmWithdrawal && <div className="callout callout-warn" style={{ marginTop: 12 }}>
+        <div>Withdraw your registration for {event.name}?</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button className="btn btn-sm btn-danger" onClick={() => { app.withdrawRegistration(event.id); setConfirmWithdrawal(false); }}>Confirm withdrawal</button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setConfirmWithdrawal(false)}>Keep registration</button>
+        </div>
+      </div>}
     </div>
   );
 }

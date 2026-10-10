@@ -22,6 +22,18 @@ export type EventStatus =
 export type BookingState = "pending" | "approved" | "rejected" | null;
 export type EquipmentState = "requested" | "reserved" | null;
 
+export type RegistrationStatus = "registered" | "waitlisted" | "withdrawn" | "cancelled";
+
+export interface RegistrationRecord {
+  id: string;
+  eventId: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  status: RegistrationStatus;
+  registeredAt: string;
+  updatedAt: string;
+}
+
 export type Layout = "banquet" | "theatre" | "standing" | "boardroom" | "classroom";
 
 /** The signed-in account, as returned by the backend's /auth/me. */
@@ -139,6 +151,7 @@ export interface EventRecord {
   venueLocation?: string;
   venueCapacity?: number;
   regClose?: string | null;
+  withdrawalClose?: string;
   submittedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
