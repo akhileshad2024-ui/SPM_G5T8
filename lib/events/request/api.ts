@@ -128,6 +128,9 @@ export function eventFromApi(e: StoredEvent): EventRecord {
     submittedAt: e.submittedAt ?? undefined,
     updatedAt: e.updatedAt,
     draftForm: e.draftForm ?? undefined,
+    // US08 / US10: saved by the coordinator's review steps (backend/event_review.py).
+    clarification: (e.clarification ?? undefined) as EventRecord["clarification"],
+    decision: (e.decision ?? undefined) as EventRecord["decision"],
   };
 }
 

@@ -22,7 +22,7 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError, apiFetch } from "../api/client";
-import { COORDINATORS, PEOPLE } from "../data/seed";
+import { PEOPLE } from "../data/seed";
 import { DEFAULT_ROUTE } from "../auth/route-access";
 import { EQUIP } from "../data/options";
 import { eventRequestFromForm } from "../events/request/form-adapter";
@@ -30,6 +30,7 @@ import { eventFromApi, eventKey, eventRequestBody, type SavedEvent, type StoredE
 import { submitEventRequest } from "../events/request/submission";
 import { localDateISO, validateEventRequest } from "../events/request/validation";
 import { assignCoordinator } from "../events/review/assignment";
+import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
 import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
@@ -130,6 +131,8 @@ interface AppState {
   role: Role;
   events: EventRecord[];
   registrations: RegistrationRecord[];
+  /** US11: the Event Coordinator accounts an event can be assigned to (loaded for coordinators). */
+  coordinators: Coordinator[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
   notifs: NotificationRecord[];
@@ -204,6 +207,7 @@ function initialState(): AppState {
     role: "coordinator",
     events: [],
     registrations: [],
+    coordinators: [],
     venues: [],
     notifs: [],
     ...sessionUiState(),
@@ -393,12 +397,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  /**
+   * US07/US08/US10/US11: a review step is checked on the page first (`result`, instant message),
+   * then saved through the backend, which checks it again. Only a saved step changes the event;
+   * the stored values replace the page's, and the step's activity entry and notifications are kept.
+   */
+  const saveReviewStep = async (
+    result: WorkflowResult,
+    step: ReviewStep,
+    success: string,
+    kind: ToastKind = "ok",
+  ): Promise<boolean> => {
+    if (!result.ok) {
+      flash(result.error, "warn");
+      return false;
+    }
+    const backendId = result.event.backendId;
+    if (backendId === undefined) return applyResult(result, success, kind); // not stored (yet): page only
+    const { path, body } = reviewRequest(backendId, step);
+    try {
+      const saved = await apiFetch<StoredEvent>(path, { method: "POST", body: JSON.stringify(body) });
+      return applyResult({ ...result, event: withSavedReview(result.event, saved) }, success, kind);
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 409 || err.status === 422)) {
+        flash(err.message, "warn"); // e.g. someone else got there first
+      } else {
+        handleApiError(err);
+      }
+      return false;
+    }
+  };
+
   const startSession = (user: AuthUser) =>
     patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role, signInNotice: null });
 
   const endSession = (signInNotice: string | null = null) =>
     // Events and notifications belong to the user who was signed in, so they go too.
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], notifs: [], signInNotice });
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], coordinators: [], notifs: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
@@ -463,6 +498,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (err instanceof ApiError && err.status === 401) expireSession();
     },
   );
+
+  // US11: coordinators assign events to coordinator accounts, so load them.
+  useEffect(() => {
+    if (!state.authed || state.role !== "coordinator") return;
+    apiFetch<Coordinator[]>("/coordinators").then((coordinators) => patch({ coordinators }), () => patch({ coordinators: [] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
 
   // Load the venue catalogue whenever someone signs in.
   useEffect(() => {
@@ -633,8 +675,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       assignCoordinator: (id, coordinator) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        applyResult(
-          assignCoordinator(e, actor, { coordinator, coordinators: COORDINATORS }),
+        const coordinators = state.coordinators.map((c) => c.name);
+        void saveReviewStep(
+          assignCoordinator(e, actor, { coordinator, coordinators }),
+          { step: "assign", coordinatorId: coordinatorId(state.coordinators, coordinator) ?? 0 },
           `${coordinator} is now coordinating ${e.name}.`,
         );
       },
@@ -642,7 +686,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       startReview: (id) => {
         const e = getEvent(state.events, id);
         if (!e) return;
-        applyResult(startReview(e, actor), `Reviewing ${e.name}.`);
+        void saveReviewStep(startReview(e, actor), { step: "review" }, `Reviewing ${e.name}.`);
       },
       confirmEvent: (id) => {
         const e = getEvent(state.events, id);
@@ -663,23 +707,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const e = getEvent(state.events, m.id);
         if (!e) return;
 
-        // Review-workflow modals: the domain functions validate the text.
+        // Review-workflow modals: the domain functions check the text, then the step is saved.
         const now = new Date();
-        let done: boolean | null = null;
+        let saving: Promise<boolean> | null = null;
         if (m.kind === "clarify" || m.kind === "amend") {
           const kind = m.kind === "clarify" ? "clarification" : "amendment";
-          done = applyResult(
+          saving = saveReviewStep(
             requestClarification(e, actor, { kind, message: text }, now),
+            { step: "clarification", kind, message: text },
             `${kind === "clarification" ? "Clarification" : "Amendment"} request sent to ${e.organiser}.`,
           );
         } else if (m.kind === "approve") {
-          done = applyResult(approveRequest(e, actor, text, now), `${e.name} approved.`);
-          if (done) patch({ tab: "venue" });
+          saving = saveReviewStep(
+            approveRequest(e, actor, text, now),
+            { step: "decision", outcome: "approved", reason: text },
+            `${e.name} approved.`,
+          ).then((done) => {
+            if (done) patch({ tab: "venue" });
+            return done;
+          });
         } else if (m.kind === "reject") {
-          done = applyResult(rejectRequest(e, actor, text, now), `${e.name} rejected.`, "bad");
+          saving = saveReviewStep(
+            rejectRequest(e, actor, text, now),
+            { step: "decision", outcome: "rejected", reason: text },
+            `${e.name} rejected.`,
+            "bad",
+          );
         }
-        if (done !== null) {
-          if (done) patch({ modal: null, modalText: "" });
+        if (saving) {
+          // The modal stays open (with the text) until the step is saved.
+          void saving.then((done) => done && patch({ modal: null, modalText: "" }));
           return;
         }
 
