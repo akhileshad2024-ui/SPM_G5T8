@@ -69,7 +69,7 @@ def test_expired_session_cannot_reach_protected_endpoints(db, clock):
     session = client_with_token(token)
 
     assert session.get("/venues").status_code == 401
-    assert session.post("/venues", json={"name": "x", "building": "y", "cap": 1}).status_code == 401
+    assert session.post("/venues", json={"name": "x", "location": "y", "cap": 1}).status_code == 401
 
 
 def test_activity_renews_the_session_for_another_30_minutes(db, clock):

@@ -1,5 +1,5 @@
 import re
-from datetime import date as Date, datetime, time as Time, timedelta, timezone
+from datetime import date as Date, date as DateOnly, datetime, time as Time, timedelta, timezone
 from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from pydantic import (
@@ -64,7 +64,7 @@ def _check_operating_days(days: List[str]) -> List[str]:
 
 
 # The accessibility features Venue Staff can record. Kept the same as VENUE_ACCESSIBILITY_OPTIONS in
-# lib/data.ts (a unit test fails if the two lists differ).
+# lib/data/options.ts (a unit test fails if the two lists differ).
 ACCESSIBILITY_FEATURES = ("Wheelchair Access", "Special Physical Seating", "Mobility/Facility Arrangements")
 
 
@@ -105,7 +105,7 @@ class UnavailabilityPeriod(BaseModel):
 # The editor is taken from the login session, never from the request body.
 class VenueCreate(BaseModel):
     name: RequiredText
-    building: RequiredText
+    location: RequiredText
     # Validates US17 requirement for non-positive capacity
     cap: int = Field(..., gt=0, description="Capacity must be > 0")
     layouts: LayoutList = []
@@ -121,7 +121,7 @@ class VenueCreate(BaseModel):
 class VenueUpdate(BaseModel):
     """Partial update: only the fields sent are changed."""
     name: Optional[RequiredText] = None
-    building: Optional[RequiredText] = None
+    location: Optional[RequiredText] = None
     cap: Optional[int] = Field(None, gt=0)
     layouts: Optional[LayoutList] = None
     facilities: Optional[TextList] = None
@@ -156,7 +156,7 @@ class UnavailabilityPeriodResponse(BaseModel):
 class VenueResponse(BaseModel):
     id: int
     name: str
-    building: str
+    location: str
     cap: int
     layouts: List[str] = []
     facilities: List[str] = []
@@ -181,6 +181,67 @@ class VenueResponse(BaseModel):
     @classmethod
     def _none_as_zero(cls, v):
         return v or 0
+
+
+# ---------------------------------------------------------------- venue search (US20)
+
+# "09:30", 24-hour. Compared as text, "09:30" < "10:00" is also true as times.
+ClockTime = Annotated[str, StringConstraints(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
+
+
+class BookedPeriod(BaseModel):
+    """A booking that currently holds a venue, so a search can leave that venue out.
+
+    Event bookings are not stored in the backend yet (the frontend keeps them in memory),
+    so the page sends the ones that hold a venue along with the search.
+    """
+    venue_id: int
+    date: DateOnly
+    start: ClockTime
+    end: ClockTime
+
+
+class VenueSearchRequest(BaseModel):
+    """What the Event Coordinator is looking for. Every field is optional; those given must all match."""
+    date: Optional[DateOnly] = None
+    start: Optional[ClockTime] = None
+    end: Optional[ClockTime] = None
+    attendance: Optional[int] = Field(None, gt=0)
+    location: Optional[str] = None
+    accessibility: AccessibilityList = []
+    layout: Optional[str] = None
+    facilities: TextList = []
+    bookings: List[BookedPeriod] = []
+
+    @field_validator("location", "layout", mode="after")
+    @classmethod
+    def _blank_is_no_filter(cls, value, info):
+        value = (value or "").strip() or None
+        # Layouts are stored lower case ("theatre", "classroom", ...).
+        return value.lower() if value and info.field_name == "layout" else value
+
+    @model_validator(mode="after")
+    def _timing(self):
+        given = [self.date is not None, self.start is not None, self.end is not None]
+        if any(given) and not all(given):
+            raise ValueError("date, start and end must be given together")
+        if self.start is not None and self.end <= self.start:
+            raise ValueError("end must be after start")
+        return self
+
+
+class AppliedFilter(BaseModel):
+    """One filter in use, for display ("Layout: Theatre"); `key` says which one a page should clear."""
+    key: Literal["timing", "attendance", "location", "accessibility", "layout", "facilities"]
+    label: str
+    value: str
+
+
+class VenueSearchResponse(BaseModel):
+    venues: List[VenueResponse]
+    total: int
+    applied_filters: List[AppliedFilter]
+    message: Optional[str] = None  # set when nothing matched
 
 
 class VenueChangeResponse(BaseModel):

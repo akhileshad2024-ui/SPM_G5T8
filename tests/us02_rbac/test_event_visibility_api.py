@@ -64,7 +64,7 @@ def seeded(db):
     }
     other_organiser = add_user(db, "lin.chen@connectsphere.edu", "Lin Chen", Role.organiser)
     other_coordinator = add_user(db, "marcus.lee@connectsphere.edu", "Marcus Lee", Role.coordinator)
-    venue = models.Venue(name="Grand Hall", building="Central", cap=300, last_updated_by="test")
+    venue = models.Venue(name="Grand Hall", location="Central", cap=300, last_updated_by="test")
     db.add(venue)
     db.flush()
 

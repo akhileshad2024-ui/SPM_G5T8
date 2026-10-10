@@ -51,6 +51,12 @@ export function parseEventDate(text: string): number | null {
   return iso ? dayNumber(+iso[1], +iso[2] - 1, +iso[3]) : null;
 }
 
+/** "14 Mar 2026" / "2026-03-14" -> "2026-03-14", or null if there's no real date yet. */
+export function toIsoDate(text: string): string | null {
+  const day = parseEventDate(text);
+  return day == null ? null : new Date(day * DAY_MINUTES * 60000).toISOString().slice(0, 10);
+}
+
 /** "09:30" -> 570, or null. */
 export function parseTime(text: string | null | undefined): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec((text ?? "").trim());
@@ -246,7 +252,7 @@ export function venueFromApi(v: ApiVenue): Venue {
   return {
     id: String(v.id),
     name: v.name,
-    building: v.building,
+    location: v.location,
     cap: v.cap,
     layouts: v.layouts ?? [],
     facilities: v.facilities ?? [],

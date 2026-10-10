@@ -61,6 +61,11 @@ TARGETS = {
     "test_us17_venue_audit": ["venue_audit.py"],
     "test_us17_venue_endpoints": ["main.py:create_venue,update_venue,delete_venue,get_venue_history"],
     "test_us18_view_venue_details": ["main.py:get_venues,get_venue", "schemas.py:VenueResponse"],
+    "test_us20_search_filter_venues": [
+        "venue_search.py",
+        "main.py:search_venues",
+        "schemas.py:BookedPeriod,VenueSearchRequest,AppliedFilter,VenueSearchResponse",
+    ],
 }
 
 # ---------------------------------------------------------------- mode 2: one report per story folder

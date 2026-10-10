@@ -47,7 +47,7 @@ def every_kind_of_event(db):
     other_organiser_id = get_user(db, Role.tech).id      # any other existing user id
     other_coordinator_id = get_user(db, Role.attendee).id
 
-    venue = models.Venue(name="Grand Hall", building="Central", cap=300, last_updated_by="test")
+    venue = models.Venue(name="Grand Hall", location="Central", cap=300, last_updated_by="test")
     db.add(venue)
     db.flush()
 

@@ -11,7 +11,7 @@ import pytest
 from auth_testkit import email_for, get_user
 from login.models import Role
 
-VENUE = {"name": "Test Hall", "building": "Level 1", "cap": 100}
+VENUE = {"name": "Test Hall", "location": "Level 1", "cap": 100}
 NOT_VENUE_STAFF = [r for r in Role if r is not Role.venue]
 
 

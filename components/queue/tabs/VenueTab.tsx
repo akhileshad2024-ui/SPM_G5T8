@@ -112,7 +112,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
                     </span>
                   </div>
                   <div className={styles.resultMeta}>
-                    {v.building} · capacity {v.cap} · {v.setupMinutes} min setup · {v.turnaroundMinutes} min turnaround
+                    {v.location} · capacity {v.cap} · {v.setupMinutes} min setup · {v.turnaroundMinutes} min turnaround
                   </div>
                   <div className={styles.tags}>
                     {v.layouts.map((l) => (

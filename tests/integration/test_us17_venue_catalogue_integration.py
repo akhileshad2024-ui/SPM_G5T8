@@ -47,7 +47,7 @@ OTHER_ROLES = (Role.organiser, Role.coordinator, Role.tech, Role.attendee)
 
 VALID_VENUE = {
     "name": "Lecture Theatre 1",
-    "building": "School of Computing, Level 1",
+    "location": "School of Computing",
     "cap": 250,
     "layouts": ["theatre", "classroom"],
     "facilities": ["Projector", "PA System", "Wi-Fi"],
@@ -159,7 +159,7 @@ class TestCreateEditDeactivate(VenueApiTestCase):
         body = self.staff.put(f"/venues/{venue['id']}", json={"cap": 120}).json()
 
         self.assertEqual(body["cap"], 120)
-        for field in ("name", "building", "layouts", "facilities", "accessibility"):
+        for field in ("name", "location", "layouts", "facilities", "accessibility"):
             self.assertEqual(body[field], venue[field], field)
 
     def test_venue_staff_can_deactivate_venue(self):
@@ -227,7 +227,7 @@ class TestRecordVenueDetails(VenueApiTestCase):
         stored = self.db.get(models.Venue, self.create_venue()["id"])
 
         self.assertEqual(stored.cap, VALID_VENUE["cap"])
-        self.assertEqual(stored.building, VALID_VENUE["building"])
+        self.assertEqual(stored.location, VALID_VENUE["location"])
         self.assertEqual(stored.facilities, VALID_VENUE["facilities"])
         self.assertEqual(stored.accessibility, VALID_VENUE["accessibility"])
         self.assertEqual(stored.layouts, VALID_VENUE["layouts"])
@@ -236,7 +236,7 @@ class TestRecordVenueDetails(VenueApiTestCase):
         venue = self.create_venue()
         changes = {
             "cap": 80,
-            "building": "Engineering Block E2",
+            "location": "Engineering Block E2",
             "facilities": ["Whiteboard"],
             "accessibility": ["Mobility/Facility Arrangements"],
             "layouts": ["banquet", "u-shape", "cocktail"],
@@ -255,7 +255,7 @@ class TestRecordVenueDetails(VenueApiTestCase):
         self.assertEqual(body["accessibility"], [])
 
     def test_optional_lists_default_to_empty(self):
-        res = self.staff.post("/venues", json={"name": "Seminar Room 3", "building": "COM2", "cap": 30})
+        res = self.staff.post("/venues", json={"name": "Seminar Room 3", "location": "COM2", "cap": 30})
 
         self.assertEqual(res.status_code, 200)
         for field in ("layouts", "facilities", "accessibility"):
@@ -286,13 +286,13 @@ class TestValidation(VenueApiTestCase):
                 self.assertRejected(self.staff.post("/venues", json={**VALID_VENUE, "cap": cap}))
 
     def test_missing_required_field_rejected(self):
-        for field in ("name", "building", "cap"):
+        for field in ("name", "location", "cap"):
             with self.subTest(field=field):
                 payload = {k: v for k, v in VALID_VENUE.items() if k != field}
                 self.assertRejected(self.staff.post("/venues", json=payload), field)
 
     def test_blank_text_field_rejected(self):
-        for field in ("name", "building"):
+        for field in ("name", "location"):
             with self.subTest(field=field):
                 self.assertRejected(self.staff.post("/venues", json={**VALID_VENUE, field: "   "}))
 
@@ -484,7 +484,7 @@ class TestSetupAndTurnaround(VenueApiTestCase):
         self.assertEqual((stored.setupMinutes, stored.turnaroundMinutes), (30, 45))
 
     def test_default_to_zero_when_not_given(self):
-        body = self.staff.post("/venues", json={"name": "Room", "building": "COM1", "cap": 10}).json()
+        body = self.staff.post("/venues", json={"name": "Room", "location": "COM1", "cap": 10}).json()
 
         self.assertEqual((body["setupMinutes"], body["turnaroundMinutes"]), (0, 0))
 
@@ -543,7 +543,7 @@ class TestOperatingInformation(VenueApiTestCase):
                 self.assertRejected(self.staff.post("/venues", json={**VALID_VENUE, "operatingDays": days}))
 
     def test_days_default_to_weekdays(self):
-        body = self.staff.post("/venues", json={"name": "Room", "building": "COM1", "cap": 10}).json()
+        body = self.staff.post("/venues", json={"name": "Room", "location": "COM1", "cap": 10}).json()
 
         self.assertEqual(body["operatingDays"], ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
 

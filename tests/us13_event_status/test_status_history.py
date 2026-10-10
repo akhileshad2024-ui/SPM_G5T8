@@ -256,7 +256,7 @@ def test_venue_staff_see_events_with_a_venue_booking(signed_in, db):
     booked = create(signed_in(Role.organiser))
     not_booked = create(signed_in(Role.organiser))
     move(db, booked, S.under_review, S.approved)
-    db.add(models.Venue(name="Grand Hall", building="Level 1", cap=300, last_updated_by="seed"))
+    db.add(models.Venue(name="Grand Hall", location="Level 1", cap=300, last_updated_by="seed"))
     db.commit()
     seed(db, booked, venue_id=db.query(models.Venue).one().id, booking_state="pending")  # saved by US22 later
 
