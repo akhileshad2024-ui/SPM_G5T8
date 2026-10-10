@@ -392,7 +392,7 @@ class EventResponse(BaseModel):
     """One event, named like `EventRecord` in lib/types.ts.
 
     Values the frontend works out itself (day of week, "submitted 2 days ago",
-    registered count, activity log) are not included. Dates are ISO strings.
+    activity log) are not included. Dates are ISO strings.
     """
     id: int
     status: str
@@ -416,6 +416,9 @@ class EventResponse(BaseModel):
     reg: bool = False
     regCap: Optional[int] = None
     regClose: Optional[Date] = None
+    # US29-US31: places taken (registered, not waitlisted) and the last day to withdraw.
+    registered: int = 0
+    withdrawalClose: Optional[Date] = None
     venue: Optional[int] = None
     venueName: Optional[str] = None
     bookingState: Optional[str] = None
@@ -454,6 +457,8 @@ class EventView(BaseModel):
     reg: Optional[bool] = None
     regCap: Optional[int] = None
     regClose: Optional[Date] = None
+    registered: Optional[int] = None
+    withdrawalClose: Optional[Date] = None
     venue: Optional[int] = None
     venueName: Optional[str] = None
     bookingState: Optional[str] = None
@@ -464,3 +469,24 @@ class EventView(BaseModel):
     submittedAt: Optional[datetime] = None
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------- registrations (US29-US32)
+
+class RegistrationResponse(BaseModel):
+    """One attendee's registration for one event, named like `RegistrationRecord` in lib/types.ts.
+
+    The attendee's own list (US30) and the organiser's list (US32) use the same shape;
+    `status` is "cancelled" when the event itself was cancelled.
+    """
+    id: int
+    eventId: int
+    eventName: str
+    eventDate: Optional[Date] = None
+    eventStart: Optional[Time] = None
+    eventEnd: Optional[Time] = None
+    attendeeName: str
+    attendeeEmail: str
+    status: str
+    registeredAt: datetime
+    updatedAt: datetime

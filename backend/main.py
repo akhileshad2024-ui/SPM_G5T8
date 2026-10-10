@@ -7,7 +7,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
-import models, schemas, venue_search
+import models, registrations, schemas, venue_search
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -39,6 +39,8 @@ INACTIVE_VENUE_VIEWERS = (Role.venue, Role.coordinator)
 VENUE_SEARCHERS = (Role.coordinator,)
 # Who may create event requests (US03/US04).
 EVENT_REQUESTERS = (Role.organiser,)
+# Who may register for events (US29-US31).
+REGISTRANTS = (Role.attendee,)
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 
@@ -167,6 +169,8 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
         reg=event.registration_required,
         regCap=event.registration_cap,
         regClose=event.registration_close,
+        registered=registrations.registered_count(db, event.id),
+        withdrawalClose=registrations.withdrawal_close(event) if event.registration_required else None,
         venue=event.venue_id,
         venueName=venue.name if venue else None,
         bookingState=event.booking_state,
@@ -269,6 +273,61 @@ def update_event(event_id: int, request: schemas.EventRequestIn, db: Session = D
     db.commit()
     db.refresh(event)
     return event_response(db, event)
+
+
+# Fulfills US29: register for an event open to the attendee, or join its waitlist when full.
+# Rules, capacity and the waitlist: registrations.py.
+@app.post("/events/{event_id}/registrations", response_model=schemas.RegistrationResponse, status_code=201)
+def register_for_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*REGISTRANTS))):
+    event = registrations.locked_event(db, event_id)
+    if not is_involved(event, user):  # attendees only see confirmed events open for registration
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    registration = registrations.register(db, event, user, datetime.now(timezone.utc))
+    db.commit()
+    return registrations.response(registration, event, user)
+
+
+# Fulfills US31: withdraw the signed-in attendee's registration; a freed place goes to the waitlist.
+@app.delete("/events/{event_id}/registrations/me", response_model=schemas.RegistrationResponse)
+def withdraw_from_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*REGISTRANTS))):
+    event = registrations.locked_event(db, event_id)
+    registration = registrations.withdraw(db, event, user, datetime.now(timezone.utc))
+    db.commit()
+    return registrations.response(registration, event, user)
+
+
+# Fulfills US30: the signed-in attendee's registrations, newest first, with each one's status.
+@app.get("/registrations/me", response_model=List[schemas.RegistrationResponse])
+def my_registrations(db: Session = Depends(get_db), user: User = Depends(require_roles(*REGISTRANTS))):
+    rows = (
+        db.query(models.Registration, models.Event)
+        .join(models.Event, models.Event.id == models.Registration.event_id)
+        .filter(models.Registration.attendee_id == user.id)
+        .order_by(models.Registration.registered_at.desc(), models.Registration.id.desc())
+        .all()
+    )
+    return [registrations.response(registration, event, user) for registration, event in rows]
+
+
+# Fulfills US32: an event's registrations, for its organiser and its assigned coordinator only.
+@app.get("/events/{event_id}/registrations", response_model=List[schemas.RegistrationResponse])
+def event_registrations(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    manages = (user.role == Role.organiser and event.organiser_id == user.id) or (
+        user.role == Role.coordinator and event.coordinator_id == user.id
+    )
+    if not manages:
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    rows = (
+        db.query(models.Registration, User)
+        .join(User, User.id == models.Registration.attendee_id)
+        .filter(models.Registration.event_id == event_id)
+        .order_by(models.Registration.registered_at, models.Registration.id)
+        .all()
+    )
+    return [registrations.response(registration, event, attendee) for registration, attendee in rows]
 
 
 def check_submission(request: schemas.EventRequestIn, now: datetime) -> None:

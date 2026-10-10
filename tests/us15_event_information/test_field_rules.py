@@ -26,7 +26,7 @@ EXPECTED = {
                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
                             "venue", "venueName", "bookingState"},
     Role.tech: EVERYONE | {"coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"},
-    Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose"},
+    Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"},
 }
 
 

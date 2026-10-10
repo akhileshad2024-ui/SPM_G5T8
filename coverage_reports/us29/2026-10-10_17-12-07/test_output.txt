@@ -1,0 +1,57 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 43 items
+
+tests/us29_us32_registration/test_registration_api.py::test_an_attendee_registers_and_takes_a_place PASSED [  2%]
+tests/us29_us32_registration/test_registration_api.py::test_registering_twice_is_refused_and_adds_nothing PASSED [  4%]
+tests/us29_us32_registration/test_registration_api.py::test_a_full_event_puts_the_attendee_on_the_waitlist_without_taking_a_place PASSED [  6%]
+tests/us29_us32_registration/test_registration_api.py::test_the_last_place_goes_to_exactly_one_attendee PASSED [  9%]
+tests/us29_us32_registration/test_registration_api.py::test_registration_is_open_up_to_and_including_the_closing_date PASSED [ 11%]
+tests/us29_us32_registration/test_registration_api.py::test_registration_after_the_closing_date_is_refused PASSED [ 13%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[draft] PASSED [ 16%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[submitted] PASSED [ 18%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[under_review] PASSED [ 20%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[pending_clarification] PASSED [ 23%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[approved] PASSED [ 25%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[rejected] PASSED [ 27%]
+tests/us29_us32_registration/test_registration_api.py::test_only_confirmed_events_take_registrations[cancelled] PASSED [ 30%]
+tests/us29_us32_registration/test_registration_api.py::test_events_without_registration_take_no_registrations PASSED [ 32%]
+tests/us29_us32_registration/test_registration_api.py::test_the_rules_refuse_an_event_that_is_not_open_even_if_called_directly PASSED [ 34%]
+tests/us29_us32_registration/test_registration_api.py::test_an_event_without_a_capacity_never_fills PASSED [ 37%]
+tests/us29_us32_registration/test_registration_api.py::test_only_attendees_can_register[organiser] PASSED [ 39%]
+tests/us29_us32_registration/test_registration_api.py::test_only_attendees_can_register[coordinator] PASSED [ 41%]
+tests/us29_us32_registration/test_registration_api.py::test_only_attendees_can_register[venue] PASSED [ 44%]
+tests/us29_us32_registration/test_registration_api.py::test_only_attendees_can_register[tech] PASSED [ 46%]
+tests/us29_us32_registration/test_registration_api.py::test_registering_for_a_missing_event_is_not_found PASSED [ 48%]
+tests/us29_us32_registration/test_registration_api.py::test_signed_out_users_cannot_register_or_withdraw PASSED [ 51%]
+tests/us29_us32_registration/test_registration_api.py::test_withdrawing_frees_the_place PASSED [ 53%]
+tests/us29_us32_registration/test_registration_api.py::test_a_freed_place_goes_to_the_longest_waiting_attendee PASSED [ 55%]
+tests/us29_us32_registration/test_registration_api.py::test_leaving_the_waitlist_does_not_move_anyone_up PASSED [ 58%]
+tests/us29_us32_registration/test_registration_api.py::test_withdrawal_closes_seven_days_before_registration_closes PASSED [ 60%]
+tests/us29_us32_registration/test_registration_api.py::test_the_deadline_is_sent_with_the_event PASSED [ 62%]
+tests/us29_us32_registration/test_registration_api.py::test_without_a_closing_date_withdrawal_is_allowed_until_the_event_date PASSED [ 65%]
+tests/us29_us32_registration/test_registration_api.py::test_withdrawing_without_a_registration_is_refused PASSED [ 67%]
+tests/us29_us32_registration/test_registration_api.py::test_withdrawing_twice_is_refused PASSED [ 69%]
+tests/us29_us32_registration/test_registration_api.py::test_re_registering_after_withdrawing_joins_the_back_of_the_queue PASSED [ 72%]
+tests/us29_us32_registration/test_registration_api.py::test_an_attendee_sees_their_registrations_newest_first PASSED [ 74%]
+tests/us29_us32_registration/test_registration_api.py::test_a_registration_for_a_cancelled_event_shows_as_cancelled PASSED [ 76%]
+tests/us29_us32_registration/test_registration_api.py::test_attendees_only_see_their_own_registrations PASSED [ 79%]
+tests/us29_us32_registration/test_registration_api.py::test_the_organiser_sees_every_registration_of_their_event PASSED [ 81%]
+tests/us29_us32_registration/test_registration_api.py::test_the_assigned_coordinator_sees_the_registrations PASSED [ 83%]
+tests/us29_us32_registration/test_registration_api.py::test_a_coordinator_not_assigned_to_the_event_is_refused PASSED [ 86%]
+tests/us29_us32_registration/test_registration_api.py::test_another_organisers_event_registrations_are_refused PASSED [ 88%]
+tests/us29_us32_registration/test_registration_api.py::test_other_roles_cannot_see_an_events_registrations[venue] PASSED [ 90%]
+tests/us29_us32_registration/test_registration_api.py::test_other_roles_cannot_see_an_events_registrations[tech] PASSED [ 93%]
+tests/us29_us32_registration/test_registration_api.py::test_other_roles_cannot_see_an_events_registrations[attendee] PASSED [ 95%]
+tests/us29_us32_registration/test_registration_api.py::test_the_registrations_of_a_missing_event_are_not_found PASSED [ 97%]
+tests/us29_us32_registration/test_registration_api.py::test_tech_support_do_not_get_the_registration_count PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 43 passed, 1 warning in 26.72s ========================

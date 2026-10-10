@@ -21,7 +21,7 @@ ACCESSIBILITY = {"access"}
 BOOKING = {"venue", "venueName", "bookingState"}
 VENUE_NAME = {"venueName"}  # where it takes place, without the booking details
 EQUIPMENT = {"equip", "equipState"}
-REGISTRATION = {"reg", "regCap", "regClose"}
+REGISTRATION = {"reg", "regCap", "regClose", "registered", "withdrawalClose"}
 REVIEW = {"clarification", "decision", "submittedAt", "createdAt"}  # between organiser and coordinator
 DRAFT = {"draftForm"}  # the organiser's unfinished form values
 

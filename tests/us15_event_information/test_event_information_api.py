@@ -24,18 +24,18 @@ EXPECTED = {
     Role.organiser: EVERYONE | {"coordinatorId", "coordinator", "pax",
                                 "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                 "venue", "venueName", "bookingState", "equip", "equipState",
-                                "reg", "regCap", "regClose",
+                                "reg", "regCap", "regClose", "registered", "withdrawalClose",
                                 "clarification", "decision", "submittedAt", "createdAt", "draftForm"},
     Role.coordinator: EVERYONE | {"coordinatorId", "coordinator", "pax",
                                   "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                   "venue", "venueName", "bookingState", "equip", "equipState",
-                                  "reg", "regCap", "regClose",
+                                  "reg", "regCap", "regClose", "registered", "withdrawalClose",
                                   "clarification", "decision", "submittedAt", "createdAt"},
     Role.venue: EVERYONE | {"coordinatorId", "coordinator", "pax",
                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
                             "venue", "venueName", "bookingState"},
     Role.tech: EVERYONE | {"coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"},
-    Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose"},
+    Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"},
 }
 
 
@@ -169,7 +169,7 @@ def test_venue_staff_see_the_venue_needs_but_not_equipment_or_registration(signe
 
     assert (event["venue"], event["venueName"], event["bookingState"]) == (venue.id, "Grand Hall", "approved")
     assert (event["venueCapacity"], event["layout"], event["facilities"]) == (120, "standing", ["Projector"])
-    for hidden in ("equip", "equipState", "reg", "regCap", "regClose", "decision", "clarification"):
+    for hidden in ("equip", "equipState", "reg", "regCap", "regClose", "registered", "withdrawalClose", "decision", "clarification"):
         assert hidden not in event, hidden
 
 
