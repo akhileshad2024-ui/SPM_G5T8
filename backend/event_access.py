@@ -2,8 +2,8 @@
 Who is involved in an event, and so may see it and its status (US02 AC1, US13 AC1/AC4).
 
     organiser          the events they created (drafts included)
-    coordinator        events assigned to them, plus submitted events nobody has picked up yet
-                       (someone has to see those to start a review or assign one, US07/US11)
+    coordinator        events assigned to them, plus live events nobody is assigned to yet
+                       (someone has to see those to review them or assign one, US07/US11)
     venue staff        events with a venue booking
     technical support  events that request equipment (once submitted)
     attendee           confirmed events open for registration
@@ -21,6 +21,9 @@ from login.models import Role, User
 
 S = models.EventStatus
 
+# Live (submitted and not closed): an unassigned event in one of these still needs a coordinator.
+UNASSIGNED_VISIBLE = (S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed)
+
 
 def involved_events(query: Query, user: User) -> Query:
     """Narrow a query over models.Event to the events `user` is involved in."""
@@ -30,7 +33,7 @@ def involved_events(query: Query, user: User) -> Query:
     if user.role == Role.coordinator:
         return query.filter(or_(
             and_(E.coordinator_id == user.id, E.status != S.draft),
-            and_(E.coordinator_id.is_(None), E.status == S.submitted),
+            and_(E.coordinator_id.is_(None), E.status.in_(UNASSIGNED_VISIBLE)),
         ))
     if user.role == Role.venue:
         return query.filter(E.status != S.draft, E.venue_id.is_not(None))
@@ -48,7 +51,7 @@ def is_involved(event: models.Event, user: User) -> bool:
     if event.status == S.draft:
         return False
     if user.role == Role.coordinator:
-        return event.coordinator_id == user.id or (event.coordinator_id is None and event.status == S.submitted)
+        return event.coordinator_id == user.id or (event.coordinator_id is None and event.status in UNASSIGNED_VISIBLE)
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:

@@ -67,13 +67,22 @@ def test_an_organiser_cannot_see_another_organisers_history(signed_in, db):
     assert refused(other, event_id)
 
 
-def test_a_coordinator_cannot_see_an_unassigned_event_that_is_already_under_review(signed_in, db):
+def test_a_coordinator_cannot_see_an_event_assigned_to_another_coordinator(signed_in, db):
     event_id = create(signed_in(Role.organiser))
     move(db, event_id, S.under_review)
+    other = add_user(db, "marcus.lee@connectsphere.edu", "Marcus Lee", Role.coordinator)
+    seed(db, event_id, coordinator_id=other.get("/auth/me").json()["id"])
 
     coordinator = signed_in(Role.coordinator)
     assert refused(coordinator, event_id)
     assert event_id not in [e["id"] for e in coordinator.get("/events").json()]
+
+
+def test_a_coordinator_sees_an_unassigned_event_under_review_so_it_can_still_be_assigned(signed_in, db):
+    event_id = create(signed_in(Role.organiser))
+    move(db, event_id, S.under_review)
+
+    assert [e["toStatus"] for e in history(signed_in(Role.coordinator), event_id)] == ["submitted", "under_review"]
 
 
 def test_a_coordinator_sees_the_history_once_the_event_is_assigned_to_them(signed_in, db):

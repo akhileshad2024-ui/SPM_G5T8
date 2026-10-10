@@ -21,6 +21,12 @@ Boundary / edge-case tests carry a `-Bnn` suffix (e.g. `US10-AC2-B01`).
 Shared rules live in `lib/events/review/shared.ts`; `lib/state/app-context.tsx` only
 applies each function's result (saves the event, sends notifications).
 
+Each step is also saved by the backend (`backend/event_review.py`, same rules and
+messages; endpoints in the README's "Event review" section), tested in
+`tests/us07_us11_event_review/` (`python -m pytest tests/us07_us11_event_review`,
+`npm run test:review`). The coordinator list for US11 comes from the Event
+Coordinator accounts (`GET /coordinators`).
+
 ## Status flow
 
 ```
