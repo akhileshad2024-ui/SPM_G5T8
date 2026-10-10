@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import type { EventRecord, Venue } from "@/lib/types";
 import {
   UNAVAILABILITY_REASONS,
@@ -10,7 +10,7 @@ import {
   overlaps,
   parseDateTime,
   parseEventDate,
-} from "@/lib/venue-rules";
+} from "@/lib/venues/rules";
 import styles from "./AvailabilityCalendar.module.css";
 
 const DAYS: Array<[string, string]> = [

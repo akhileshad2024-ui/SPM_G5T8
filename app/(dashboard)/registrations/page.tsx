@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import type { RegistrationStatus } from "@/lib/types";
 
 export default function RegistrationsPage() {

@@ -1,9 +1,9 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { useApp, type SaveVenueResult } from "@/lib/app-context";
-import { LAYOUT_OPTIONS, VENUE_ACCESSIBILITY_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data";
+import { useApp, type SaveVenueResult } from "@/lib/state/app-context";
+import { LAYOUT_OPTIONS, VENUE_ACCESSIBILITY_OPTIONS, VENUE_FACILITY_OPTIONS } from "@/lib/data/options";
 import type { UnavailabilityPeriod, UnavailabilityReason, Venue } from "@/lib/types";
-import { MAX_BUFFER_MINUTES, validateVenueForm, venueFormFrom, venueInputFrom, type VenueFormState } from "@/lib/venue-form";
-import { UNAVAILABILITY_REASONS, WEEKDAYS } from "@/lib/venue-rules";
+import { MAX_BUFFER_MINUTES, validateVenueForm, venueFormFrom, venueInputFrom, type VenueFormState } from "@/lib/venues/form";
+import { UNAVAILABILITY_REASONS, WEEKDAYS } from "@/lib/venues/rules";
 
 const inputStyle: CSSProperties = { padding: 8, border: "1px solid var(--border)", width: "100%", boxSizing: "border-box" };
 const smallInput: CSSProperties = { padding: 6, border: "1px solid var(--border)" };

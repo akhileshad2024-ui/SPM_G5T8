@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/app-context";
-import { DEFAULT_ROUTE } from "@/lib/data";
+import { useApp } from "@/lib/state/app-context";
+import { DEFAULT_ROUTE } from "@/lib/auth/route-access";
 import { LoginHero } from "@/components/login/LoginHero";
 import { LoginForm } from "@/components/login/LoginForm";
 

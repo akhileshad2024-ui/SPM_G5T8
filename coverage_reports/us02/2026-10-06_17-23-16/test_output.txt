@@ -1,0 +1,50 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 36 items
+
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[GET-/auth/me] PASSED [  2%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[POST-/auth/change-password] PASSED [  5%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[GET-/venues] PASSED [  8%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[POST-/venues] PASSED [ 11%]
+tests/us02_rbac/test_rbac.py::test_signed_out_users_are_refused[PUT-/venues/1] PASSED [ 13%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[organiser] PASSED [ 16%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[coordinator] PASSED [ 19%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[venue] PASSED [ 22%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[tech] PASSED [ 25%]
+tests/us02_rbac/test_rbac.py::test_any_signed_in_role_can_view_venues[attendee] PASSED [ 27%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_can_create_a_venue PASSED [ 30%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[organiser] PASSED [ 33%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[coordinator] PASSED [ 36%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[tech] PASSED [ 38%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_create_a_venue[attendee] PASSED [ 41%]
+tests/us02_rbac/test_rbac.py::test_refused_create_saves_nothing PASSED   [ 44%]
+tests/us02_rbac/test_rbac.py::test_venue_staff_can_edit_a_venue PASSED   [ 47%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[organiser] PASSED [ 50%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[coordinator] PASSED [ 52%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[tech] PASSED [ 55%]
+tests/us02_rbac/test_rbac.py::test_other_roles_cannot_edit_or_deactivate_a_venue[attendee] PASSED [ 58%]
+tests/us02_rbac/test_rbac.py::test_editing_a_venue_that_does_not_exist_returns_404 PASSED [ 61%]
+tests/us02_rbac/test_rbac.py::test_editor_is_taken_from_the_session_not_the_request PASSED [ 63%]
+tests/us02_rbac/test_rbac.py::test_role_change_takes_effect_immediately PASSED [ 66%]
+tests/us02_rbac/test_rbac.py::test_deactivated_user_loses_access_immediately PASSED [ 69%]
+tests/us02_rbac/test_rbac.py::test_me_reports_the_role_the_frontend_uses_for_page_access PASSED [ 72%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_allowed_role_passes_and_gets_the_user_back PASSED [ 75%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[organiser] PASSED [ 77%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[coordinator] PASSED [ 80%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[tech] PASSED [ 83%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_every_other_role_is_refused_with_403[attendee] PASSED [ 86%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_several_roles_can_be_allowed PASSED [ 88%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_no_roles_allowed_means_nobody_passes PASSED [ 91%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_the_check_uses_the_role_on_the_user_not_a_cached_copy PASSED [ 94%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_each_endpoint_gets_its_own_check PASSED [ 97%]
+tests/us02_rbac/unit/test_require_roles_unit.py::test_roles_match_the_frontend PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 36 passed, 1 warning in 11.03s ========================

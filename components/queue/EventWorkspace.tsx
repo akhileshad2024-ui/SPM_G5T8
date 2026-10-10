@@ -1,6 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { attendanceLabel, lastUpdatedLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord, EventTab } from "@/lib/types";
 import { RequestTab } from "./tabs/RequestTab";
@@ -32,7 +33,7 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
     actions.push({ label: "Approve", onClick: () => app.openModal("approve", event.id), variant: "primary" });
   } else if (event.status === "pending_clarification") {
     actions.push({ label: "Awaiting organiser reply", onClick: () => app.flash(`Waiting for ${event.organiser} to respond.`, "warn"), variant: "muted" });
-  } else if (event.status === "rejected" || event.status === "cancelled" || event.status === "completed") {
+  } else if (event.status === "rejected" || event.status === "cancelled") {
     // Closed: nothing left for the coordinator to do.
   } else if (event.bookingState === "pending") {
     actions.push({ label: "Awaiting venue decision", onClick: () => app.flash("Venue Staff have this booking request.", "warn"), variant: "muted" });
@@ -40,7 +41,8 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
     actions.push({ label: "Find a venue", onClick: () => app.setTab("venue"), variant: "primary" });
   } else if (event.equipState === "requested") {
     actions.push({ label: "Equipment pending with Technical Support", onClick: () => app.setTab("equipment"), variant: "muted" });
-  } else if (event.status === "planning") {
+  } else if (event.status === "approved" && event.bookingState === "approved") {
+    // Approved with the venue booked and equipment settled: ready to confirm (US14).
     actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
   }
 
@@ -55,8 +57,13 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
             <StatusPill status={event.status} />
           </div>
           <div className={styles.line}>
-            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {event.pax} expected
+            {event.id} · {event.organiser} · {event.date}, {event.start}–{event.end} · {attendanceLabel(event.pax, "expected")}
           </div>
+          {event.updatedAt && (
+            <div className={`${styles.line} tabular`}>
+              <time dateTime={event.updatedAt}>{lastUpdatedLabel({ updatedAt: event.updatedAt })}</time>
+            </div>
+          )}
         </div>
         <div className={styles.actions}>
           {actions.map((a) => (

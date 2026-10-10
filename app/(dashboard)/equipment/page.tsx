@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { EQUIP } from "@/lib/data";
+import { useApp } from "@/lib/state/app-context";
+import { EQUIP } from "@/lib/data/options";
 import { InventoryCard } from "@/components/equipment/InventoryCard";
 import { EquipmentRequestCard } from "@/components/equipment/EquipmentRequestCard";
 

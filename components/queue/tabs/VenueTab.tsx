@@ -1,9 +1,9 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout } from "@/lib/types";
-import { bookingProblems, venueHas } from "@/lib/venue-rules";
+import { bookingProblems, venueHas } from "@/lib/venues/rules";
 import styles from "./VenueTab.module.css";
 
 const LAYOUTS: Array<[Layout | "any", string]> = [

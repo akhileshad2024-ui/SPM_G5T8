@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Tag } from "@/components/ui/Pill";
 import type { Venue } from "@/lib/types";
-import { UNAVAILABILITY_REASONS, formatDateTime, parseDateTime } from "@/lib/venue-rules";
+import { UNAVAILABILITY_REASONS, formatDateTime, parseDateTime } from "@/lib/venues/rules";
 
 const eyebrow = { fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 7 } as const;
 

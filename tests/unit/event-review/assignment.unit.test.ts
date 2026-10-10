@@ -3,9 +3,9 @@ import {
   ASSIGNABLE_STATUSES,
   assignCoordinator,
   canAssignCoordinator,
-} from "../../../lib/event-review/assignment";
-import { approveRequest } from "../../../lib/event-review/decision";
-import { startReview } from "../../../lib/event-review/review";
+} from "../../../lib/events/review/assignment";
+import { approveRequest } from "../../../lib/events/review/decision";
+import { startReview } from "../../../lib/events/review/review";
 import type { EventStatus } from "../../../lib/types";
 import { COORDINATOR, NOW, ORGANISER, ROSTER, createEvent } from "./fixtures";
 
@@ -65,7 +65,7 @@ describe("US11 - Assign Event Coordinator", () => {
     expect(result).toEqual({ ok: false, error: "That person is not an Event Coordinator." });
   });
 
-  it.each<EventStatus>(["draft", "rejected", "cancelled", "completed"])(
+  it.each<EventStatus>(["draft", "rejected", "cancelled"])(
     "[US11-AC4] cannot assign a coordinator to a %s event",
     (status) => {
       const event = createEvent({ status });

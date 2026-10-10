@@ -1,12 +1,13 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { publishedEvents } from "@/lib/events/visibility";
 import { PublicEventCard } from "@/components/browse/PublicEventCard";
 import { Tag } from "@/components/ui/Pill";
 
 export default function BrowsePage() {
   const app = useApp();
-  const open = app.state.events.filter((e) => e.reg && (e.status === "confirmed" || e.status === "planning"));
+  const open = publishedEvents(app.state.events);
   const mine = app.state.registrations.filter((r) => r.attendeeEmail === app.me.email);
 
   return (

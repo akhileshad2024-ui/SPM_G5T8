@@ -6,7 +6,7 @@ export type RegistrationDecision =
 
 export function decideRegistration(event: EventRecord, existing?: RegistrationRecord, now = Date.now()): RegistrationDecision {
   if (existing && existing.status !== "withdrawn") return { ok: false, reason: `You already have a ${existing.status} registration for ${event.name}.` };
-  if (!event.reg || !["planning", "confirmed"].includes(event.status)) return { ok: false, reason: "Registration is not open for this event." };
+  if (!event.reg || event.status !== "confirmed") return { ok: false, reason: "Registration is not open for this event." };
   if (event.regClose && new Date(event.regClose).getTime() < now) return { ok: false, reason: `Registration for ${event.name} has closed.` };
   return { ok: true, status: event.registered >= event.regCap ? "waitlisted" : "registered" };
 }

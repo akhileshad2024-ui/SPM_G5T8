@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tag } from "@/components/ui/Pill";
+import { EventDetailsToggle } from "@/components/ui/EventDetails";
+import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
 export function PublicEventCard({ event }: { event: EventRecord }) {
@@ -40,7 +42,8 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
             {event.date} · {event.start}–{event.end}
           </div>
           <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
-            {venue ? `${venue.name} · ${venue.location}` : "Venue to be confirmed"}
+            {/* Attendees get the venue's name only, not the booking (US15). */}
+            {venue ? `${venue.name} · ${venue.location}` : event.venueName ?? "Venue to be confirmed"}
           </div>
         </div>
         {registration && <Tag label={registration.status} bg={registration.status === "waitlisted" ? "var(--warn-bg)" : "var(--ok-bg)"} fg={registration.status === "waitlisted" ? "var(--warn-fg)" : "var(--ok-fg)"} />}
@@ -66,6 +69,10 @@ export function PublicEventCard({ event }: { event: EventRecord }) {
           <button className="btn btn-sm btn-ghost" onClick={() => setConfirmWithdrawal(false)}>Keep registration</button>
         </div>
       </div>}
+      <div style={{ marginTop: 12 }}>
+        <EventDetailsToggle event={event} />
+        <StatusHistoryToggle event={event} />
+      </div>
     </div>
   );
 }

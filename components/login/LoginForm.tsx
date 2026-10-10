@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import styles from "./LoginForm.module.css";
 
 /** Right-hand sign-in panel: email/password form. */
@@ -63,7 +63,11 @@ export function LoginForm() {
             placeholder="••••••••"
           />
         </div>
-        {error && <div className="callout callout-danger">{error}</div>}
+        {error ? (
+          <div className="callout callout-danger">{error}</div>
+        ) : (
+          app.state.signInNotice && <div className="callout callout-warn">{app.state.signInNotice}</div>
+        )}
         <button className={`btn btn-primary ${styles.submit}`} onClick={submit} disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>

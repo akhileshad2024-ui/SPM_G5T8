@@ -4,10 +4,11 @@ A Next.js (App Router + TypeScript) rebuild of the ConnectSphere event-operation
 prototype: one request moving through review, venue booking, equipment
 reservation, and registration, with a different view per role.
 
-Sign-in and the venue catalogue are served by a FastAPI backend (`backend/`)
-on Supabase Postgres. The rest of the data is still seeded in memory on load
-(see `lib/data.ts`) and lives in a single React context (`lib/app-context.tsx`)
-— reloading the page resets it (but keeps you signed in).
+Sign-in, the venue catalogue and event requests are served by a FastAPI backend
+(`backend/`) on Supabase Postgres; the app starts with no sample events. Actions
+that are not yet saved on the server (review decisions, venue bookings, equipment
+reservations, registrations, notifications) only change the browser's copy, held
+in a single React context (`lib/state/app-context.tsx`), and are lost on reload.
 
 ## Login & role-based access control (RBAC)
 
@@ -26,7 +27,14 @@ backend/login/
 
 - Passwords are stored only as Argon2id hashes — never in plain text.
 - Signing in sets a signed session token in an `HttpOnly`, `SameSite=Lax`
-  cookie, so page scripts can't read it. Sessions last 8 hours.
+  cookie, so page scripts can't read it.
+- 30 minutes without activity signs you out (`SESSION_IDLE_MINUTES`): the
+  backend renews the session on every signed-in request, and the frontend
+  tracks clicks/typing/scrolling across tabs, keeps the session alive while
+  you're active, and returns you to the sign-in page once you've been idle.
+  A session never lasts more than 8 hours from sign-in (`SESSION_HOURS`).
+- In production (`APP_ENV=production`) credentials are only accepted over
+  HTTPS: plain-HTTP requests get 403, HSTS is sent and the cookie is `Secure`.
 - Signing out (or changing your password) revokes the session on the server,
   so a copied cookie stops working.
 - A wrong password and an unknown email get the same error, so the login can't
@@ -48,7 +56,7 @@ backend/login/
 | Attendee | `/browse` | Browse events |
 
 Opening any other page redirects to the role's home page; signed-out users are
-sent to `/login`. This is `canAccessRoute` in `lib/data.ts`, driven by
+sent to `/login`. This is `canAccessRoute` in `lib/auth/route-access.ts`, driven by
 `NAV_FOR`.
 
 **Backend role checks**
@@ -73,6 +81,37 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
 | `GET /venues/{id}/history` | Venue Staff |
+| `POST /events`, `PUT /events/{id}` | Event Organiser — `PUT` only on their own drafts |
+| `GET /events` | any signed-in user — only events they are involved in (below) |
+| `GET /events/{id}/history` | users involved in that event |
+
+## Event status (US13)
+
+An event's status is always one of: **Draft, Submitted, Under Review, Pending
+Clarification, Approved, Rejected, Confirmed, Cancelled**.
+
+**Changing a status — rule for every story:** call `change_status()` in
+`backend/event_status.py`; never set `event.status` directly. It refuses changes
+the workflow doesn't allow (409) and records each change in the
+`event_status_changes` table (old → new status, who, when, optional reason), which
+is what `GET /events/{id}/history` and the "Status history" timeline show.
+
+| From | May change to |
+|---|---|
+| (new request) | Draft, Submitted |
+| Draft | Submitted |
+| Submitted | Under Review, Cancelled |
+| Under Review | Pending Clarification, Approved, Rejected, Cancelled |
+| Pending Clarification | Under Review, Cancelled |
+| Approved | Confirmed, Cancelled |
+| Confirmed | Cancelled |
+| Rejected, Cancelled | — (final) |
+
+**Who is involved in an event** (`backend/event_access.py`) — and so may see it,
+its status and its history: the organiser who created it (drafts are visible only
+to them); a coordinator assigned to it, or any coordinator while it is submitted
+and unassigned; Venue Staff once it has a venue booking; Technical Support once it
+requests equipment; attendees once it is Confirmed with registration open.
 
 ## Venue catalogue (US17 + Week 7 changes)
 
@@ -91,7 +130,7 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 - A booking occupies its venue from *start − setup* to *end + turnaround*
   (e.g. 10:00–12:00 with 30 + 45 min occupies 09:30–12:45). This window is used
   for suitability, the availability calendar and conflict detection
-  (`lib/venue-rules.ts`). Venue Staff can't approve a booking that clashes.
+  (`lib/venues/rules.ts`). Venue Staff can't approve a booking that clashes.
 - When a venue edit (longer setup/turnaround, a new unavailable period,
   deactivation) puts existing bookings in trouble, they are **kept** and
   flagged: the coordinator gets a notification, the event's activity log and
@@ -176,7 +215,7 @@ backend/
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns)
-  seed_venues.py   Script: add the five demo venues the sample events refer to
+  seed_venues.py   Script: add five demo venues to the catalogue
   login/           Authentication + RBAC (see above)
 ```
 
@@ -209,9 +248,9 @@ predates US17, run the steps in `backend/schema_changes.sql` once in the Supabas
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
 column) must wait until every branch uses the new venue model.
 
-**Demo venues** — the sample events (Grand Hall, The Atrium, ...) only link to
-real venues once those exist in the catalogue. Add any that are missing with
-`python -m seed_venues` (from `backend/`; existing venues are left alone).
+**Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
+The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues
+are left alone).
 
 **Managing passwords** (from `backend/`):
 
@@ -247,13 +286,15 @@ the repo):
 This is a standard Next.js app — push it to GitHub and import the repo at
 [vercel.com/new](https://vercel.com/new), or run `npx vercel` from this
 directory. Set `BACKEND_URL` to wherever the FastAPI backend is hosted, and
-set `COOKIE_SECURE=true` in the backend's environment when serving over HTTPS.
+set `APP_ENV=production` in the backend's environment: it then refuses any
+request not made over HTTPS (behind a hosting proxy it reads
+`X-Forwarded-Proto`), sends HSTS, and makes the session cookie HTTPS-only.
 
 ## Tests
 
 ```bash
 npm test                # all frontend unit tests (vitest)
-python -m unittest discover -s tests -v     # all Python tests
+python -m pytest tests  # all Python tests (pip install pytest pytest-cov once)
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us20_*.py" -v
@@ -262,19 +303,33 @@ python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
 python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
                         # US20 integration tests: search through the real API (login, SQL, JSON columns), also run by hand
                         # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
+python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, throwaway SQLite
+python -m pytest tests/us02_rbac             # US02 backend
+python -m pytest tests/us03_us04_event_request   # US03/US04 backend
+python -m pytest tests/us13_event_status     # US13 backend
+npm run test:us01       # US01 frontend unit tests (idle sign-out)
+npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
 
-# Coverage for one story: runs each UNIT test file on its own and saves a timestamped report per file under
-# coverage_reports/<story>/<date_time>/unit/<test_file>/ (htmlcov/index.html, coverage_report.txt, test_output.txt),
-# plus summary.txt, and adds one line per test file to coverage_reports/<story>/history_by_file.csv.
-# Integration tests are not part of this automation.
+# Coverage for one story (run from the project root), saved under coverage_reports/<story>/<date_time>/.
+# US17/US18/US20: runs each UNIT test file on its own -> unit/<test_file>/ (htmlcov/index.html,
+# coverage_report.txt, test_output.txt) plus summary.txt, and one line per test file in
+# coverage_reports/<story>/history_by_file.csv. Integration tests are not part of this automation.
 python run_coverage.py us17      # or us18, us20
+# US01, US02, US03, US13: runs the story's whole test folder (htmlcov/index.html, coverage_report.txt,
+# test_output.txt, frontend/coverage_report.txt) and adds a line to coverage_reports/<story>/history.csv.
+python run_coverage.py us01      # or us02, us03, us13
 ```
+
+US01 and US02 keep their tests in one folder per story (`tests/us01_secure_login/`,
+`tests/us02_rbac/`): pytest backend tests (`unit/` for single functions,
+`test_*.py` for the API) next to the Vitest frontend tests (`*.unit.test.ts`).
 
 ## Scripts
 
 - `npm run dev` — start the dev server
 - `npm run build` — production build
 - `npm run start` — run the production build locally
+
 ## Architecture
 [Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio)
 The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**: Next.js / React, a Python monolith, and Supabase DB. Today the backend serves sign-in and the venue catalogue; the other data is still held in the browser.

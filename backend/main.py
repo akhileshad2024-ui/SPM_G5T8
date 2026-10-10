@@ -6,9 +6,12 @@ from datetime import datetime, timezone
 from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
-from login.security import get_current_user, require_roles
+from login.security import enforce_https, get_current_user, require_roles
 import models, schemas, venue_search
 from venue_audit import apply_update, change_action, creation_changes, record_change
+from event_access import involved_events, is_involved
+from event_fields import for_role
+from event_status import change_status, record_initial_status
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,6 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# US01 AC5: in production, credentials are only accepted over HTTPS.
+app.middleware("http")(enforce_https)
+
 app.include_router(auth.router)
 
 # RBAC: who may manage the venue catalogue (US17).
@@ -31,6 +37,8 @@ VENUE_MANAGERS = (Role.venue,)
 INACTIVE_VENUE_VIEWERS = (Role.venue, Role.coordinator)
 # Who may search and filter venues (US20).
 VENUE_SEARCHERS = (Role.coordinator,)
+# Who may create event requests (US03/US04).
+EVENT_REQUESTERS = (Role.organiser,)
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 
@@ -124,3 +132,182 @@ def get_venue_history(venue_id: int, db: Session = Depends(get_db), _user: User 
         .order_by(models.VenueChange.changed_at, models.VenueChange.id)
         .all()
     )
+
+
+def utc(value: datetime | None) -> datetime | None:
+    """Mark a stored timestamp as UTC (SQLite drops the timezone), so browsers convert it to local time."""
+    return value.replace(tzinfo=timezone.utc) if value is not None and value.tzinfo is None else value
+
+
+def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
+    """Build the full API view of an event, with organiser/coordinator/venue names looked up."""
+    organiser = db.get(User, event.organiser_id)
+    coordinator = db.get(User, event.coordinator_id) if event.coordinator_id else None
+    venue = db.get(models.Venue, event.venue_id) if event.venue_id else None
+    return schemas.EventResponse(
+        id=event.id,
+        status=event.status.value,
+        name=event.name,
+        organiserId=event.organiser_id,
+        organiser=organiser.name if organiser else "",
+        coordinatorId=event.coordinator_id,
+        coordinator=coordinator.name if coordinator else None,
+        purpose=event.purpose or "",
+        eventType=event.event_type or "",
+        pax=event.expected_attendance,
+        date=event.date,
+        start=event.start_time,
+        end=event.end_time,
+        venueLocation=event.venue_location or "",
+        venueCapacity=event.venue_capacity,
+        layout=event.layout,
+        facilities=event.facilities or [],
+        access=event.accessibility or [],
+        equip=event.equipment or [],
+        reg=event.registration_required,
+        regCap=event.registration_cap,
+        regClose=event.registration_close,
+        venue=event.venue_id,
+        venueName=venue.name if venue else None,
+        bookingState=event.booking_state,
+        equipState=event.equipment_state,
+        clarification=event.clarification,
+        decision=event.decision,
+        draftForm=event.draft_form,
+        submittedAt=utc(event.submitted_at),
+        createdAt=utc(event.created_at),
+        updatedAt=utc(event.updated_at),
+    )
+
+
+def event_view(db: Session, event: models.Event, user: User) -> schemas.EventView:
+    """The event as `user`'s role may see it (US15): their hidden fields are left out, not blanked."""
+    full = event_response(db, event).model_dump()
+    return schemas.EventView(**for_role(full, user))
+
+
+# Fulfills US03 (save a draft) and US04 (submit for review) — Event Organisers only.
+@app.post("/events", response_model=schemas.EventResponse, status_code=201)
+def create_event(request: schemas.EventRequestIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REQUESTERS))):
+    now = datetime.now(timezone.utc)
+    check_submission(request, now)
+    event = models.Event(organiser_id=user.id)  # from the session, never the request body
+    event.status = models.EventStatus.submitted if request.submit else models.EventStatus.draft
+    apply_event_request(event, request, now)
+    db.add(event)
+    db.flush()  # assigns event.id for the status history
+    record_initial_status(db, event, user, now)
+    db.commit()
+    db.refresh(event)
+    return event_response(db, event)
+
+
+# The events the signed-in user is involved in, with their current status (US02, US13) and
+# only the details their role may see (US15). Who is involved: event_access.py; which
+# fields each role sees: event_fields.py.
+@app.get("/events", response_model=List[schemas.EventView], response_model_exclude_unset=True)
+def list_events(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    query = involved_events(db.query(models.Event), user)
+    return [event_view(db, event, user) for event in query.order_by(models.Event.id.desc()).all()]
+
+
+# Fulfills US15: the latest saved details of one event, as the user's role may see them.
+@app.get("/events/{event_id}", response_model=schemas.EventView, response_model_exclude_unset=True)
+def get_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    return event_view(db, event, user)
+
+
+# Fulfills US13: an event's timestamped status history, oldest first — only for users involved in it.
+@app.get("/events/{event_id}/history", response_model=List[schemas.StatusChangeResponse])
+def get_event_history(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    changes = (
+        db.query(models.EventStatusChange)
+        .filter(models.EventStatusChange.event_id == event_id)
+        .order_by(models.EventStatusChange.changed_at, models.EventStatusChange.id)
+        .all()
+    )
+    names = {u.id: u.name for u in db.query(User).filter(User.id.in_({c.changed_by_id for c in changes}))}
+    return [
+        schemas.StatusChangeResponse(
+            fromStatus=c.from_status.value if c.from_status else None,
+            toStatus=c.to_status.value,
+            changedBy=names.get(c.changed_by_id, ""),
+            # Always say it's UTC (SQLite drops the timezone), so browsers convert it to local time correctly.
+            changedAt=c.changed_at if c.changed_at.tzinfo else c.changed_at.replace(tzinfo=timezone.utc),
+            reason=c.reason,
+        )
+        for c in changes
+    ]
+
+
+# Fulfills US03: keep editing a saved draft (and US04: submit it) without creating a new request.
+@app.put("/events/{event_id}", response_model=schemas.EventResponse)
+def update_event(event_id: int, request: schemas.EventRequestIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REQUESTERS))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.organiser_id != user.id:
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    if event.status != models.EventStatus.draft:
+        raise HTTPException(status_code=409, detail="Only drafts can be edited. This request has already been submitted.")
+
+    now = datetime.now(timezone.utc)
+    check_submission(request, now)
+    if request.submit:
+        change_status(db, event, models.EventStatus.submitted, user, now)
+    apply_event_request(event, request, now)
+    db.commit()
+    db.refresh(event)
+    return event_response(db, event)
+
+
+def check_submission(request: schemas.EventRequestIn, now: datetime) -> None:
+    """A request being submitted must pass the US03 rules; a draft may be incomplete."""
+    if not request.submit:
+        return
+    errors = schemas.submission_errors(request, schemas.campus_today(now))
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "Complete the outstanding fields before submission.", "errors": errors},
+        )
+
+
+def apply_event_request(event: models.Event, request: schemas.EventRequestIn, now: datetime) -> None:
+    """Copy the organiser's request onto the stored event (new or an existing draft)."""
+    equipment = [
+        {"id": item.type, "qty": item.quantity, "technicalRequirements": item.technicalRequirements}
+        for item in request.equipment
+    ]
+    registration = request.registration
+    event.name = request.name or "Untitled request"
+    event.purpose = request.description or None
+    event.event_type = request.eventType or None
+    event.expected_attendance = request.expectedAttendance
+    event.date = request.preferredDate
+    event.start_time = request.startTime
+    event.end_time = request.endTime
+    event.venue_location = request.venue.location or None
+    event.venue_capacity = request.venue.capacity
+    event.layout = request.venue.layout
+    event.facilities = request.venue.facilities
+    event.accessibility = request.venue.accessibility
+    event.equipment = equipment
+    event.equipment_state = "requested" if equipment else None
+    event.registration_required = registration.required
+    # Capacity/closing date only mean something when registration is on.
+    event.registration_cap = registration.capacityLimit if registration.required else None
+    event.registration_close = registration.closingDate if registration.required else None
+    # A submitted request can't be edited directly, so there's no draft to reopen.
+    event.draft_form = None if request.submit else request.draftForm
+    event.submitted_at = now if request.submit else None

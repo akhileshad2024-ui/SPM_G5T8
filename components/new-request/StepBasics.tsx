@@ -1,6 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
+import { localDateISO } from "@/lib/events/request/validation";
 
 export function StepBasics() {
   const app = useApp();
@@ -58,6 +59,7 @@ export function StepBasics() {
           <input
             className="text-input"
             type="date"
+            min={localDateISO(new Date())}
             value={form.date}
             onChange={(e) => app.setFormField("date", e.target.value)}
           />

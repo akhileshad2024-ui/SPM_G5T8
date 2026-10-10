@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { WizardSteps } from "@/components/new-request/WizardSteps";
 import { StepBasics } from "@/components/new-request/StepBasics";
 import { StepRequirements } from "@/components/new-request/StepRequirements";

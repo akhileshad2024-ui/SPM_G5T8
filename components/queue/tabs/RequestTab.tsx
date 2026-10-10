@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useApp } from "@/lib/app-context";
-import { COORDINATORS } from "@/lib/data";
-import { canAssignCoordinator } from "@/lib/event-review/assignment";
-import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/event-review/review";
+import { useApp } from "@/lib/state/app-context";
+import { COORDINATORS } from "@/lib/data/seed";
+import { canAssignCoordinator } from "@/lib/events/review/assignment";
+import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
+import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -158,6 +159,9 @@ export function RequestTab({ event }: { event: EventRecord }) {
           {event.submittedAt && (
             <div className={styles.hint}>Submitted {formatTimestamp(event.submittedAt)}</div>
           )}
+          <div style={{ marginTop: 12 }}>
+            <EventDetailsToggle event={event} />
+          </div>
         </div>
       </div>
 

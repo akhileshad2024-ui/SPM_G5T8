@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_ROUTE } from "@/lib/data";
-import { useApp } from "@/lib/app-context";
+import { DEFAULT_ROUTE } from "@/lib/auth/route-access";
+import { useApp } from "@/lib/state/app-context";
 
 /** Root route: never rendered for long — just sends you to the right place. */
 export default function RootPage() {

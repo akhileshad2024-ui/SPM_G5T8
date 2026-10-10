@@ -170,7 +170,7 @@ class TestAccessibilityFeatures(ValidationTestCase):
         self.assertEqual(VenueUpdate(accessibility=["wheelchair access"]).accessibility, ["Wheelchair Access"])
 
     def test_the_form_and_the_backend_offer_the_same_features(self):
-        source = (REPO / "lib" / "data.ts").read_text(encoding="utf-8")
+        source = (REPO / "lib" / "data" / "options.ts").read_text(encoding="utf-8")
         listed = re.search(r"VENUE_ACCESSIBILITY_OPTIONS\s*=\s*\[(.*?)\]", source, re.S).group(1)
 
         self.assertEqual(re.findall(r'"([^"]+)"', listed), list(ACCESSIBILITY_FEATURES))

@@ -16,7 +16,9 @@
     "test:us08": "vitest run tests/unit/event-review/clarification.unit.test.ts",
     "test:us10": "vitest run tests/unit/event-review/decision.unit.test.ts",
     "test:us11": "vitest run tests/unit/event-review/assignment.unit.test.ts",
-    "test:registration": "vitest run tests/registration-rules.test.ts"
+    "test:us01": "vitest run tests/us01_secure_login",
+    "test:us02": "vitest run tests/us02_rbac",
+    "test:registration": "vitest run tests/us29_us32_registration"
   },
   "dependencies": {
     "next": "^15.1.0",

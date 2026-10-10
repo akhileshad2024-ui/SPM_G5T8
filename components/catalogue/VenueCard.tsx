@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { useApp, type SaveVenueResult } from "@/lib/app-context";
+import { useApp, type SaveVenueResult } from "@/lib/state/app-context";
 import { Tag } from "@/components/ui/Pill";
 import type { Venue } from "@/lib/types";
-import { UNAVAILABILITY_REASONS, formatDateTime, holdsBooking, parseDateTime } from "@/lib/venue-rules";
+import { UNAVAILABILITY_REASONS, formatDateTime, holdsBooking, parseDateTime } from "@/lib/venues/rules";
 import { VenueForm } from "./VenueForm";
 
 const eyebrow = { fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 7 } as const;

@@ -2,7 +2,7 @@
  * Shared domain types for the ConnectSphere prototype.
  *
  * Users and venues come from the FastAPI backend; everything else describes
- * the in-memory data held in `AppProvider` (see `lib/app-context.tsx`).
+ * the in-memory data held in `AppProvider` (see `lib/state/app-context.tsx`).
  */
 
 export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";
@@ -13,9 +13,7 @@ export type EventStatus =
   | "under_review"
   | "pending_clarification"
   | "approved"
-  | "planning"
   | "confirmed"
-  | "completed"
   | "rejected"
   | "cancelled";
 
@@ -120,6 +118,8 @@ export interface ActivityEntry {
 
 export interface EventRecord {
   id: string;
+  /** Database id once the request is stored by the backend (US03); absent for sample data. */
+  backendId?: number;
   name: string;
   organiser: string;
   status: EventStatus;
@@ -153,6 +153,10 @@ export interface EventRecord {
   regClose?: string | null;
   withdrawalClose?: string;
   submittedAt?: string;
+  /** US15: name of the booked venue, for roles that see where the event is but not the booking. */
+  venueName?: string | null;
+  /** US15: when the event's details were last saved (ISO, UTC). */
+  updatedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
   /** US08: the latest clarification / amendment request sent to the organiser. */

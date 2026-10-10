@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { ACCESS_OPTIONS, EQUIP, FACILITY_OPTIONS } from "@/lib/data";
+import { useApp } from "@/lib/state/app-context";
+import { ACCESS_OPTIONS, EQUIP, FACILITY_OPTIONS } from "@/lib/data/options";
 import type { Layout } from "@/lib/types";
 import styles from "./StepRequirements.module.css";
 
@@ -112,6 +112,12 @@ export function StepRequirements() {
                   </button>
                 </div>
               </div>
+              {selectedIndex >= 0 && (
+                <div style={{ padding: "0 14px" }}>
+                  {error(`equipment.${selectedIndex}.type`)}
+                  {error(`equipment.${selectedIndex}.quantity`)}
+                </div>
+              )}
               {selectedIndex >= 0 && (
                 <div className="field" style={{ padding: "10px 14px 13px" }}>
                   <label className="eyebrow">Technical requirements for {x.name}</label>

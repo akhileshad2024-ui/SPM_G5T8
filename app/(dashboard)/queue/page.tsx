@@ -1,7 +1,7 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
-import { reviewQueue } from "@/lib/event-review/review";
+import { useApp } from "@/lib/state/app-context";
+import { reviewQueue } from "@/lib/events/visibility";
 import { QueueList } from "@/components/queue/QueueList";
 import { EventWorkspace } from "@/components/queue/EventWorkspace";
 
@@ -9,7 +9,7 @@ export default function QueuePage() {
   const app = useApp();
   const { events, search, queueFilter, selectedId } = app.state;
 
-  const list = reviewQueue(events, { filter: queueFilter, search, me: app.me.person });
+  const list = reviewQueue(events, queueFilter, app.me.person, search);
 
   const selId = list.some((e) => e.id === selectedId) ? selectedId : list[0]?.id ?? selectedId;
   const selected = app.event(selId);
