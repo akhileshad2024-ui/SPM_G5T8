@@ -33,6 +33,22 @@ export function BookingRequestCard({ event }: { event: EventRecord }) {
               <Tag key={f} label={f} bg="#fff" fg="#4A5169" border="rgba(10,14,26,.14)" />
             ))}
           </div>
+          {event.bookingRequest && (
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+              Held from {new Date(event.bookingRequest.hold_start).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} to{" "}
+              {new Date(event.bookingRequest.hold_end).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+              {" "}({event.bookingRequest.setup_minutes} min setup, {event.bookingRequest.teardown_minutes} min teardown) · {event.bookingRequest.attendance} people
+            </div>
+          )}
+          {event.bookingRequest?.override && (
+            <div className="callout" style={{ marginTop: 12 }}>
+              <strong>Requested despite the venue being {event.bookingRequest.override.verdict.replace("_", " ")}.</strong>{" "}
+              {event.bookingRequest.override.acknowledged_by} acknowledged the warning:
+              <ul style={{ margin: "6px 0 0 16px" }}>
+                {event.bookingRequest.override.unmet.map((u, n) => <li key={n}>{u.reason}</li>)}
+              </ul>
+            </div>
+          )}
           {issues.map((i, n) => (
             <div key={n} className={`callout ${i.level === "block" ? "callout-danger" : ""}`} style={{ marginTop: 12 }}>
               {i.text}

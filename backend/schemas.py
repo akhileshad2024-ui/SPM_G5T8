@@ -183,51 +183,72 @@ class VenueResponse(BaseModel):
         return v or 0
 
 
-# ---------------------------------------------------------------- venue search (US20)
+# ---------------------------------------------------------------- venue search, suitability, booking requests (US20-22)
 
-# "09:30", 24-hour. Compared as text, "09:30" < "10:00" is also true as times.
+# "09:30", 24-hour. Because they are zero-padded, "09:30" < "10:00" is also true as text.
 ClockTime = Annotated[str, StringConstraints(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
+
+
+def _blank_to_none(value: Optional[str]) -> Optional[str]:
+    """A search box left empty (or only spaces) is no filter at all."""
+    return (value or "").strip() or None
+
+
+def _clean_layout(value: Optional[str]) -> Optional[str]:
+    # Layouts are stored lower case ("theatre", "classroom", ...).
+    cleaned = _blank_to_none(value)
+    return cleaned.lower() if cleaned else None
+
+
+def _end_after_start(start: str, end: str) -> None:
+    if end <= start:
+        raise ValueError("end must be after start")
+
+
+OptionalText = Annotated[Optional[str], AfterValidator(_blank_to_none)]
+OptionalLayout = Annotated[Optional[str], AfterValidator(_clean_layout)]
+RequiredLayout = Annotated[RequiredText, AfterValidator(str.lower)]
 
 
 class BookedPeriod(BaseModel):
     """A booking that currently holds a venue, so a search can leave that venue out.
 
     Event bookings are not stored in the backend yet (the frontend keeps them in memory),
-    so the page sends the ones that hold a venue along with the search.
+    so the page sends the ones that hold a venue along with the request.
     """
     venue_id: int
     date: DateOnly
     start: ClockTime
     end: ClockTime
+    status: Literal["pending", "approved"] = "approved"
+    event_id: Optional[str] = None
+    event_name: Optional[str] = None
 
 
-class VenueSearchRequest(BaseModel):
-    """What the Event Coordinator is looking for. Every field is optional; those given must all match."""
+class TimingFields(BaseModel):
+    """An optional period (date, start and end go together) plus the bookings that could be in the way of it."""
     date: Optional[DateOnly] = None
     start: Optional[ClockTime] = None
     end: Optional[ClockTime] = None
-    attendance: Optional[int] = Field(None, gt=0)
-    location: Optional[str] = None
-    accessibility: AccessibilityList = []
-    layout: Optional[str] = None
-    facilities: TextList = []
     bookings: List[BookedPeriod] = []
-
-    @field_validator("location", "layout", mode="after")
-    @classmethod
-    def _blank_is_no_filter(cls, value, info):
-        value = (value or "").strip() or None
-        # Layouts are stored lower case ("theatre", "classroom", ...).
-        return value.lower() if value and info.field_name == "layout" else value
 
     @model_validator(mode="after")
     def _timing(self):
         given = [self.date is not None, self.start is not None, self.end is not None]
         if any(given) and not all(given):
             raise ValueError("date, start and end must be given together")
-        if self.start is not None and self.end <= self.start:
-            raise ValueError("end must be after start")
+        if self.start is not None:
+            _end_after_start(self.start, self.end)
         return self
+
+
+class VenueSearchRequest(TimingFields):
+    """What the Event Coordinator is looking for. Every field is optional; those given must all match."""
+    attendance: Optional[int] = Field(None, gt=0)
+    location: OptionalText = None
+    accessibility: AccessibilityList = []
+    layout: OptionalLayout = None
+    facilities: TextList = []
 
 
 class AppliedFilter(BaseModel):
@@ -242,6 +263,111 @@ class VenueSearchResponse(BaseModel):
     total: int
     applied_filters: List[AppliedFilter]
     message: Optional[str] = None  # set when nothing matched
+
+
+# ---- US21: is this venue suitable for the event?
+
+Verdict = Literal["suitable", "partially_suitable", "unsuitable"]
+
+
+class SuitabilityRequest(TimingFields):
+    """The event's recorded venue needs. The period is optional because an event may not have a date yet."""
+    attendance: int = Field(..., gt=0)
+    layout: OptionalLayout = None
+    facilities: TextList = []
+    accessibility: AccessibilityList = []
+    venue_ids: Optional[List[int]] = None  # only these venues; None = every active venue
+
+
+class RequirementCheck(BaseModel):
+    """One of the event's needs compared with what the venue offers."""
+    key: Literal["capacity", "layout", "facility", "accessibility", "availability"]
+    label: str
+    needed: str
+    offered: str
+    met: bool
+    severity: Literal["block", "warn"]  # how serious it is when not met
+    reason: Optional[str] = None  # set when not met
+
+
+class VenueSuitability(BaseModel):
+    venue: VenueResponse
+    verdict: Verdict
+    checks: List[RequirementCheck]
+
+
+class SuitabilityResponse(BaseModel):
+    results: List[VenueSuitability]
+
+
+class UnmetRequirement(BaseModel):
+    label: str
+    severity: Literal["block", "warn"]
+    reason: str
+
+
+class BookingOverride(BaseModel):
+    """The coordinator went ahead with a venue that was not fully suitable (kept against the event)."""
+    verdict: Verdict
+    acknowledged_by: str
+    acknowledged_at: datetime
+    unmet: List[UnmetRequirement]
+
+
+# ---- US22: request a venue booking
+
+class BookingRequestCreate(BaseModel):
+    """A coordinator's request to book a venue for an event. The coordinator comes from the login session."""
+    event_id: RequiredText
+    event_name: RequiredText
+    event_status: RequiredText
+    rebooking: bool = False  # the event already went through a booking (replacement venue, or after a rejection)
+    date: DateOnly
+    start: ClockTime
+    end: ClockTime
+    attendance: int = Field(..., gt=0)
+    layout: RequiredLayout
+    facilities: TextList = []
+    accessibility: AccessibilityList = []
+    acknowledged: bool = False  # the coordinator accepted the warning about an unsuitable venue
+    bookings: List[BookedPeriod] = []
+
+    @model_validator(mode="after")
+    def _times(self):
+        _end_after_start(self.start, self.end)
+        return self
+
+
+class VenueBooking(BaseModel):
+    event_id: str
+    event_name: str
+    venue_id: int
+    venue_name: str
+    date: DateOnly
+    start: str
+    end: str
+    setup_minutes: int
+    teardown_minutes: int
+    hold_start: datetime  # the venue is held from the start of setup ...
+    hold_end: datetime  # ... to the end of the teardown
+    attendance: int
+    layout: str
+    status: Literal["pending"]
+    verdict: Verdict
+    requested_by: str
+    requested_at: datetime
+    override: Optional[BookingOverride] = None
+
+
+class BookingNotification(BaseModel):
+    to: str  # the role to tell
+    title: str
+    body: str
+
+
+class BookingRequestResponse(BaseModel):
+    booking: VenueBooking
+    notification: BookingNotification
 
 
 class VenueChangeResponse(BaseModel):

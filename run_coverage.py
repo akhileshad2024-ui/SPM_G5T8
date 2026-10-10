@@ -52,8 +52,20 @@ TARGETS = {
     "test_us18_view_venue_details": ["main.py:get_venues,get_venue", "schemas.py:VenueResponse"],
     "test_us20_search_filter_venues": [
         "venue_search.py",
+        "venue_availability.py",
         "main.py:search_venues",
-        "schemas.py:BookedPeriod,VenueSearchRequest,AppliedFilter,VenueSearchResponse",
+        "schemas.py:BookedPeriod,TimingFields,VenueSearchRequest,AppliedFilter,VenueSearchResponse,_blank_to_none,_clean_layout,_end_after_start",
+    ],
+    "test_us21_check_venue_suitability": [
+        "venue_suitability.py",
+        "venue_availability.py:availability_issues,describe_window,format_clock,format_date,format_stamp,to_datetime",
+        "main.py:check_venue_suitability",
+        "schemas.py:SuitabilityRequest,RequirementCheck,VenueSuitability,SuitabilityResponse,UnmetRequirement,BookingOverride",
+    ],
+    "test_us22_submit_booking_request": [
+        "booking_request.py",
+        "main.py:request_venue_booking",
+        "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse",
     ],
 }
 

@@ -26,11 +26,14 @@ import { DEFAULT_ROUTE, EQUIP, PEOPLE, SEED_VENUE_NAMES, seedEvents, seedNotifs 
 import { eventRequestFromForm } from "./event-request/form-adapter";
 import { submitEventRequest } from "./event-request/submission";
 import { validateEventRequest } from "./event-request/validation";
-import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
+import { equipName, freeQty, getEvent, getVenue, reservedQty } from "./selectors";
 import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "./venue-rules";
+import { bookingProblem, buildBookingRequest } from "./venue-booking";
+import { VERDICT_LABEL } from "./venue-suitability";
 import type {
   ApiVenue,
   AuthUser,
+  BookingRequestResponse,
   EventRecord,
   EventRequestErrors,
   EventTab,
@@ -150,7 +153,7 @@ function initialForm(): NewRequestForm {
     venueCapacity: "",
     layout: "banquet",
     facilities: ["PA system"],
-    access: ["Step-free access"],
+    access: ["Wheelchair Access"],
     equip: {},
     equipTechnical: {},
     reg: true,
@@ -241,7 +244,6 @@ export interface AppApi {
   equipName: typeof equipName;
   freeQty: (equipId: string, excludeEventId?: string | null) => number;
   reservedQty: (equipId: string, excludeEventId?: string | null) => number;
-  suitability: (venue: Venue, event: EventRecord) => Suitability;
 
   // ---- auth ----
   signIn: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -279,7 +281,11 @@ export interface AppApi {
   // ---- venue search / booking ----
   setVfCap: (cap: string) => void;
   setVfLayout: (layout: VenueFilter["layout"]) => void;
-  requestBooking: (eventId: string, venueId: string) => void;
+/**
+   * Ask Venue Staff for a venue (US22). The backend checks the event is approved, that no pending request already holds the
+   * slot, and, unless `acknowledged`, that the venue is fully suitable (US21). Resolves true once the request is pending.
+   */
+  requestBooking: (eventId: string, venueId: string, acknowledged?: boolean) => Promise<boolean>;
   approveBooking: (eventId: string) => void;
 
   // ---- equipment ----
@@ -466,7 +472,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       equipName,
       freeQty: (equipId, excludeEventId) => freeQty(state.events, equipId, excludeEventId),
       reservedQty: (equipId, excludeEventId) => reservedQty(state.events, equipId, excludeEventId),
-      suitability: (venue, event) => suitability(state.events, venue, event),
 
       signIn: async (email, password) => {
         const trimmed = (email || "").trim().toLowerCase();
@@ -621,22 +626,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setVfCap: (cap) => patch((s) => ({ vf: { ...s.vf, cap } })),
       setVfLayout: (layout) => patch((s) => ({ vf: { ...s.vf, layout } })),
-      requestBooking: (eventId, venueId) => {
+      requestBooking: async (eventId, venueId, acknowledged = false) => {
         const e = getEvent(state.events, eventId);
         const v = getVenue(state.venues, venueId);
-        if (!e || !v) return;
-        // Asking for a replacement keeps every other detail of the event (Week 7 change #2).
-        const previous = e.venue && e.venue !== venueId ? getVenue(state.venues, e.venue) : undefined;
-        patchEvent(
-          eventId,
-          { venue: venueId, bookingState: "pending", status: e.status === "approved" ? "planning" : e.status },
-          {
-            title: previous ? "Replacement venue requested" : "Venue booking requested",
-            body: `${v.name} requested for ${e.date}, ${e.start}–${e.end}${previous ? `, replacing ${previous.name}` : ""}.`,
+        if (!e || !v) return false;
+        const problem = bookingProblem(e);
+        if (problem) {
+          flash(problem, "warn");
+          return false;
+        }
+        try {
+          const res = await apiFetch<BookingRequestResponse>(`/venues/${venueId}/booking-requests`, {
+            method: "POST",
+            body: JSON.stringify(buildBookingRequest(e, state.events, acknowledged)),
+          });
+          const { booking } = res;
+          // Asking for a replacement keeps every other detail of the event (Week 7 change #2).
+          const previous = e.venue && e.venue !== venueId ? getVenue(state.venues, e.venue) : undefined;
+          patchEvent(
+            eventId,
+            {
+              venue: venueId,
+              bookingState: "pending",
+              status: e.status === "approved" ? "planning" : e.status,
+              bookingRequest: booking,
+              venueOverrides: booking.override ? [...(e.venueOverrides ?? []), booking.override] : e.venueOverrides,
+            },
+            {
+              title: previous ? "Replacement venue requested" : "Venue booking requested",
+              body:
+                `${v.name} requested for ${e.date}, ${e.start}–${e.end} (held from setup to teardown, ` +
+                `${booking.setup_minutes} min setup and ${booking.teardown_minutes} min teardown)${previous ? `, replacing ${previous.name}` : ""}.`,
+            }
+          );
+          if (booking.override) {
+            patchEvent(
+              eventId,
+              {},
+              {
+                title: "Venue override acknowledged",
+                body: `${booking.override.acknowledged_by} went ahead with ${v.name}, which is ${VERDICT_LABEL[booking.override.verdict].toLowerCase()}: ${booking.override.unmet
+                  .map((u) => u.reason)
+                  .join(" ")}`,
+              }
+            );
           }
-        );
-        notify("venue", "Booking request pending", `${v.name} requested for ${e.name} on ${e.date}.`);
-        flash(`Booking requested at ${v.name}.`);
+          notify(res.notification.to, res.notification.title, res.notification.body);
+          flash(`Booking requested at ${v.name}.`);
+          return true;
+        } catch (err) {
+          handleApiError(err);
+          return false;
+        }
       },
       approveBooking: (eventId) => {
         const e = getEvent(state.events, eventId);

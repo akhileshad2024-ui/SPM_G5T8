@@ -77,6 +77,59 @@ export interface Venue {
   lastUpdatedAt: string;
 }
 
+export type SuitabilityVerdict = "suitable" | "partially_suitable" | "unsuitable";
+
+/** One of an event's venue needs compared with what a venue offers (backend `RequirementCheck`). */
+export interface RequirementCheck {
+  key: "capacity" | "layout" | "facility" | "accessibility" | "availability";
+  label: string;
+  needed: string;
+  offered: string;
+  met: boolean;
+  severity: "block" | "warn";
+  reason: string | null;
+}
+
+export interface VenueSuitability {
+  venue: ApiVenue;
+  verdict: SuitabilityVerdict;
+  checks: RequirementCheck[];
+}
+
+export interface BookingOverride {
+  verdict: SuitabilityVerdict;
+  acknowledged_by: string;
+  acknowledged_at: string;
+  unmet: Array<{ label: string; severity: "block" | "warn"; reason: string }>;
+}
+
+/** A venue booking request as the backend returns it (backend `VenueBooking`). */
+export interface VenueBookingRecord {
+  event_id: string;
+  event_name: string;
+  venue_id: number;
+  venue_name: string;
+  date: string;
+  start: string;
+  end: string;
+  setup_minutes: number;
+  teardown_minutes: number;
+  hold_start: string;
+  hold_end: string;
+  attendance: number;
+  layout: string;
+  status: "pending";
+  verdict: SuitabilityVerdict;
+  requested_by: string;
+  requested_at: string;
+  override: BookingOverride | null;
+}
+
+export interface BookingRequestResponse {
+  booking: VenueBookingRecord;
+  notification: { to: Role; title: string; body: string };
+}
+
 /** The venue as the backend sends it. */
 export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy" | "lastUpdatedAt"> {
   id: number;
@@ -142,6 +195,10 @@ export interface EventRecord {
   submittedAt?: string;
   /** Preserves unfinished form values so an organiser can continue a draft. */
   draftForm?: NewRequestForm;
+  /** US22: the venue booking request as the backend recorded it (pending, venue held from setup to teardown). */
+  bookingRequest?: VenueBookingRecord;
+  /** US21: each time the coordinator went ahead with a venue that was not fully suitable, oldest first. */
+  venueOverrides?: BookingOverride[];
 }
 
 export interface NotificationRecord {

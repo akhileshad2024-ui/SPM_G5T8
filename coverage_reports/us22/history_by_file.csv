@@ -1,0 +1,3 @@
+timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
+2026-10-10 18:52:40,unit,test_us22_submit_booking_request,42,passed,100.0,unit/test_us22_submit_booking_request
+2026-10-10 19:15:42,unit,test_us22_submit_booking_request,42,passed,100.0,unit/test_us22_submit_booking_request

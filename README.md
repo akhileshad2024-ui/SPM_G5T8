@@ -69,6 +69,8 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `GET /venues` | any signed-in user (active venues only) |
 | `GET /venues/{id}` | any signed-in user (active venues only; a deactivated venue is a 404) |
 | `POST /venues/search` | Event Coordinator (search and filter active venues) |
+| `POST /venues/suitability` | Event Coordinator (compare an event's venue needs with each venue) |
+| `POST /venues/{id}/booking-requests` | Event Coordinator (request a venue for an approved event) |
 | `GET /venues?include_inactive=true` | Venue Staff, Event Coordinator |
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
@@ -129,6 +131,43 @@ the ones given must all match:
 - The search runs over all active venues in one query and in memory; the unit tests time a
   2,000-venue, 4,000-booking search against the 3-second limit.
 
+## Venue suitability and booking requests (US21, US22)
+
+On an event's **Venue** tab (Event Coordinator) every active venue is checked against the event's
+recorded needs by the backend (`backend/venue_suitability.py`, `POST /venues/suitability`):
+
+- Each venue is marked **Suitable**, **Partially suitable** or **Unsuitable**.
+- Every need is compared with what the venue offers (capacity, layout, each facility, each
+  accessibility feature, and availability at the event's date and time); the unmet ones are listed
+  with the reason, and the full comparison can be expanded under each venue.
+- How serious a miss is: capacity below the attendance, an unsupported layout, a missing
+  accessibility feature (the Week 4 answers say accessibility/layout mismatches make a venue not
+  suitable) and anything stopping the venue being used then are **blockers** (unsuitable); a missing
+  facility, or setup/turnaround running outside operating hours, is a **caveat** (partially suitable).
+
+Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-requests`):
+
+- The request holds the event's date, start and end, expected attendance and layout, plus the
+  venue's setup and teardown periods (the venue's own configured times, Week 7 change #1).
+- Only an **approved** event can ask for a venue. An event that already went through a booking (a
+  replacement venue because the first became unavailable, or a new request after a rejection) may
+  also ask once it is planning or confirmed, so Week 7 change #2 keeps working.
+- The booking is recorded as **pending** and the venue is **provisionally held** from the start of
+  setup to the end of teardown (pending requests count when checking availability, as before).
+  Venue Staff get a notification and see the hold and any override on the request.
+- **No second pending request** for the same venue and time period (setup and teardown included;
+  touching periods are fine). This cannot be overridden.
+- A venue that is not fully suitable can still be requested, but only after the coordinator
+  acknowledges the warning. The **override** (verdict, who acknowledged, when, every unmet
+  requirement) is returned, kept on the event (`venueOverrides`), added to its activity log and
+  shown to Venue Staff. A clash with an already *approved* booking can be acknowledged too, as the
+  story allows; Venue Staff still cannot approve a clashing booking.
+- Events live in the browser, so the page sends the event's status and the bookings that currently
+  hold venues with each request, and keeps the returned booking on the event. The backend checks
+  every rule regardless. Once events are stored in the backend the same rules can read them directly.
+- Events now state accessibility needs from the same fixed set as venues (Wheelchair Access, Special
+  Physical Seating, Mobility/Facility Arrangements), so the two can be compared.
+
 ## Project structure
 
 ```
@@ -162,6 +201,8 @@ lib/
   selectors.ts     Pure helpers (freeQty, suitability, lookups) — no React
   venue-rules.ts   Venue availability: occupied windows, conflicts, unavailability — no React
   venue-search.ts  Venue search (US20): filter state, request body, clearing one filter — no React
+  venue-suitability.ts  Venue suitability (US21): request body and verdict wording — no React
+  venue-booking.ts      Venue booking request (US22): request body and who may send one — no React
   venue-form.ts    Venue catalogue form state + client-side validation — no React
   api.ts           fetch wrapper for the backend (/api/*)
   app-context.tsx  Global state + every mutation (signIn, approve, requestBooking, ...)
@@ -169,7 +210,10 @@ lib/
 
 backend/
   main.py          FastAPI app + venue endpoints
-  venue_search.py  Venue search rules (US20): requirements + free-for-the-period check
+  venue_availability.py  Shared availability rules: occupied windows, closed days/hours, unavailability, clashes
+  venue_search.py        Venue search rules (US20): requirements + free-for-the-period check
+  venue_suitability.py   Suitability rules (US21): verdict, every need compared, override record
+  booking_request.py     Booking request rules (US22): approved event, no duplicate pending, record, notification
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns)
@@ -254,9 +298,13 @@ python -m unittest discover -s tests -v     # all Python tests
 python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us20_*.py" -v
+python -m unittest discover -s tests/unit/venue -p "test_us21_*.py" -v
+python -m unittest discover -s tests/unit/venue -p "test_us22_*.py" -v
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
 python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
+python -m unittest discover -s tests/integration -p "test_us21_*.py" -v
+python -m unittest discover -s tests/integration -p "test_us22_*.py" -v
                         # US20 integration tests: search through the real API (login, SQL, JSON columns), also run by hand
                         # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
 
@@ -264,7 +312,7 @@ python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
 # coverage_reports/<story>/<date_time>/unit/<test_file>/ (htmlcov/index.html, coverage_report.txt, test_output.txt),
 # plus summary.txt, and adds one line per test file to coverage_reports/<story>/history_by_file.csv.
 # Integration tests are not part of this automation.
-python run_coverage.py us17      # or us18, us20
+python run_coverage.py us17      # or us18, us20, us21, us22
 ```
 
 ## Scripts
