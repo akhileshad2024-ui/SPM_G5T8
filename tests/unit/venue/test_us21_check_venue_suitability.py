@@ -414,7 +414,7 @@ class TestPageMatchesBackend(unittest.TestCase):
         return (REPO / relative).read_text(encoding="utf-8")
 
     def test_the_page_sends_the_field_names_the_backend_expects(self):
-        source = self.source("lib/venue-suitability.ts")
+        source = self.source("lib/venues/suitability.ts")
         building = source[source.index("export function buildSuitabilityRequest"):]
 
         for field in ("attendance", "layout", "facilities", "accessibility", "date", "start", "end", "bookings"):
@@ -423,7 +423,7 @@ class TestPageMatchesBackend(unittest.TestCase):
                 self.assertRegex(building, rf"\b{field}\s*[:=]")
 
     def test_the_page_has_a_label_for_every_verdict_and_every_kind_of_check(self):
-        source = self.source("lib/venue-suitability.ts")
+        source = self.source("lib/venues/suitability.ts")
 
         for verdict in ("suitable", "partially_suitable", "unsuitable"):
             with self.subTest(verdict=verdict):

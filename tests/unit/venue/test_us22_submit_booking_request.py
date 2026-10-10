@@ -419,7 +419,7 @@ class TestPageMatchesBackend(unittest.TestCase):
         return (REPO / relative).read_text(encoding="utf-8")
 
     def test_the_page_sends_the_field_names_the_backend_expects(self):
-        source = self.source("lib/venue-booking.ts")
+        source = self.source("lib/venues/booking.ts")
         building = source[source.index("export function buildBookingRequest"):]
 
         for field in schemas.BookingRequestCreate.model_fields:
@@ -427,12 +427,12 @@ class TestPageMatchesBackend(unittest.TestCase):
                 self.assertRegex(building, rf"\b{field}\s*[:=]")
 
     def test_the_page_posts_to_the_booking_request_route(self):
-        context = self.source("lib/app-context.tsx")
+        context = self.source("lib/state/app-context.tsx")
 
         self.assertIn("/booking-requests", context)
 
     def test_the_page_keeps_the_returned_booking_and_override_against_the_event(self):
-        context = self.source("lib/app-context.tsx")
+        context = self.source("lib/state/app-context.tsx")
 
         for key in ("bookingRequest", "venueOverrides"):
             with self.subTest(key=key):

@@ -22,3 +22,6 @@ timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
 2026-10-10 19:15:26,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
 2026-10-10 19:15:26,unit,test_us17_venue_endpoints,12,passed,100.0,unit/test_us17_venue_endpoints
 2026-10-10 19:15:26,unit,test_us17_venue_validation,48,passed,100.0,unit/test_us17_venue_validation
+2026-10-10 22:10:14,unit,test_us17_venue_audit,17,passed,100.0,unit/test_us17_venue_audit
+2026-10-10 22:10:14,unit,test_us17_venue_endpoints,12,passed,100.0,unit/test_us17_venue_endpoints
+2026-10-10 22:10:14,unit,test_us17_venue_validation,48,passed,100.0,unit/test_us17_venue_validation
