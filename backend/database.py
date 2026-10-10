@@ -4,10 +4,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
-# 1. Force python to look for the .env file in the exact same folder as this script
-BASE_DIR = Path(__file__).resolve().parent
+# FastAPI reads its private configuration from the backend directory.
+ENV_FILE = Path(__file__).resolve().parent / ".env"
 # utf-8-sig tolerates the BOM that Windows editors often add
-load_dotenv(BASE_DIR / ".env", encoding="utf-8-sig")
+load_dotenv(ENV_FILE, encoding="utf-8-sig")
 
 # 2. Get the URL
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
@@ -15,7 +15,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 # 3. Never hardcode credentials here — fail loudly instead
 if not SQLALCHEMY_DATABASE_URL:
     raise RuntimeError(
-        f"DATABASE_URL is not set. Create {BASE_DIR / '.env'} (copy .env.example) with your Supabase connection string."
+        f"DATABASE_URL is not set. Add your PostgreSQL connection string to {ENV_FILE}."
     )
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

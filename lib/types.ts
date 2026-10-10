@@ -46,6 +46,17 @@ export interface Venue {
   layouts: Layout[];
   facilities: string[];
   stepFree: boolean;
+  operatingHours?: string;
+  unavailableDates?: string[];
+  characteristics?: string[];
+  operatingDays?: string[];
+}
+
+/** Response returned when FastAPI persists an event-request draft. */
+export interface ApiEventDraft {
+  id: number;
+  status: "draft";
+  draft_form: NewRequestForm;
 }
 
 export interface EquipmentCatalogueItem {

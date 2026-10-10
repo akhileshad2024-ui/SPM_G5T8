@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from datetime import datetime
 
 class VenueBase(BaseModel):
@@ -39,5 +39,20 @@ class VenueResponse(VenueBase):
     is_active: bool
     last_updated_by: str
     last_updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------- event-request drafts (US05)
+
+class EventDraftSave(BaseModel):
+    """Only the event information is accepted; organiser identity comes from the session."""
+    event_information: Dict[str, Any]
+
+
+class EventDraftResponse(BaseModel):
+    id: int
+    status: Literal["draft"]
+    draft_form: Dict[str, Any]
 
     model_config = ConfigDict(from_attributes=True)

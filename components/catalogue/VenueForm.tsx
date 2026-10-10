@@ -23,7 +23,7 @@ export function VenueForm({
     name: initialData?.name || "",
     building: initialData?.building || "",
     cap: initialData?.cap || 0,
-    layouts: initialData?.layouts || [],
+    layouts: [...(initialData?.layouts || [])] as string[],
     facilities: initialData?.facilities || [],
     stepFree: initialData?.stepFree || false,
     operatingHours: initialData?.operatingHours || "08:00 - 22:00",

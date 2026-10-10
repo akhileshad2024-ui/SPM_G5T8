@@ -6,7 +6,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import get_current_user, require_roles
-import models, schemas
+import event_drafts, models, schemas
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,10 +24,41 @@ app.include_router(auth.router)
 
 # RBAC: who may manage the venue catalogue (US17).
 VENUE_MANAGERS = (Role.venue,)
+# US05: only Event Organisers save their own draft requests.
+EVENT_DRAFT_WRITERS = (Role.organiser,)
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 
-# Fulfills US18: View Details (excluding deactivated ones) — any signed-in user
+
+# Fulfills US05: save incomplete information as a persisted Draft. The
+# organiser_id comes only from the signed-in session, never from request JSON.
+@app.post("/event-requests/drafts", response_model=schemas.EventDraftResponse, status_code=201)
+def save_event_draft(
+    request: schemas.EventDraftSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    prepared = event_drafts.prepare_draft(request.event_information)
+    saved = models.Event(
+        status=prepared["status"],
+        organiser_id=user.id,
+        # ``name`` is NOT NULL in the pre-existing events table. An empty
+        # technical value lets an incomplete draft be stored; draft_form keeps
+        # exactly what the organiser explicitly saved.
+        name=prepared["draft_form"].get("name", ""),
+        purpose=prepared["draft_form"].get("purpose"),
+        facilities=[],
+        accessibility=[],
+        equipment=[],
+        registration_required=False,
+        draft_form=prepared["draft_form"],
+    )
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+# Fulfills US18: View Details (excluding deactivated ones) — any signed-in user.
 @app.get("/venues", response_model=List[schemas.VenueResponse])
 def get_venues(db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
     return db.query(models.Venue).filter(models.Venue.is_active == True).all()

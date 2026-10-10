@@ -27,6 +27,7 @@ import { submitEventRequest } from "./event-request/submission";
 import { validateEventRequest } from "./event-request/validation";
 import { equipName, freeQty, getEvent, getVenue, reservedQty, suitability, type Suitability } from "./selectors";
 import type {
+  ApiEventDraft,
   AuthUser,
   EventRecord,
   EventRequestErrors,
@@ -92,7 +93,7 @@ function formFromEvent(event: EventRecord): NewRequestForm {
     end: event.end,
     pax: event.pax ? String(event.pax) : "",
     venueLocation:
-      event.venueLocation ?? (event.venue ? getVenue(event.venue)?.location ?? "" : ""),
+      event.venueLocation ?? (event.venue ? getVenue(event.venue)?.building ?? "" : ""),
     venueCapacity: event.venueCapacity ? String(event.venueCapacity) : "",
     layout: event.layout,
     facilities: [...event.facilities],
@@ -285,7 +286,8 @@ export interface AppApi {
   bumpEquip: (id: string, delta: number) => void;
   nextStep: () => void;
   backStep: () => void;
-  saveDraft: () => void;
+  /** US05: sends the current incomplete form to FastAPI for persistence. */
+  saveDraft: () => Promise<void>;
 }
 
 const AppContext = createContext<AppApi | null>(null);
@@ -704,19 +706,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         router.push("/my-events");
       },
       backStep: () => patch((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 })),
-      saveDraft: () => {
-        const e = buildEventFromForm("draft");
-        patch((s) => ({
-          events: s.events.some((item) => item.id === e.id)
-            ? s.events.map((item) => (item.id === e.id ? e : item))
-            : [e, ...s.events],
-          step: 1,
-          formErrors: {},
-          editingEventId: null,
-          form: initialForm(),
-        }));
-        flash("Draft saved. You can finish it later.");
-        router.push("/my-events");
+      saveDraft: async () => {
+        try {
+          // The browser sends only event information. FastAPI gets the
+          // organiser identity from the HttpOnly-cookie session, not this form.
+          const saved = await apiFetch<ApiEventDraft>("/event-requests/drafts", {
+            method: "POST",
+            body: JSON.stringify({ event_information: state.form }),
+          });
+          const e = { ...buildEventFromForm("draft"), id: String(saved.id), draftForm: saved.draft_form };
+          patch((s) => ({
+            events: [e, ...s.events.filter((item) => item.id !== e.id)],
+            step: 1,
+            formErrors: {},
+            editingEventId: null,
+            form: initialForm(),
+          }));
+          flash("Draft saved. You can finish it later.");
+          router.push("/my-events");
+        } catch (err) {
+          flash(err instanceof ApiError ? err.message : "Couldn't save the draft. Please try again.", "warn");
+        }
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
