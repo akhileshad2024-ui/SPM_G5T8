@@ -1,8 +1,7 @@
-"""Small business module for US05 — Save Event Request as Draft.
+"""Draft business rules shared by US05 (save) and US06 (reopen/edit).
 
-This module only prepares data for persistence. The FastAPI route and database
-integration will be added separately, so this function does not accept an
-organiser ID or write to a database.
+These functions do not use FastAPI or a database. Routes handle persistence
+and supply the organiser identity from the authenticated session.
 """
 
 from typing import Any, Mapping
@@ -19,3 +18,12 @@ def prepare_draft(saved_event_information: Mapping[str, Any]) -> dict[str, Any]:
         "status": "draft",
         "draft_form": dict(saved_event_information),
     }
+
+
+def can_edit_draft(status: str, organiser_id: int, authenticated_user_id: int) -> bool:
+    """US06: an organiser may reopen/edit only their own unsubmitted draft."""
+    if status != "draft":
+        return False
+    if organiser_id != authenticated_user_id:
+        return False
+    return True

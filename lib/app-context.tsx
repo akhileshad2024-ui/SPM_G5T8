@@ -178,6 +178,44 @@ function sessionUiState() {
   } satisfies Partial<AppState>;
 }
 
+/** US05/US06: turn a saved database draft into the existing table's display shape. */
+function eventFromSavedDraft(saved: ApiEventDraft, organiser: string): EventRecord {
+  // Draft fields may be incomplete. Defaults support the form UI, not submission rules.
+  const f = { ...initialForm(), ...saved.draft_form };
+  return {
+    id: String(saved.id),
+    name: f.name.trim() || "Untitled request",
+    organiser,
+    status: "draft",
+    date: f.date || "Date to confirm",
+    day: null,
+    start: f.start,
+    end: f.end,
+    pax: parseInt(f.pax, 10) || 0,
+    purpose: f.purpose,
+    layout: f.layout,
+    facilities: f.facilities,
+    access: f.access,
+    coordinator: null,
+    venue: null,
+    bookingState: null,
+    equip: Object.entries(f.equip).map(([id, qty]) => ({
+      id, qty, technicalRequirements: f.equipTechnical[id] ?? "",
+    })),
+    equipState: null,
+    reg: f.reg,
+    regCap: parseInt(f.regCap, 10) || 0,
+    registered: 0,
+    submittedAgo: "draft",
+    activity: [],
+    eventType: f.eventType,
+    venueLocation: f.venueLocation,
+    venueCapacity: parseInt(f.venueCapacity, 10) || 0,
+    regClose: f.regClose,
+    draftForm: structuredClone(f),
+  };
+}
+
 function initialState(): AppState {
   return {
     authChecked: false,
@@ -280,7 +318,7 @@ export interface AppApi {
 
   // ---- organiser / new request form ----
   submitDraft: (eventId: string) => void;
-  beginNewRequest: (eventId?: string) => void;
+  beginNewRequest: (eventId?: string) => Promise<void>;
   setFormField: <K extends keyof NewRequestForm>(key: K, value: NewRequestForm[K]) => void;
   toggleFormList: (key: "facilities" | "access", value: string) => void;
   bumpEquip: (id: string, delta: number) => void;
@@ -322,15 +360,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
 
   const startSession = (user: AuthUser) =>
-    patch({ ...sessionUiState(), authChecked: true, authed: true, user, role: user.role });
+    patch({ ...sessionUiState(), events: seedEvents().filter((e) => e.status !== "draft"), authChecked: true, authed: true, user, role: user.role });
 
-  const endSession = () => patch({ ...sessionUiState(), authChecked: true, authed: false, user: null });
+  const endSession = () => patch({ ...sessionUiState(), events: seedEvents().filter((e) => e.status !== "draft"), authChecked: true, authed: false, user: null });
 
   // Restore an existing session (the cookie survives reloads; in-memory state doesn't).
   useEffect(() => {
     apiFetch<AuthUser>("/auth/me").then(startSession, endSession);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // US06: reload private drafts after login/refresh, not from prototype seed data.
+  useEffect(() => {
+    const user = state.user;
+    if (!user || user.role !== "organiser") return;
+    let cancelled = false;
+    apiFetch<ApiEventDraft[]>("/event-requests/drafts").then(
+      (drafts) => {
+        if (!cancelled) patch((s) => ({
+          events: [...drafts.map((draft) => eventFromSavedDraft(draft, user.name)),
+            ...s.events.filter((event) => event.status !== "draft")],
+        }));
+      },
+      (err) => {
+        if (!cancelled) flash(err instanceof Error ? err.message : "Couldn't load drafts.", "warn");
+      },
+    );
+    // Ignore a response from a previous user's session after logout or account change.
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.user]);
 
   const api = useMemo<AppApi>(() => {
     const me = state.user
@@ -642,15 +701,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
         flash(`${e.name} submitted for review.`);
       },
-      beginNewRequest: (eventId) => {
-        const draft = eventId ? getEvent(state.events, eventId) : undefined;
-        patch({
-          step: 1,
-          form: draft ? formFromEvent(draft) : initialForm(),
-          formErrors: {},
-          editingEventId: draft?.id ?? null,
-        });
-        router.push("/new-request");
+      beginNewRequest: async (eventId) => {
+        try {
+          // Re-read from FastAPI so stale UI data cannot bypass ownership/status checks.
+          const draft = eventId
+            ? await apiFetch<ApiEventDraft>(`/event-requests/drafts/${eventId}`)
+            : null;
+          patch({
+            step: 1,
+            form: draft ? { ...initialForm(), ...structuredClone(draft.draft_form) } : initialForm(),
+            formErrors: {},
+            editingEventId: draft ? String(draft.id) : null,
+          });
+          router.push("/new-request");
+        } catch (err) {
+          flash(err instanceof Error ? err.message : "Couldn't open the draft.", "warn");
+        }
       },
       setFormField: (key, value) => patch((s) => ({ form: { ...s.form, [key]: value } })),
       toggleFormList: (key, value) =>
@@ -710,11 +776,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           // The browser sends only event information. FastAPI gets the
           // organiser identity from the HttpOnly-cookie session, not this form.
-          const saved = await apiFetch<ApiEventDraft>("/event-requests/drafts", {
-            method: "POST",
+          // US05 creates a draft; US06 updates that same draft when Continue was used.
+          const path = state.editingEventId
+            ? `/event-requests/drafts/${state.editingEventId}`
+            : "/event-requests/drafts";
+          const saved = await apiFetch<ApiEventDraft>(path, {
+            method: state.editingEventId ? "PUT" : "POST",
             body: JSON.stringify({ event_information: state.form }),
           });
-          const e = { ...buildEventFromForm("draft"), id: String(saved.id), draftForm: saved.draft_form };
+          const e = eventFromSavedDraft(saved, state.user!.name);
           patch((s) => ({
             events: [e, ...s.events.filter((item) => item.id !== e.id)],
             step: 1,

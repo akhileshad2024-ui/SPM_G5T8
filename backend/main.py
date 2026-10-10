@@ -58,6 +58,55 @@ def save_event_draft(
     db.refresh(saved)
     return saved
 
+# US06: the session determines whose drafts are listed; no owner parameter is accepted.
+@app.get("/event-requests/drafts", response_model=List[schemas.EventDraftResponse])
+def list_event_drafts(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return db.query(models.Event).filter(
+        models.Event.organiser_id == user.id, models.Event.status == "draft"
+    ).all()
+
+
+def find_editable_draft(event_id: int, db: Session, user: User, for_update: bool = False):
+    """Return one authorised draft, without revealing another organiser's record."""
+    query = db.query(models.Event).filter(models.Event.id == event_id)
+    if for_update:
+        # Keep status checking and saving in one short transaction.
+        query = query.with_for_update()
+    draft = query.first()
+    if draft is None or not event_drafts.can_edit_draft(draft.status, draft.organiser_id, user.id):
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return draft
+
+
+@app.get("/event-requests/drafts/{event_id}", response_model=schemas.EventDraftResponse)
+def get_event_draft(
+    event_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return find_editable_draft(event_id, db, user)
+
+
+@app.put("/event-requests/drafts/{event_id}", response_model=schemas.EventDraftResponse)
+def update_event_draft(
+    event_id: int,
+    request: schemas.EventDraftSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    draft = find_editable_draft(event_id, db, user, for_update=True)
+    prepared = event_drafts.prepare_draft(request.event_information)
+    # Update the existing row, not a new Event. Ownership and status never come from JSON.
+    draft.draft_form = prepared["draft_form"]
+    draft.name = prepared["draft_form"].get("name", "")
+    draft.purpose = prepared["draft_form"].get("purpose")
+    db.commit()
+    db.refresh(draft)
+    return draft
+
 # Fulfills US18: View Details (excluding deactivated ones) — any signed-in user.
 @app.get("/venues", response_model=List[schemas.VenueResponse])
 def get_venues(db: Session = Depends(get_db), _user: User = Depends(get_current_user)):
