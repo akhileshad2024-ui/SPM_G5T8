@@ -1,0 +1,27 @@
+Frontend coverage for US02
+Measured files: lib/auth/route-access.ts, lib/events/visibility.ts
+Tests  67 passed (67)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  2 passed (2)
+      Tests  67 passed (67)
+   Start at  15:05:58
+   Duration  908ms (transform 49%, import 30%, tests 15%, worker 6%)
+
+ % Coverage report from v8
+------------------|---------|----------|---------|---------|-------------------
+File              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------|---------|----------|---------|---------|-------------------
+------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 13/13 )
+Branches     : 100% ( 7/7 )
+Functions    : 100% ( 8/8 )
+Lines        : 100% ( 9/9 )
+================================================================================

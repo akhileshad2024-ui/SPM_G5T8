@@ -18,14 +18,17 @@
   color: #fff;
 }
 
+.equipmentItem {
+  border: 1px solid rgba(10, 14, 26, 0.1);
+  border-radius: var(--radius);
+  background: #fafafb;
+  overflow: hidden;
+}
 .equipRow {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 11px 14px;
-  border: 1px solid rgba(10, 14, 26, 0.1);
-  border-radius: var(--radius);
-  background: #fafafb;
 }
 .equipName {
   font-size: 13.5px;

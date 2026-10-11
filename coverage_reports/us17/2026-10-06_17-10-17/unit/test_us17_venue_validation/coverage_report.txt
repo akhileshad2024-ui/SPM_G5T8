@@ -1,0 +1,11 @@
+Coverage report for test_us17_venue_validation  (unit tests)
+Generated: 2026-10-06 17:10:17
+Test file: tests/unit/venue/test_us17_venue_validation.py
+Result: 43 tests, all passed
+Measured files: schemas.py
+
+Name                 Stmts   Miss  Cover   Missing
+--------------------------------------------------
+backend\schemas.py     123      0   100%
+--------------------------------------------------
+TOTAL                  123      0   100%

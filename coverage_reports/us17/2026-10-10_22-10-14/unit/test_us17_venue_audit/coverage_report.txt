@@ -1,0 +1,11 @@
+Coverage report for test_us17_venue_audit  (unit tests)
+Generated: 2026-10-10 22:10:14
+Test file: tests/unit/venue/test_us17_venue_audit.py
+Result: 17 tests, all passed
+Measured code: venue_audit.py
+
+Name            Stmts  Miss  Cover  Missing
+----------------------------------------------
+venue_audit.py     21     0   100%  
+----------------------------------------------
+TOTAL              21     0   100%

@@ -1,9 +1,11 @@
+import { STATUS } from "@/lib/data/options";
 import styles from "./LoginHero.module.css";
 
 const STATS: Array<[string, string]> = [
   ["5", "Roles"],
   ["20", "Core features"],
-  ["9", "Event statuses"],
+  // Counted from the defined status set, so it stays right if the set changes.
+  [String(Object.keys(STATUS).length), "Event statuses"],
 ];
 
 /** Left-hand branding panel on the sign-in screen. */

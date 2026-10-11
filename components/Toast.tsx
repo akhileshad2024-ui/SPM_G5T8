@@ -1,6 +1,6 @@
 "use client";
 
-import { useApp } from "@/lib/app-context";
+import { useApp } from "@/lib/state/app-context";
 import { Dot } from "./ui/Dot";
 
 const TONE_COLOR: Record<string, string> = { ok: "#2EC8FF", warn: "#FFBF00", bad: "#FF4D5E" };

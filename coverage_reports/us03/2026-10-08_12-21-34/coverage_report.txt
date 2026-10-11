@@ -1,0 +1,13 @@
+Coverage report for US03
+Generated: 2026-10-08 12:21:34
+Tests: tests/us03_us04_event_request/test_campus_date.py, tests/us03_us04_event_request/test_create_event.py, tests/us03_us04_event_request/test_list_events.py, tests/us03_us04_event_request/test_update_event.py
+Result: 41 tests, all passed
+Measured files: main.py, schemas.py, models.py
+
+Name                 Stmts   Miss  Cover   Missing
+--------------------------------------------------
+backend\main.py        127     31    76%   44-50, 55-63, 68-83, 88-90, 98-100
+backend\models.py       71      0   100%
+backend\schemas.py     200     30    85%   40, 44-52, 56-63, 81-85, 124-128, 163, 168
+--------------------------------------------------
+TOTAL                  398     61    85%

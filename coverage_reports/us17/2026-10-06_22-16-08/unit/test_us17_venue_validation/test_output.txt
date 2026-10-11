@@ -1,0 +1,48 @@
+test_capacity_of_one_is_accepted (tests.unit.venue.test_us17_venue_validation.TestCapacity.test_capacity_of_one_is_accepted) ... ok
+test_non_integer_capacity_rejected (tests.unit.venue.test_us17_venue_validation.TestCapacity.test_non_integer_capacity_rejected) ... ok
+test_non_positive_capacity_rejected (tests.unit.venue.test_us17_venue_validation.TestCapacity.test_non_positive_capacity_rejected) ... ok
+test_blank_list_item_rejected (tests.unit.venue.test_us17_venue_validation.TestMissingValues.test_blank_list_item_rejected) ... ok
+test_blank_text_rejected (tests.unit.venue.test_us17_venue_validation.TestMissingValues.test_blank_text_rejected) ... ok
+test_one_character_is_enough (tests.unit.venue.test_us17_venue_validation.TestMissingValues.test_one_character_is_enough) ... ok
+test_required_field_missing (tests.unit.venue.test_us17_venue_validation.TestMissingValues.test_required_field_missing) ... ok
+test_all_seven_days_is_the_maximum (tests.unit.venue.test_us17_venue_validation.TestOperatingDays.test_all_seven_days_is_the_maximum) ... ok
+test_days_are_put_in_week_order_without_repeats (tests.unit.venue.test_us17_venue_validation.TestOperatingDays.test_days_are_put_in_week_order_without_repeats) ... ok
+test_no_days_rejected (tests.unit.venue.test_us17_venue_validation.TestOperatingDays.test_no_days_rejected) ... ok
+test_one_day_is_the_minimum (tests.unit.venue.test_us17_venue_validation.TestOperatingDays.test_one_day_is_the_minimum) ... ok
+test_unknown_day_rejected (tests.unit.venue.test_us17_venue_validation.TestOperatingDays.test_unknown_day_rejected) ... ok
+test_bad_format_rejected (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_bad_format_rejected) ... ok
+test_closing_must_be_after_opening (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_closing_must_be_after_opening) ... ok
+test_closing_one_minute_after_opening_is_accepted (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_closing_one_minute_after_opening_is_accepted) ... ok
+test_hours_are_optional (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_hours_are_optional) ... ok
+test_spacing_is_normalised (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_spacing_is_normalised) ... ok
+test_widest_possible_day_is_accepted (tests.unit.venue.test_us17_venue_validation.TestOperatingHours.test_widest_possible_day_is_accepted) ... ok
+test_a_complete_venue_is_accepted_unchanged (tests.unit.venue.test_us17_venue_validation.TestRecordsVenueDetails.test_a_complete_venue_is_accepted_unchanged) ... ok
+test_layouts_are_lower_cased_to_match_event_layouts (tests.unit.venue.test_us17_venue_validation.TestRecordsVenueDetails.test_layouts_are_lower_cased_to_match_event_layouts) ... ok
+test_only_name_location_and_capacity_are_required (tests.unit.venue.test_us17_venue_validation.TestRecordsVenueDetails.test_only_name_location_and_capacity_are_required) ... ok
+test_repeated_list_items_are_dropped_keeping_first_spelling (tests.unit.venue.test_us17_venue_validation.TestRecordsVenueDetails.test_repeated_list_items_are_dropped_keeping_first_spelling) ... ok
+test_text_is_trimmed (tests.unit.venue.test_us17_venue_validation.TestRecordsVenueDetails.test_text_is_trimmed) ... ok
+test_just_outside_the_limits_is_rejected (tests.unit.venue.test_us17_venue_validation.TestSetupAndTurnaround.test_just_outside_the_limits_is_rejected) ... ok
+test_limits_are_accepted (tests.unit.venue.test_us17_venue_validation.TestSetupAndTurnaround.test_limits_are_accepted) ... ok
+test_non_integer_rejected (tests.unit.venue.test_us17_venue_validation.TestSetupAndTurnaround.test_non_integer_rejected) ... ok
+test_bad_period_makes_the_venue_invalid (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_bad_period_makes_the_venue_invalid) ... ok
+test_each_reason_accepted_without_a_note (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_each_reason_accepted_without_a_note) ... ok
+test_end_must_be_after_start (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_end_must_be_after_start) ... ok
+test_note_of_500_characters_is_accepted (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_note_of_500_characters_is_accepted) ... ok
+test_note_of_501_characters_is_rejected (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_note_of_501_characters_is_rejected) ... ok
+test_other_requires_a_note (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_other_requires_a_note) ... ok
+test_other_with_a_note_accepted (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_other_with_a_note_accepted) ... ok
+test_period_of_one_minute_is_accepted (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_period_of_one_minute_is_accepted) ... ok
+test_start_end_and_reason_are_required (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_start_end_and_reason_are_required) ... ok
+test_unknown_reason_rejected (tests.unit.venue.test_us17_venue_validation.TestUnavailabilityPeriod.test_unknown_reason_rejected) ... ok
+test_older_rows_with_missing_values_still_load (tests.unit.venue.test_us17_venue_validation.TestVenueResponse.test_older_rows_with_missing_values_still_load) ... ok
+test_create_rules_also_apply_when_editing (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_create_rules_also_apply_when_editing) ... ok
+test_deactivation_is_an_update (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_deactivation_is_an_update) ... ok
+test_editor_cannot_be_set_in_the_body (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_editor_cannot_be_set_in_the_body) ... ok
+test_null_for_a_required_field_is_rejected (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_null_for_a_required_field_is_rejected) ... ok
+test_only_sent_fields_are_set (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_only_sent_fields_are_set) ... ok
+test_operating_hours_can_be_cleared_with_null (tests.unit.venue.test_us17_venue_validation.TestVenueUpdate.test_operating_hours_can_be_cleared_with_null) ... ok
+
+----------------------------------------------------------------------
+Ran 43 tests in 0.009s
+
+OK

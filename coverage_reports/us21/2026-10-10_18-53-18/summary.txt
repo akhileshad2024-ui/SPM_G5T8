@@ -1,0 +1,4 @@
+US21 unit test and coverage summary - 2026-10-10 18:53:18
+
+type    test file                          tests  result   coverage
+unit    test_us21_check_venue_suitability     35  passed     100.0%

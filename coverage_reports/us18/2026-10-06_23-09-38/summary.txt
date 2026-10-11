@@ -1,0 +1,4 @@
+US18 unit test and coverage summary - 2026-10-06 23:09:38
+
+type    test file                          tests  result   coverage
+unit    test_us18_view_venue_details           8  passed     100.0%

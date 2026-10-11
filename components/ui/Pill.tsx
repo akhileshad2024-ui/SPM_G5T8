@@ -1,4 +1,4 @@
-import { STATUS } from "@/lib/data";
+import { STATUS } from "@/lib/data/options";
 import type { EventStatus } from "@/lib/types";
 
 /** The big uppercase status pill (Draft, Submitted, Confirmed, ...). */

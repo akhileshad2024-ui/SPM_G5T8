@@ -1,0 +1,13 @@
+Coverage report for US15
+Generated: 2026-10-10 15:16:12
+Tests: tests/us15_event_information/test_event_information_api.py, tests/us15_event_information/test_field_rules.py
+Result: 57 tests, all passed
+Measured files: event_fields.py, main.py, schemas.py
+
+Name                      Stmts   Miss  Cover   Missing
+-------------------------------------------------------
+backend\event_fields.py      17      0   100%
+backend\main.py             166     51    69%   49-55, 62-65, 76-79, 84-92, 97-112, 117-119, 127-129, 228-240, 258, 260, 262, 280
+backend\schemas.py          273     67    75%   40, 44-52, 56-63, 72-77, 96-100, 139-143, 178, 183, 219-221, 225-230, 329, 331, 333, 335, 337, 339, 341, 343, 345, 348, 350, 352, 355-356, 359-369
+-------------------------------------------------------
+TOTAL                       456    118    74%

@@ -1,0 +1,71 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 57 items
+
+tests/us15_event_information/test_event_information_api.py::test_each_role_gets_exactly_the_fields_permitted_for_it[organiser] PASSED [  1%]
+tests/us15_event_information/test_event_information_api.py::test_each_role_gets_exactly_the_fields_permitted_for_it[coordinator] PASSED [  3%]
+tests/us15_event_information/test_event_information_api.py::test_each_role_gets_exactly_the_fields_permitted_for_it[venue] PASSED [  5%]
+tests/us15_event_information/test_event_information_api.py::test_each_role_gets_exactly_the_fields_permitted_for_it[tech] PASSED [  7%]
+tests/us15_event_information/test_event_information_api.py::test_each_role_gets_exactly_the_fields_permitted_for_it[attendee] PASSED [  8%]
+tests/us15_event_information/test_event_information_api.py::test_the_event_list_gives_the_same_fields[organiser] PASSED [ 10%]
+tests/us15_event_information/test_event_information_api.py::test_the_event_list_gives_the_same_fields[coordinator] PASSED [ 12%]
+tests/us15_event_information/test_event_information_api.py::test_the_event_list_gives_the_same_fields[venue] PASSED [ 14%]
+tests/us15_event_information/test_event_information_api.py::test_the_event_list_gives_the_same_fields[tech] PASSED [ 15%]
+tests/us15_event_information/test_event_information_api.py::test_the_event_list_gives_the_same_fields[attendee] PASSED [ 17%]
+tests/us15_event_information/test_event_information_api.py::test_the_organiser_sees_every_saved_detail_of_their_event PASSED [ 19%]
+tests/us15_event_information/test_event_information_api.py::test_attendees_see_the_public_details_and_nothing_internal PASSED [ 21%]
+tests/us15_event_information/test_event_information_api.py::test_tech_support_sees_equipment_and_where_but_not_the_booking PASSED [ 22%]
+tests/us15_event_information/test_event_information_api.py::test_venue_staff_see_the_venue_needs_but_not_equipment_or_registration PASSED [ 24%]
+tests/us15_event_information/test_event_information_api.py::test_a_permitted_field_with_no_value_is_sent_empty_not_left_out PASSED [ 26%]
+tests/us15_event_information/test_event_information_api.py::test_only_the_organiser_gets_their_draft_form PASSED [ 28%]
+tests/us15_event_information/test_event_information_api.py::test_the_last_updated_time_is_the_saved_one_and_says_it_is_utc PASSED [ 29%]
+tests/us15_event_information/test_event_information_api.py::test_an_edit_shows_the_new_values_and_a_later_last_updated_time PASSED [ 31%]
+tests/us15_event_information/test_event_information_api.py::test_a_change_saved_elsewhere_shows_on_the_next_view PASSED [ 33%]
+tests/us15_event_information/test_event_information_api.py::test_every_role_sees_the_same_values_for_the_fields_they_share PASSED [ 35%]
+tests/us15_event_information/test_event_information_api.py::test_after_a_submit_organiser_and_coordinator_see_the_same_saved_request PASSED [ 36%]
+tests/us15_event_information/test_event_information_api.py::test_the_list_and_the_details_view_agree[organiser] PASSED [ 38%]
+tests/us15_event_information/test_event_information_api.py::test_the_list_and_the_details_view_agree[coordinator] PASSED [ 40%]
+tests/us15_event_information/test_event_information_api.py::test_the_list_and_the_details_view_agree[venue] PASSED [ 42%]
+tests/us15_event_information/test_event_information_api.py::test_the_list_and_the_details_view_agree[tech] PASSED [ 43%]
+tests/us15_event_information/test_event_information_api.py::test_the_list_and_the_details_view_agree[attendee] PASSED [ 45%]
+tests/us15_event_information/test_event_information_api.py::test_staff_not_involved_in_the_event_are_refused[venue] PASSED [ 47%]
+tests/us15_event_information/test_event_information_api.py::test_staff_not_involved_in_the_event_are_refused[tech] PASSED [ 49%]
+tests/us15_event_information/test_event_information_api.py::test_staff_not_involved_in_the_event_are_refused[attendee] PASSED [ 50%]
+tests/us15_event_information/test_event_information_api.py::test_another_organisers_event_is_refused PASSED [ 52%]
+tests/us15_event_information/test_event_information_api.py::test_a_draft_is_refused_to_everyone_but_its_organiser PASSED [ 54%]
+tests/us15_event_information/test_event_information_api.py::test_an_event_that_does_not_exist_is_not_found PASSED [ 56%]
+tests/us15_event_information/test_event_information_api.py::test_signed_out_users_cannot_view_an_event PASSED [ 57%]
+tests/us15_event_information/test_field_rules.py::test_each_role_sees_exactly_the_agreed_fields[organiser] PASSED [ 59%]
+tests/us15_event_information/test_field_rules.py::test_each_role_sees_exactly_the_agreed_fields[coordinator] PASSED [ 61%]
+tests/us15_event_information/test_field_rules.py::test_each_role_sees_exactly_the_agreed_fields[venue] PASSED [ 63%]
+tests/us15_event_information/test_field_rules.py::test_each_role_sees_exactly_the_agreed_fields[tech] PASSED [ 64%]
+tests/us15_event_information/test_field_rules.py::test_each_role_sees_exactly_the_agreed_fields[attendee] PASSED [ 66%]
+tests/us15_event_information/test_field_rules.py::test_every_role_has_a_rule PASSED [ 68%]
+tests/us15_event_information/test_field_rules.py::test_every_rule_names_real_fields PASSED [ 70%]
+tests/us15_event_information/test_field_rules.py::test_every_field_is_visible_to_someone PASSED [ 71%]
+tests/us15_event_information/test_field_rules.py::test_every_role_sees_the_basics_and_the_last_updated_time[organiser] PASSED [ 73%]
+tests/us15_event_information/test_field_rules.py::test_every_role_sees_the_basics_and_the_last_updated_time[coordinator] PASSED [ 75%]
+tests/us15_event_information/test_field_rules.py::test_every_role_sees_the_basics_and_the_last_updated_time[venue] PASSED [ 77%]
+tests/us15_event_information/test_field_rules.py::test_every_role_sees_the_basics_and_the_last_updated_time[tech] PASSED [ 78%]
+tests/us15_event_information/test_field_rules.py::test_every_role_sees_the_basics_and_the_last_updated_time[attendee] PASSED [ 80%]
+tests/us15_event_information/test_field_rules.py::test_only_the_organiser_sees_their_unfinished_draft_form PASSED [ 82%]
+tests/us15_event_information/test_field_rules.py::test_review_notes_stay_between_organiser_and_coordinator PASSED [ 84%]
+tests/us15_event_information/test_field_rules.py::test_tech_and_attendees_see_where_the_event_is_but_not_the_booking PASSED [ 85%]
+tests/us15_event_information/test_field_rules.py::test_for_role_leaves_hidden_fields_out_rather_than_blanking_them[organiser] PASSED [ 87%]
+tests/us15_event_information/test_field_rules.py::test_for_role_leaves_hidden_fields_out_rather_than_blanking_them[coordinator] PASSED [ 89%]
+tests/us15_event_information/test_field_rules.py::test_for_role_leaves_hidden_fields_out_rather_than_blanking_them[venue] PASSED [ 91%]
+tests/us15_event_information/test_field_rules.py::test_for_role_leaves_hidden_fields_out_rather_than_blanking_them[tech] PASSED [ 92%]
+tests/us15_event_information/test_field_rules.py::test_for_role_leaves_hidden_fields_out_rather_than_blanking_them[attendee] PASSED [ 94%]
+tests/us15_event_information/test_field_rules.py::test_for_role_keeps_visible_fields_that_have_no_value PASSED [ 96%]
+tests/us15_event_information/test_field_rules.py::test_for_role_does_not_change_the_full_event PASSED [ 98%]
+tests/us15_event_information/test_field_rules.py::test_an_account_with_an_unknown_role_sees_no_fields PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 57 passed, 1 warning in 24.87s ========================

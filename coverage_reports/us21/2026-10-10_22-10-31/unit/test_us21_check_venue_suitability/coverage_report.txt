@@ -1,0 +1,14 @@
+Coverage report for test_us21_check_venue_suitability  (unit tests)
+Generated: 2026-10-10 22:10:31
+Test file: tests/unit/venue/test_us21_check_venue_suitability.py
+Result: 35 tests, all passed
+Measured code: venue_suitability.py, venue_availability.py:availability_issues,describe_window,format_clock,format_date,format_stamp,to_datetime, main.py:check_venue_suitability, schemas.py:SuitabilityRequest,RequirementCheck,VenueSuitability,SuitabilityResponse,UnmetRequirement,BookingOverride
+
+Name                                                                                                                  Stmts  Miss  Cover  Missing
+----------------------------------------------------------------------------------------------------------------------------------------------------
+venue_suitability.py                                                                                                     50     0   100%  
+venue_availability.py:availability_issues,describe_window,format_clock,format_date,format_stamp,to_datetime              47     0   100%  
+main.py:check_venue_suitability                                                                                           4     0   100%  
+schemas.py:SuitabilityRequest,RequirementCheck,VenueSuitability,SuitabilityResponse,UnmetRequirement,BookingOverride     29     0   100%  
+----------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                                   130     0   100%

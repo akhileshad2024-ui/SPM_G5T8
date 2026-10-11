@@ -1,0 +1,12 @@
+Coverage report for US02
+Generated: 2026-10-06 17:24:46
+Tests: tests/us02_rbac/test_rbac.py, tests/us02_rbac/unit/test_require_roles_unit.py
+Result: 54 tests, all passed
+Measured files: login/security.py, main.py
+
+Name                        Stmts   Miss  Cover   Missing
+---------------------------------------------------------
+backend\login\security.py      84     15    82%   26, 60-61, 70, 102, 116-117, 127-128, 167-173
+backend\main.py                59      1    98%   76
+---------------------------------------------------------
+TOTAL                         143     16    89%

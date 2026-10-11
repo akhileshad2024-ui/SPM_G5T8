@@ -1,8 +1,15 @@
+import { StatusHistory } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
 
 export function ActivityTab({ event }: { event: EventRecord }) {
   return (
     <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div className="card" style={{ flex: "0 1 300px", minWidth: 260, padding: "20px 22px" }}>
+        <div className="section-heading" style={{ marginBottom: 12 }}>
+          Status history
+        </div>
+        <StatusHistory event={event} />
+      </div>
       <div className="card" style={{ flex: 1, minWidth: 320, padding: "20px 22px" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {event.activity.map((a, i) => (

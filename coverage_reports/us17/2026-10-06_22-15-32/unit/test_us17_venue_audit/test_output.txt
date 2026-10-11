@@ -1,0 +1,22 @@
+test_an_edit_that_changes_nothing_reports_nothing (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_an_edit_that_changes_nothing_reports_nothing) ... ok
+test_changed_fields_are_set_and_reported_with_old_and_new_values (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_changed_fields_are_set_and_reported_with_old_and_new_values) ... ok
+test_fields_not_sent_are_left_alone (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_fields_not_sent_are_left_alone) ... ok
+test_reordering_a_list_counts_as_a_change (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_reordering_a_list_counts_as_a_change) ... ok
+test_setup_turnaround_and_unavailability_changes_are_reported (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_setup_turnaround_and_unavailability_changes_are_reported) ... ok
+test_smallest_possible_change_is_reported (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_smallest_possible_change_is_reported) ... ok
+test_unchanged_values_are_not_reported (tests.unit.venue.test_us17_venue_audit.TestApplyUpdate.test_unchanged_values_are_not_reported) ... ok
+test_audited_fields_exist_on_the_venue_table (tests.unit.venue.test_us17_venue_audit.TestAuditedFields.test_audited_fields_exist_on_the_venue_table) ... ok
+test_deactivation (tests.unit.venue.test_us17_venue_audit.TestChangeAction.test_deactivation) ... ok
+test_deactivation_wins_when_combined_with_other_changes (tests.unit.venue.test_us17_venue_audit.TestChangeAction.test_deactivation_wins_when_combined_with_other_changes) ... ok
+test_ordinary_edit (tests.unit.venue.test_us17_venue_audit.TestChangeAction.test_ordinary_edit) ... ok
+test_reactivation (tests.unit.venue.test_us17_venue_audit.TestChangeAction.test_reactivation) ... ok
+test_every_audited_field_is_recorded_as_new (tests.unit.venue.test_us17_venue_audit.TestCreationChanges.test_every_audited_field_is_recorded_as_new) ... ok
+test_audit_row_and_venue_share_the_same_timestamp (tests.unit.venue.test_us17_venue_audit.TestRecordChange.test_audit_row_and_venue_share_the_same_timestamp) ... ok
+test_each_change_adds_its_own_row (tests.unit.venue.test_us17_venue_audit.TestRecordChange.test_each_change_adds_its_own_row) ... ok
+test_one_audit_row_is_added_with_who_what_and_when (tests.unit.venue.test_us17_venue_audit.TestRecordChange.test_one_audit_row_is_added_with_who_what_and_when) ... ok
+test_venue_is_stamped_with_editor_and_time (tests.unit.venue.test_us17_venue_audit.TestRecordChange.test_venue_is_stamped_with_editor_and_time) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.005s
+
+OK
