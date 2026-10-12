@@ -1,0 +1,4 @@
+timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
+2026-10-10 10:42:52,unit,test_us05_save_event_draft,3,passed,100.0,unit/test_us05_save_event_draft
+2026-10-10 11:06:59,unit,test_us05_save_event_draft,3,passed,100.0,unit/test_us05_save_event_draft
+2026-10-10 11:26:29,unit,test_us05_save_event_draft,3,passed,100.0,unit/test_us05_save_event_draft

@@ -638,3 +638,33 @@ class ClarificationIn(BaseModel):
 class DecisionIn(BaseModel):
     outcome: Literal["approved", "rejected"]
     reason: str = ""  # required (10-1000 characters) to reject; an optional note to approve
+
+
+# ---------------------------------------------------------------- event-request drafts (US05)
+
+class EventDraftSave(BaseModel):
+    """Only the event information is accepted; organiser identity comes from the session."""
+    event_information: Dict[str, Any]
+    # Optional typed details reuse existing event views and booking/review fields.
+    event_details: Optional[EventRequestIn] = None
+
+
+class EventDraftResponse(BaseModel):
+    id: int
+    status: Literal["draft"]
+    draft_form: Dict[str, Any]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EventSubmissionSave(EventDraftSave):
+    draft_id: Optional[int] = None
+
+
+class EventRequestResponse(BaseModel):
+    id: int
+    status: str
+    draft_form: Optional[Dict[str, Any]] = None
+    submitted_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

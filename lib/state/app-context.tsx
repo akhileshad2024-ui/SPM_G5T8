@@ -25,10 +25,9 @@ import { ApiError, apiFetch } from "../api/client";
 import { PEOPLE } from "../data/seed";
 import { DEFAULT_ROUTE } from "../auth/route-access";
 import { EQUIP } from "../data/options";
-import { eventRequestFromForm } from "../events/request/form-adapter";
-import { eventFromApi, eventKey, eventRequestBody, type SavedEvent, type StoredEvent } from "../events/request/api";
-import { submitEventRequest } from "../events/request/submission";
-import { localDateISO, validateEventRequest } from "../events/request/validation";
+import { eventFromApi, eventKey, eventRequestBody, type StoredEvent } from "../events/request/api";
+import { createPendingRequestGuard } from "../events/request/pending-request";
+import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
@@ -42,6 +41,7 @@ import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "../venu
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
 import type {
   ApiVenue,
+  ApiEventDraft,
   AuthUser,
   BookingRequestResponse,
   EventRecord,
@@ -349,7 +349,8 @@ export interface AppApi {
   bumpEquip: (id: string, delta: number) => void;
   nextStep: () => void;
   backStep: () => void;
-  saveDraft: () => void;
+  saveDraft: () => Promise<void>;
+  isSavingDraft: boolean;
 }
 
 export type SaveVenueResult =
@@ -361,6 +362,8 @@ const AppContext = createContext<AppApi | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const router = useRouter();
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const draftSaveGuard = useRef(createPendingRequestGuard());
   // Ignores repeat clicks while an event request is being saved, so one click = one row.
   const savingRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -537,28 +540,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const actor = { name: me.person, role: state.role };
 
     /**
-     * Saves the wizard form through POST /events and puts the stored event in the list.
+     * Saves the wizard form through the draft/submission API and updates the shared event list.
      * Returns the event, or null after showing why it wasn't saved.
      */
-    const saveRequest = async (submit: boolean): Promise<EventRecord | null> => {
+    const saveRequest = async (submit: boolean, form = state.form, editingId = state.editingEventId): Promise<EventRecord | null> => {
       if (savingRequest.current) return null;
       savingRequest.current = true;
       try {
-        // A draft already stored on the server is updated in place, never saved as a second request.
-        const storedId = getEvent(state.events, state.editingEventId)?.backendId;
-        const saved = await apiFetch<SavedEvent>(storedId ? `/events/${storedId}` : "/events", {
-          method: storedId ? "PUT" : "POST",
-          body: JSON.stringify(eventRequestBody(state.form, EQUIP, submit)),
+        // Preserve the shared event schema while using the US04-06 ownership/status endpoints.
+        const storedId = getEvent(state.events, editingId)?.backendId;
+        const path = submit ? "/event-requests/submit"
+          : storedId ? `/event-requests/drafts/${storedId}` : "/event-requests/drafts";
+        const saved = await apiFetch<ApiEventDraft>(path, {
+          method: !submit && storedId ? "PUT" : "POST",
+          body: JSON.stringify({
+            event_information: form,
+            event_details: eventRequestBody(form, EQUIP, false),
+            ...(submit ? { draft_id: storedId ?? null } : {}),
+          }),
         });
         const e = {
-          ...buildEventFromForm(submit ? "submitted" : "draft", saved.submittedAt ?? undefined),
-          id: eventKey(saved.id),
-          backendId: saved.id,
-          organiser: saved.organiser,
+          ...buildEventFromForm(submit ? "submitted" : "draft", saved.submitted_at ?? undefined, form),
+          id: eventKey(saved.id), backendId: saved.id, organiser: me.person,
         };
         patch((s) => ({
           // An edited local draft is replaced by the stored copy.
-          events: [e, ...s.events.filter((item) => item.id !== s.editingEventId)],
+          events: [e, ...s.events.filter((item) => item.id !== editingId)],
           step: 1,
           formErrors: {},
           editingEventId: null,
@@ -581,8 +588,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const buildEventFromForm = (
       status: "draft" | "submitted",
       submittedAt?: string,
+      f = state.form,
     ): EventRecord => {
-      const f = state.form;
       const d = f.date ? new Date(`${f.date}T00:00:00`) : null;
       const dateLabel = d
         ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
@@ -637,6 +644,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const value: AppApi = {
+      isSavingDraft,
       state,
       me,
 
@@ -967,65 +975,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       submitDraft: async (eventId) => {
         const e = getEvent(state.events, eventId);
-        if (!e) return;
-        const form = formFromEvent(e, state.venues);
-        const result = submitEventRequest(eventRequestFromForm(form, EQUIP), new Date());
-        if (!result.ok) {
-          const validation = validateEventRequest(
-            eventRequestFromForm(form, EQUIP),
-            localDateISO(new Date()),
-          );
-          const firstStep = Object.keys(errorsForStep(validation.errors, 1)).length
-            ? 1
-            : Object.keys(errorsForStep(validation.errors, 2)).length
-              ? 2
-              : 3;
-          patch({
-            form,
-            formErrors: validation.errors,
-            editingEventId: eventId,
-            step: firstStep,
-          });
-          flash("Complete the outstanding fields before submission.", "warn");
-          router.push("/new-request");
-          return;
-        }
-        // A stored draft is submitted on the server, so the change is saved and recorded in its status history (US13).
-        let submittedAt = result.request.submittedAt;
-        if (e.backendId !== undefined) {
-          try {
-            const saved = await apiFetch<SavedEvent>(`/events/${e.backendId}`, {
-              method: "PUT",
-              body: JSON.stringify(eventRequestBody(form, EQUIP, true)),
-            });
-            submittedAt = saved.submittedAt ?? submittedAt;
-          } catch (err) {
-            handleApiError(err);
-            return;
-          }
-        }
-        patchEvent(
-          eventId,
-          {
-            status: "submitted",
-            submittedAgo: "submitted just now",
-            submittedAt,
-            draftForm: undefined,
-          },
-          { title: "Request submitted", body: `${e.organiser} submitted the request for review.` }
-        );
-        notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
-        flash(`${e.name} submitted for review.`);
+        if (!e || !canDirectlyEditEventRequest(e.status)) return;
+        const saved = await saveRequest(true, formFromEvent(e, state.venues), eventId);
+        if (saved) flash(`${saved.name} submitted for review.`);
       },
-      beginNewRequest: (eventId) => {
-        const draft = eventId ? getEvent(state.events, eventId) : undefined;
-        patch({
-          step: 1,
-          form: draft ? formFromEvent(draft, state.venues) : initialForm(),
-          formErrors: {},
-          editingEventId: draft?.id ?? null,
-        });
-        router.push("/new-request");
+      beginNewRequest: async (eventId) => {
+        try {
+          const event = eventId ? getEvent(state.events, eventId) : undefined;
+          if (eventId && (!event || event.backendId === undefined)) return;
+          // Reload only an owned Draft; the API refuses submitted/other-owned records.
+          const saved = event
+            ? await apiFetch<ApiEventDraft>(`/event-requests/drafts/${event.backendId}`) : null;
+          patch({ step: 1,
+            form: saved ? { ...initialForm(), ...structuredClone(saved.draft_form) } : initialForm(),
+            formErrors: {}, editingEventId: event?.id ?? null,
+          });
+          router.push("/new-request");
+        } catch (err) { handleApiError(err); }
       },
       setFormField: (key, value) => patch((s) => ({ form: { ...s.form, [key]: value } })),
       toggleFormList: (key, value) =>
@@ -1042,46 +1008,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { form: { ...s.form, equip: { ...s.form.equip, [id]: next } } };
         }),
       nextStep: async () => {
-        const draft = eventRequestFromForm(state.form, EQUIP);
-        const validation = validateEventRequest(draft, localDateISO(new Date()));
-
+        // Navigation does not invent mandatory submission fields.
         if (state.step < 3) {
-          const stepErrors = errorsForStep(validation.errors, state.step);
-          if (Object.keys(stepErrors).length) {
-            patch({ formErrors: stepErrors });
-            flash("Complete the highlighted fields before continuing.", "warn");
-            return;
-          }
-          patch({
-            step: (state.step + 1) as 1 | 2 | 3,
-            formErrors: {},
-          });
-          return;
-        }
-
-        const result = submitEventRequest(draft, new Date());
-        if (!result.ok) {
-          patch({ formErrors: validation.errors });
-          flash("Complete the outstanding fields before submission.", "warn");
+          patch({ step: (state.step + 1) as 1 | 2 | 3, formErrors: {} });
           return;
         }
         const e = await saveRequest(true);
         if (!e) return;
-        notify("coordinator", "New event request", `${e.name} was submitted and needs review.`);
+        // Lead assignment and its notifications remain a separate dependency.
         flash(`${e.name} submitted for review.`);
         router.push("/my-events");
       },
       backStep: () => patch((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 })),
       saveDraft: async () => {
-        const e = await saveRequest(false);
-        if (!e) return;
-        flash("Draft saved. You can finish it later.");
-        router.push("/my-events");
+        await draftSaveGuard.current(async () => {
+          setIsSavingDraft(true);
+          try {
+            const e = await saveRequest(false);
+            if (!e) return;
+            flash("Draft saved. You can finish it later.");
+            router.push("/my-events");
+          } finally { setIsSavingDraft(false); }
+        });
       },
     };
     return value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, isSavingDraft]);
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;
 }

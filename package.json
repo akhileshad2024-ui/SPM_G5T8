@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:all": "node scripts/dev-all.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -22,6 +23,8 @@
     "test:review": "vitest run tests/us07_us11_event_review"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
