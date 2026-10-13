@@ -24,7 +24,7 @@ jobs:
       # The tests import the backend (FastAPI, SQLAlchemy, ...), so its packages are needed.
       # pytest runs the per-story test folders; httpx is what FastAPI's TestClient uses.
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt pytest httpx
+        run: pip install -r backend/requirements.txt pytest httpx coverage
 
       # Unit tests only. They use an in-memory database and never touch Supabase,
       # so no secrets or .env file are needed. "-s tests/unit" is needed because plain
@@ -35,8 +35,29 @@ jobs:
       # Every Python test: the per-story folders (tests/us01_secure_login, tests/us02_rbac,
       # tests/us03_us04_event_request, tests/us13_event_status), tests/unit and tests/integration.
       # tests/conftest.py points them at a throwaway SQLite database, never Supabase.
-      - name: Run all backend tests (pytest)
-        run: python -m pytest tests -v -p no:cacheprovider
+      - name: Run all backend tests with statement and branch coverage
+        run: |
+          mkdir -p coverage/backend
+          python -m coverage run --branch --source=backend --data-file=coverage/backend/.coverage -m pytest tests -v -p no:cacheprovider
+
+      # Report even after a failing test, without changing that test's failure status.
+      # Measurement only: a green job does not mean 100% coverage.
+      - name: Generate backend coverage reports
+        if: ${{ !cancelled() && hashFiles('coverage/backend/.coverage') != '' }}
+        run: |
+          python -m coverage report --data-file=coverage/backend/.coverage --show-missing | tee coverage/backend/coverage.txt
+          python -m coverage json --data-file=coverage/backend/.coverage -o coverage/backend/coverage.json
+          python -m coverage xml --data-file=coverage/backend/.coverage -o coverage/backend/coverage.xml
+          python -m coverage html --data-file=coverage/backend/.coverage -d coverage/backend/html
+
+      - name: Upload backend coverage evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-${{ github.sha }}
+          path: coverage/backend/
+          if-no-files-found: warn
+          retention-days: 90
 
   frontend:
     runs-on: ubuntu-latest
@@ -57,8 +78,17 @@ jobs:
         run: npx tsc --noEmit
 
       # Vitest unit tests for every story (tests/**/*.unit.test.ts).
-      - name: Run frontend unit tests
-        run: npm test
+      - name: Run frontend unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload frontend coverage evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: coverage/frontend/
+          if-no-files-found: warn
+          retention-days: 90
 
       - name: Build
         run: npm run build

@@ -126,6 +126,16 @@ describe("eventFromApi (stored requests loaded after a reload)", () => {
     expect(e.backendId).toBe(7);
   });
 
+  it("restores earlier organiser records whose basic values are stored in draftForm", () => {
+    const e = eventFromApi({ ...stored, pax: null, date: null, start: null, end: null,
+      draftForm: createForm() });
+    expect(e.pax).toBe(120);
+    expect(e.date).toBe("15 Jun 2030");
+    expect(e.start).toBe("18:00");
+    expect(e.end).toBe("21:00");
+    expect(e.backendId).toBe(7);
+  });
+
   it("shows dates and times the way the event lists do", () => {
     const e = eventFromApi(stored);
     expect(e.date).toBe("21 Mar 2030");

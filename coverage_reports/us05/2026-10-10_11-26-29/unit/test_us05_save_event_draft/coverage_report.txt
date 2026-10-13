@@ -1,0 +1,11 @@
+Coverage report for test_us05_save_event_draft  (unit tests)
+Generated: 2026-10-10 11:26:29
+Test file: tests/unit/event_request/test_us05_save_event_draft.py
+Result: 3 tests, all passed
+Measured code: event_drafts.py
+
+Name             Stmts  Miss  Cover  Missing
+-----------------------------------------------
+event_drafts.py      3     0   100%  
+-----------------------------------------------
+TOTAL                3     0   100%

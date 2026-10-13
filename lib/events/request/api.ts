@@ -93,17 +93,20 @@ function dateLabel(iso: string | null): string {
 /** Turns a stored event from GET /events into the shape the pages use. */
 export function eventFromApi(e: StoredEvent): EventRecord {
   const draft = e.status === "draft";
+  // Earlier US04-06 records retained form values before normalised columns were populated.
+  // Only authorised organisers receive draftForm; never infer hidden fields for other roles.
+  const form = e.draftForm;
   return {
     id: eventKey(e.id),
     backendId: e.id,
     name: e.name,
     organiser: e.organiser,
     status: e.status as EventStatus,
-    date: dateLabel(e.date ?? null),
+    date: dateLabel(e.date ?? form?.date ?? null),
     day: null,
-    start: e.start?.slice(0, 5) ?? "",
-    end: e.end?.slice(0, 5) ?? "",
-    pax: e.pax ?? 0,
+    start: (e.start ?? form?.start)?.slice(0, 5) ?? "",
+    end: (e.end ?? form?.end)?.slice(0, 5) ?? "",
+    pax: e.pax ?? (Number(form?.pax) || 0),
     purpose: e.purpose || "No description provided yet.",
     layout: (e.layout ?? "banquet") as Layout,
     // Fields the role may not see are absent (US15); default them so lists and filters still work.

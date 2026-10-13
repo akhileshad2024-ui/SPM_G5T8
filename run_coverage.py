@@ -57,6 +57,9 @@ UNIT_TESTS = ROOT / "tests" / "unit"
 # The second form is for files shared by several stories (main.py holds US17 and US18 endpoints),
 # so each story is measured only on its own code.
 TARGETS = {
+    "test_us04_event_submission": ["event_submission.py"],
+    "test_us05_save_event_draft": ["event_drafts.py"],
+    "test_us06_edit_event_draft": ["event_drafts.py:can_edit_draft"],
     "test_us17_venue_validation": ["schemas.py:VenueCreate,VenueUpdate,UnavailabilityPeriod"],
     "test_us17_venue_audit": ["venue_audit.py"],
     "test_us17_venue_endpoints": ["main.py:create_venue,update_venue,delete_venue,get_venue_history"],

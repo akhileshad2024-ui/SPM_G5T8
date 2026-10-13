@@ -7,6 +7,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
+import event_drafts, event_submission
 import booking_request, event_review, models, registrations, schemas, venue_search, venue_suitability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
@@ -45,6 +46,135 @@ EVENT_REQUESTERS = (Role.organiser,)
 REGISTRANTS = (Role.attendee,)
 # Who may review event requests and assign coordinators (US07, US08, US10, US11).
 EVENT_REVIEWERS = (Role.coordinator,)
+
+EVENT_DRAFT_WRITERS = (Role.organiser,)
+
+# Fulfills US05: save incomplete information as a persisted Draft. The
+# organiser_id comes only from the signed-in session, never from request JSON.
+@app.post("/event-requests/drafts", response_model=schemas.EventDraftResponse, status_code=201)
+def save_event_draft(
+    request: schemas.EventDraftSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    prepared = event_drafts.prepare_draft(request.event_information)
+    saved = models.Event(
+        status=prepared["status"],
+        organiser_id=user.id,
+        # ``name`` is NOT NULL in the pre-existing events table. An empty
+        # technical value lets an incomplete draft be stored; draft_form keeps
+        # exactly what the organiser explicitly saved.
+        name=prepared["draft_form"].get("name", ""),
+        purpose=prepared["draft_form"].get("purpose"),
+        facilities=[],
+        accessibility=[],
+        equipment=[],
+        registration_required=False,
+        draft_form=prepared["draft_form"],
+    )
+    if request.event_details is not None:
+        apply_event_request(saved, request.event_details.model_copy(update={"submit": False}), datetime.now(timezone.utc))
+        saved.draft_form = prepared["draft_form"]
+    db.add(saved)
+    db.flush()
+    record_initial_status(db, saved, user, datetime.now(timezone.utc))
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+# US04: the organiser sees persisted Draft and Submitted requests after reload.
+@app.get("/event-requests", response_model=List[schemas.EventRequestResponse])
+def list_event_requests(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return db.query(models.Event).filter(models.Event.organiser_id == user.id).all()
+
+
+@app.post("/event-requests/submit", response_model=schemas.EventRequestResponse, status_code=201)
+def submit_event_request(
+    request: schemas.EventSubmissionSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    # A saved draft transitions in place; another user's or submitted row is rejected.
+    saved = find_editable_draft(request.draft_id, db, user, for_update=True) if request.draft_id is not None else models.Event(
+        organiser_id=user.id, facilities=[], accessibility=[], equipment=[], registration_required=False,
+    )
+    now = datetime.now(timezone.utc)
+    is_new = request.draft_id is None
+    if request.event_details is not None:
+        # Reuse shared field mapping without adding submission-required fields.
+        apply_event_request(saved, request.event_details.model_copy(update={"submit": False}), now)
+    prepared = event_submission.prepare_submission(request.event_information, now)
+    for field, value in prepared.items():
+        if field != "status":
+            setattr(saved, field, value)
+    saved.name = request.event_information.get("name", "")
+    saved.purpose = request.event_information.get("purpose")
+    if is_new:
+        saved.status = models.EventStatus.submitted
+        db.add(saved)
+        db.flush()
+        record_initial_status(db, saved, user, now)
+    else:
+        change_status(db, saved, models.EventStatus.submitted, user, now)
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+
+# US06: the session determines whose drafts are listed; no owner parameter is accepted.
+@app.get("/event-requests/drafts", response_model=List[schemas.EventDraftResponse])
+def list_event_drafts(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return db.query(models.Event).filter(
+        models.Event.organiser_id == user.id, models.Event.status == "draft"
+    ).all()
+
+
+def find_editable_draft(event_id: int, db: Session, user: User, for_update: bool = False):
+    """Return one authorised draft, without revealing another organiser's record."""
+    query = db.query(models.Event).filter(models.Event.id == event_id)
+    if for_update:
+        # Keep status checking and saving in one short transaction.
+        query = query.with_for_update()
+    draft = query.first()
+    if draft is None or not event_drafts.can_edit_draft(draft.status, draft.organiser_id, user.id):
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return draft
+
+
+@app.get("/event-requests/drafts/{event_id}", response_model=schemas.EventDraftResponse)
+def get_event_draft(
+    event_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    return find_editable_draft(event_id, db, user)
+
+
+@app.put("/event-requests/drafts/{event_id}", response_model=schemas.EventDraftResponse)
+def update_event_draft(
+    event_id: int,
+    request: schemas.EventDraftSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(*EVENT_DRAFT_WRITERS)),
+):
+    draft = find_editable_draft(event_id, db, user, for_update=True)
+    prepared = event_drafts.prepare_draft(request.event_information)
+    # Update the existing row, not a new Event. Ownership and status never come from JSON.
+    if request.event_details is not None:
+        apply_event_request(draft, request.event_details.model_copy(update={"submit": False}), datetime.now(timezone.utc))
+    draft.draft_form = prepared["draft_form"]
+    draft.name = prepared["draft_form"].get("name", "")
+    draft.purpose = prepared["draft_form"].get("purpose")
+    db.commit()
+    db.refresh(draft)
+    return draft
+
 
 # Routes have no trailing slash so they work through the Next.js /api proxy.
 

@@ -404,3 +404,12 @@ export type SubmissionResult =
       ok: false;
       outstandingFields: string[];
     };
+
+
+/** Persisted organiser request returned by the draft/submission endpoints. */
+export interface ApiEventDraft {
+  id: number;
+  status: EventStatus;
+  submitted_at?: string | null;
+  draft_form: NewRequestForm;
+}

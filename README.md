@@ -391,7 +391,51 @@ US01 and US02 keep their tests in one folder per story (`tests/us01_secure_login
 `tests/us02_rbac/`): pytest backend tests (`unit/` for single functions,
 `test_*.py` for the API) next to the Vitest frontend tests (`*.unit.test.ts`).
 
-## Scripts
+## CI coverage evidence
+
+`.github/workflows/tests.yml` runs on pull requests and pushes to `main`.
+It keeps the existing tests, TypeScript check and Next.js build, and measures:
+
+- Backend: statement and branch coverage for `backend/`, using all Python tests.
+- Frontend: statement, branch, function and line coverage for TypeScript/TSX
+  in `lib/`, `app/` and `components/`, including untested source files.
+
+Coverage includes both unit and integration execution on the backend; it is
+not a unit-only metric. Frontend coverage is collected from Vitest unit tests,
+not manual browser tests. Config/build scripts, styles and test files are outside
+these source scopes. A module's 100% result must not be called project-wide 100%.
+
+Each job uploads its reports even after a test failure when reports exist.
+In GitHub, open **Actions → the workflow run → Artifacts**, then download
+`backend-coverage-<commit SHA>` and `frontend-coverage-<commit SHA>`.
+Backend HTML starts at `html/index.html`; frontend HTML starts at `index.html`.
+JSON/XML or LCOV files provide machine-readable results. Reports are requested
+to remain for 90 days; download required evidence before it expires. Reports can
+contain source code, so share them only with authorised project reviewers.
+
+This initial setup measures coverage without a percentage pass/fail threshold.
+Green CI means the tests/checks passed, not that coverage reached 100%. Review
+uncovered code, improve justified tests, and document any exception before
+agreeing a threshold. Generated reports remain ignored by Git; Actions artifacts
+and run logs are the evidence, rather than committing new generated report files.
+
+Local frontend measurement: `npm run test:coverage`.
+For backend measurement, install `coverage`, then run:
+
+```bash
+python -m coverage run --branch --source=backend --data-file=/tmp/connectsphere-ci.coverage -m pytest tests -q -p no:cacheprovider
+python -m coverage report --data-file=/tmp/connectsphere-ci.coverage --show-missing
+```
+
+Local verification on 13 Oct 2026 (SGT): 943 Python tests and 474 subtests passed;
+291 frontend tests passed; type check and workflow YAML parsing passed. Backend
+statement coverage was 97.49% and branch coverage 96.05%. Frontend statement
+coverage was 18.20% and branch coverage 21.62% in the full source scope above.
+Many UI components/context are not executed by the current unit tests, so their
+uncovered code remains visible. This is local verification, not a claim that a
+new GitHub Actions run has already uploaded the reports. No 100% claim is made.
+
+## Development scripts
 
 - `npm run dev` — start the dev server
 - `npm run build` — production build

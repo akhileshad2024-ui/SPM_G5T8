@@ -40,16 +40,16 @@ export default function NewRequestPage() {
             flexWrap: "wrap",
           }}
         >
-          <button className="btn btn-ghost" onClick={app.saveDraft}>
-            Save as draft
+          <button className="btn btn-ghost" onClick={app.saveDraft} disabled={app.isSavingDraft}>
+            {app.isSavingDraft ? "Saving..." : "Save as draft"}
           </button>
           <div style={{ flex: 1 }} />
           {step > 1 && (
-            <button className="btn btn-ghost" onClick={app.backStep}>
+            <button className="btn btn-ghost" onClick={app.backStep} disabled={app.isSavingDraft}>
               Back
             </button>
           )}
-          <button className="btn btn-primary" style={{ padding: "0 20px" }} onClick={app.nextStep}>
+          <button className="btn btn-primary" style={{ padding: "0 20px" }} onClick={app.nextStep} disabled={app.isSavingDraft}>
             {step < 3 ? "Continue" : "Submit for review"}
           </button>
         </div>
