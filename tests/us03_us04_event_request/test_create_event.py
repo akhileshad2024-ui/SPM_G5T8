@@ -3,16 +3,33 @@ POST /events: an organiser saves a draft (US03) or submits a request for review 
 and the request is stored in the events table.
 """
 
-from datetime import date, timedelta
+from datetime import datetime, time, timedelta, timezone
 
 import pytest
 
 import models
+import main
+import schemas
 from auth_testkit import get_user
 from login.models import Role
 
-FUTURE = (date.today() + timedelta(days=30)).isoformat()
-CLOSES = (date.today() + timedelta(days=20)).isoformat()
+# Use the same Singapore date as the API, not the CI runner's UTC date.
+# Capture time once so collection and requests cannot disagree across midnight.
+TEST_NOW = datetime.now(timezone.utc)
+TODAY = schemas.campus_today(TEST_NOW)
+FUTURE = (TODAY + timedelta(days=30)).isoformat()
+CLOSES = (TODAY + timedelta(days=20)).isoformat()
+
+
+@pytest.fixture(autouse=True)
+def fixed_event_clock(monkeypatch):
+    """Freeze event timing only in this test file; leave authentication unchanged."""
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return TEST_NOW.astimezone(tz) if tz else TEST_NOW.replace(tzinfo=None)
+
+    monkeypatch.setattr(main, "datetime", FrozenDatetime)
 
 
 def full_request(**overrides) -> dict:
@@ -84,7 +101,7 @@ def test_incomplete_submission_is_refused_with_field_errors_and_nothing_is_saved
 
 
 @pytest.mark.parametrize("overrides, field, message", [
-    ({"preferredDate": (date.today() - timedelta(days=1)).isoformat()},
+    ({"preferredDate": (TODAY - timedelta(days=1)).isoformat()},
      "preferredDate", "Preferred date cannot be in the past."),
     ({"endTime": "18:00"}, "endTime", "End time must be later than start time."),
     ({"registration": {"required": True, "capacityLimit": 120, "closingDate": None}},
@@ -155,7 +172,7 @@ def test_organiser_comes_from_the_session_not_the_request_body(signed_in, db):
 # ---------------------------------------------------------------- registration closing date
 
 def _closing(days_from_today: int) -> str:
-    return (date.today() + timedelta(days=days_from_today)).isoformat()
+    return (TODAY + timedelta(days=days_from_today)).isoformat()
 
 
 @pytest.mark.parametrize(
@@ -179,6 +196,24 @@ def test_registration_may_close_from_today_up_to_the_event_day(signed_in, closin
     body = full_request(registration={"required": True, "capacityLimit": 120, "closingDate": closing})
 
     assert signed_in(Role.organiser).post("/events", json=body).status_code == 201
+
+
+def test_registration_closing_today_uses_singapore_date_when_utc_is_yesterday(signed_in, monkeypatch):
+    # Regression for CI: 00:30 SGT is still the previous date on a UTC runner.
+    singapore_now = datetime.combine(TODAY, time(0, 30), tzinfo=schemas.CAMPUS_TZ)
+    utc_now = singapore_now.astimezone(timezone.utc)
+    assert utc_now.date() == TODAY - timedelta(days=1)
+
+    class MidnightDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return utc_now.astimezone(tz) if tz else utc_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(main, "datetime", MidnightDatetime)
+    body = full_request(registration={"required": True, "capacityLimit": 120,
+                                      "closingDate": TODAY.isoformat()})
+    response = signed_in(Role.organiser).post("/events", json=body)
+    assert response.status_code == 201, response.text
 
 
 def test_registration_without_a_capacity_limit_is_refused(signed_in):
