@@ -21,6 +21,20 @@ Boundary / edge-case tests carry a `-Bnn` suffix (e.g. `US10-AC2-B01`).
 Shared rules live in `lib/events/review/shared.ts`; `lib/state/app-context.tsx` only
 applies each function's result (saves the event, sends notifications).
 
+**Functional (end-to-end) tests** drive the real app in a browser, one file per story,
+with the same criterion IDs in the test names (`npm run test:functional`,
+`npx playwright test -g "US10-AC2"`; see the README's "Functional tests"):
+
+| Story | Functional tests | Criteria checked through the UI |
+|---|---|---|
+| US07 | `tests/functional/us07-review-requests.spec.ts` | AC1, AC2, AC4, AC5, AC6 |
+| US08 | `tests/functional/us08-clarification.spec.ts` | AC1, AC2, AC3, AC4 |
+| US10 | `tests/functional/us10-approve-reject.spec.ts` | AC1, AC2, AC3, AC4, AC6 |
+
+Rules a user can't reach through the screens — for example a second coordinator acting on
+someone else's event by calling the API directly, or exact length limits — are covered by
+the unit and API tests instead.
+
 Each step is also saved by the backend (`backend/event_review.py`, same rules and
 messages; endpoints in the README's "Event review" section), tested in
 `tests/us07_us11_event_review/` (`python -m pytest tests/us07_us11_event_review`,

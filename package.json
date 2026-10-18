@@ -20,7 +20,8 @@
     "test:us01": "vitest run tests/us01_secure_login",
     "test:us02": "vitest run tests/us02_rbac",
     "test:registration": "vitest run tests/us29_us32_registration",
-    "test:review": "vitest run tests/us07_us11_event_review"
+    "test:review": "vitest run tests/us07_us11_event_review",
+    "test:functional": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -30,6 +31,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -387,6 +387,27 @@ python run_coverage.py us17      # or us18, us20, us21, us22
 python run_coverage.py us01      # or us02, us03, us13
 ```
 
+### Functional tests (end to end)
+
+A real browser (Playwright, Chromium) drives the real app: sign in, open the review
+queue, click through a story, and check what the user sees. Playwright starts both
+servers itself — FastAPI on a throwaway SQLite database seeded with test accounts
+(`tests/functional/support/seed_users.py`, never Supabase) and Next.js — on ports
+8100 and 3100, so they don't clash with `npm run dev`. Stop `npm run dev` first
+anyway: two Next.js dev servers can't share the `.next` folder.
+
+```bash
+npx playwright install chromium     # once
+npm run test:functional             # all functional tests
+npx playwright test -g "US10-AC2"   # one acceptance criterion
+npx playwright show-report coverage/functional/report   # results, with screenshots/traces of failures
+```
+
+The backend's Python packages must be installed. If `python` isn't the interpreter
+that has them (e.g. a virtualenv), point at it: `PYTHON=.venv/bin/python npm run test:functional`.
+Covered so far: US07, US08, US10 (`tests/functional/*.spec.ts`). CI runs them in the
+`functional` job and keeps the report as an artifact.
+
 US01 and US02 keep their tests in one folder per story (`tests/us01_secure_login/`,
 `tests/us02_rbac/`): pytest backend tests (`unit/` for single functions,
 `test_*.py` for the API) next to the Vitest frontend tests (`*.unit.test.ts`).
