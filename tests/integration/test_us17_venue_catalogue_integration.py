@@ -59,6 +59,8 @@ VALID_VENUE = {
     "turnaroundMinutes": 45,
 }
 
+NO_BUFFERS = {"setupMinutes": 0, "turnaroundMinutes": 0}
+
 PERIOD = {"start": "2027-01-10T08:00:00", "end": "2027-01-12T18:00:00", "reason": "renovation", "note": "Re-flooring"}
 
 
@@ -255,7 +257,7 @@ class TestRecordVenueDetails(VenueApiTestCase):
         self.assertEqual(body["accessibility"], [])
 
     def test_optional_lists_default_to_empty(self):
-        res = self.staff.post("/venues", json={"name": "Seminar Room 3", "location": "COM2", "cap": 30})
+        res = self.staff.post("/venues", json={"name": "Seminar Room 3", "location": "COM2", "cap": 30, **NO_BUFFERS})
 
         self.assertEqual(res.status_code, 200)
         for field in ("layouts", "facilities", "accessibility"):
@@ -483,8 +485,15 @@ class TestSetupAndTurnaround(VenueApiTestCase):
         stored = self.db.get(models.Venue, venue["id"])
         self.assertEqual((stored.setupMinutes, stored.turnaroundMinutes), (30, 45))
 
-    def test_default_to_zero_when_not_given(self):
-        body = self.staff.post("/venues", json={"name": "Room", "location": "COM1", "cap": 10}).json()
+    def test_missing_value_is_rejected(self):
+        # US37 AC2: a venue can't be created without its setup and turnaround times.
+        for field in ("setupMinutes", "turnaroundMinutes"):
+            with self.subTest(field=field):
+                payload = {k: v for k, v in VALID_VENUE.items() if k != field}
+                self.assertRejected(self.staff.post("/venues", json=payload), field)
+
+    def test_zero_means_none_needed(self):
+        body = self.staff.post("/venues", json={**VALID_VENUE, **NO_BUFFERS}).json()
 
         self.assertEqual((body["setupMinutes"], body["turnaroundMinutes"]), (0, 0))
 
@@ -543,7 +552,7 @@ class TestOperatingInformation(VenueApiTestCase):
                 self.assertRejected(self.staff.post("/venues", json={**VALID_VENUE, "operatingDays": days}))
 
     def test_days_default_to_weekdays(self):
-        body = self.staff.post("/venues", json={"name": "Room", "location": "COM1", "cap": 10}).json()
+        body = self.staff.post("/venues", json={"name": "Room", "location": "COM1", "cap": 10, **NO_BUFFERS}).json()
 
         self.assertEqual(body["operatingDays"], ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
 
