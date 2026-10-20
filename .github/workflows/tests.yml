@@ -92,3 +92,40 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Functional (end-to-end) tests: a real browser drives the real app (playwright.config.ts).
+  # Playwright starts FastAPI on a throwaway SQLite database and Next.js itself; no secrets needed.
+  functional:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run functional tests
+        run: npm run test:functional
+
+      - name: Upload functional test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-report-${{ github.sha }}
+          path: coverage/functional/
+          if-no-files-found: warn
+          retention-days: 90
