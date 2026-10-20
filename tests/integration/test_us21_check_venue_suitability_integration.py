@@ -47,6 +47,7 @@ SEMINAR = {
     "name": "Seminar Room 2", "location": "South wing", "cap": 30,
     "layouts": ["boardroom"], "facilities": ["Whiteboard"], "accessibility": [],
     "operatingHours": "09:00 - 18:00", "operatingDays": ["Monday", "Tuesday"],
+    "setupMinutes": 0, "turnaroundMinutes": 0,
 }
 NEEDS = dict(attendance=100, layout="theatre", facilities=["Projector"], accessibility=["Wheelchair Access"],
              date=MON, start="10:00", end="12:00")

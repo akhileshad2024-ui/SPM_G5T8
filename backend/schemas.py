@@ -114,8 +114,9 @@ class VenueCreate(BaseModel):
     operatingHours: OperatingHours = None
     operatingDays: OperatingDays = list(WEEKDAYS[:5])
     unavailability: List[UnavailabilityPeriod] = []
-    setupMinutes: BufferMinutes = 0
-    turnaroundMinutes: BufferMinutes = 0
+    # Required (0 means none needed), so a venue never gets a setup/turnaround time by accident (US37).
+    setupMinutes: BufferMinutes
+    turnaroundMinutes: BufferMinutes
 
 
 class VenueUpdate(BaseModel):

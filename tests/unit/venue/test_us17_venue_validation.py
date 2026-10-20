@@ -72,14 +72,13 @@ class TestRecordsVenueDetails(ValidationTestCase):
         self.assertEqual(venue.accessibility, ["Wheelchair Access", "Special Physical Seating"])
         self.assertEqual((venue.setupMinutes, venue.turnaroundMinutes), (30, 45))
 
-    def test_only_name_location_and_capacity_are_required(self):
-        venue = VenueCreate(name="Room", location="COM1", cap=10)
+    def test_only_name_location_capacity_and_the_setup_and_turnaround_times_are_required(self):
+        venue = VenueCreate(name="Room", location="COM1", cap=10, setupMinutes=0, turnaroundMinutes=0)
 
         for field in ("layouts", "facilities", "accessibility", "unavailability"):
             self.assertEqual(getattr(venue, field), [], field)
         self.assertIsNone(venue.operatingHours)
         self.assertEqual(venue.operatingDays, ALL_DAYS[:5])
-        self.assertEqual((venue.setupMinutes, venue.turnaroundMinutes), (0, 0))
 
     def test_text_is_trimmed(self):
         venue = VenueCreate(**{**VALID, "name": "  LT1  ", "location": " COM1 "})
@@ -254,6 +253,12 @@ class TestSetupAndTurnaround(ValidationTestCase):
             for value in (-1, 1441):  # one past each boundary
                 with self.subTest(field=field, value=value):
                     self.assertRejects(VenueCreate, {**VALID, field: value}, field)
+
+    def test_missing_value_rejected(self):
+        # US37 AC2: a venue can't be created without its setup and turnaround times (0 means "none needed").
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                self.assertRejects(VenueCreate, {k: v for k, v in VALID.items() if k != field}, field)
 
     def test_non_integer_rejected(self):
         for field in self.FIELDS:
