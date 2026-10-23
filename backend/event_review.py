@@ -1,5 +1,5 @@
 """
-The Event Coordinator's review steps, saved (US07, US08, US10, US11).
+Event review and clarification responses, saved (US07–US11).
 
 Same rules and messages as the frontend's lib/events/review/*.ts, so the page can check
 a step straight away and the server still refuses it if the page is bypassed:
@@ -8,6 +8,8 @@ a step straight away and the server still refuses it if the page is bypassed:
     start       (US07)  Submitted -> Under Review
     clarify     (US08)  the assigned coordinator asks the organiser to clarify or amend:
                         Under Review -> Pending Clarification
+    respond     (US09)  organiser records a reply without editing event details or status
+    resume      (US09)  assigned coordinator explicitly continues: Pending -> Under Review
     decide      (US10)  the assigned coordinator approves (optional note) or rejects
                         (reason of 10-1000 characters): Under Review -> Approved / Rejected
 
@@ -120,7 +122,37 @@ def request_clarification(db: Session, event: models.Event, user: User, kind: st
     label = KIND_LABEL[kind]
     text = check_note(message, f"{label} message")
     change_status(db, event, S.pending_clarification, user, now, reason=f"{label}: {text}")
-    event.clarification = {"kind": kind, "message": text, "requestedBy": user.name, "requestedAt": iso(now)}
+    previous = event.clarification or {}
+    history = previous.get("history", [])
+    if previous.get("response"):
+        history = [*history, {k: v for k, v in previous.items() if k != "history"}]
+    event.clarification = {"kind": kind, "message": text, "requestedBy": user.name, "requestedAt": iso(now),
+                           **({"history": history} if history else {})}
+
+
+def respond_to_clarification(event: models.Event, user: User, message: str, now: datetime) -> None:
+    """US09 AC2: retain a reply, not an edit to the submitted event details."""
+    if user.role != Role.organiser or event.organiser_id != user.id:
+        raise ReviewError(403, "Only the event organiser can respond.")
+    if event.status != S.pending_clarification or not event.clarification:
+        raise not_allowed("There is no outstanding clarification to respond to.")
+    if event.clarification.get("response"):
+        raise not_allowed("A response has already been recorded.")
+    # Reuse the existing review-note format/limit, not a new customer AC.
+    text = check_note(message, "Response")
+    # Assign a new JSON object so SQLAlchemy detects and persists the change.
+    event.clarification = {**event.clarification, "response": {
+        "message": text, "respondedBy": user.name, "respondedAt": iso(now),
+    }}
+
+
+def resume_review(db: Session, event: models.Event, user: User, now: datetime) -> None:
+    """US09 AC3: the assigned coordinator explicitly continues after a reply."""
+    if user.role != Role.coordinator or event.coordinator_id != user.id:
+        raise ReviewError(403, "Only the assigned coordinator can resume review.")
+    if event.status != S.pending_clarification or not (event.clarification or {}).get("response"):
+        raise not_allowed("A pending clarification response is required before resuming review.")
+    change_status(db, event, S.under_review, user, now)
 
 
 def decide(db: Session, event: models.Event, user: User, outcome: str, reason: str, now: datetime) -> None:

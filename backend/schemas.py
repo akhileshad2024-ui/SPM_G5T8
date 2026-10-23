@@ -662,6 +662,12 @@ class DecisionIn(BaseModel):
     reason: str = ""  # required (10-1000 characters) to reject; an optional note to approve
 
 
+class ClarificationResponseIn(BaseModel):
+    """US09 accepts reply text only; identity comes from the authenticated session."""
+    model_config = ConfigDict(extra="forbid")
+    message: str = ""
+
+
 # ---------------------------------------------------------------- event-request drafts (US05)
 
 class EventDraftSave(BaseModel):

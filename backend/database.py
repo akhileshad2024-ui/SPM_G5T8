@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
@@ -18,9 +19,24 @@ if not SQLALCHEMY_DATABASE_URL:
         f"DATABASE_URL is not set. Add your PostgreSQL connection string to {ENV_FILE}."
     )
 
+def connection_args(database_url: str) -> dict:
+    """Disable Psycopg auto-prepare only for Supabase's shared transaction pooler."""
+    url = make_url(database_url)
+    transaction_pooler = bool(
+        url.host and url.host.endswith(".pooler.supabase.com") and url.port == 6543
+    )
+    if transaction_pooler and url.get_backend_name() == "postgresql" and url.get_driver_name() == "psycopg":
+        # Transaction pooling can switch server sessions between queries.
+        # None disables auto-prepare; 0 would prepare immediately, not disable it.
+        return {"prepare_threshold": None}
+    return {}
+
+
 # pool_pre_ping: Supabase closes idle connections, so check each pooled one before reusing it
 # (otherwise the next request fails with "server closed the connection unexpectedly").
-engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args=connection_args(SQLALCHEMY_DATABASE_URL), pool_pre_ping=True
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

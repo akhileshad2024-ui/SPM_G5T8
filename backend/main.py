@@ -520,6 +520,20 @@ def request_clarification(event_id: int, body: schemas.ClarificationIn, db: Sess
                        lambda event, now: event_review.request_clarification(db, event, user, body.kind, body.message, now))
 
 
+# US09: record an organiser response; only the coordinator explicitly resumes review.
+@app.post("/events/{event_id}/clarification-response", response_model=schemas.EventView, response_model_exclude_unset=True)
+def respond_to_clarification(event_id: int, body: schemas.ClarificationResponseIn,
+                             db: Session = Depends(get_db), user: User = Depends(require_roles(Role.organiser))):
+    return review_step(event_id, db, user,
+                       lambda event, now: event_review.respond_to_clarification(event, user, body.message, now))
+
+
+@app.post("/events/{event_id}/resume-review", response_model=schemas.EventView, response_model_exclude_unset=True)
+def resume_event_review(event_id: int, db: Session = Depends(get_db),
+                        user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    return review_step(event_id, db, user, lambda event, now: event_review.resume_review(db, event, user, now))
+
+
 # Fulfills US10: approve or reject a request under review.
 @app.post("/events/{event_id}/decision", response_model=schemas.EventView, response_model_exclude_unset=True)
 def decide_request(event_id: int, body: schemas.DecisionIn, db: Session = Depends(get_db),

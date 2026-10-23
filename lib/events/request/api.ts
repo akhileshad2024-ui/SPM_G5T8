@@ -74,7 +74,7 @@ export interface StoredEvent {
   equipState?: string | null;
   submittedAt?: string | null;
   createdAt?: string;
-  clarification?: { kind?: string; message?: string; requestedBy?: string; requestedAt?: string } | null;
+  clarification?: Partial<NonNullable<EventRecord["clarification"]>> | null;
   decision?: { outcome?: string; reason?: string; by?: string; at?: string } | null;
   draftForm?: NewRequestForm | null;
 }
