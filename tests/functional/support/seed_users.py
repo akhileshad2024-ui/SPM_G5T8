@@ -33,6 +33,7 @@ ACCOUNTS = [
     ("maya.rahman@connectsphere.edu", "Maya Rahman", Role.organiser),
     ("priya.tan@connectsphere.edu", "Priya Tan", Role.coordinator),
     ("marcus.lee@connectsphere.edu", "Marcus Lee", Role.coordinator),
+    ("daniel.ortiz@connectsphere.edu", "Daniel Ortiz", Role.venue),
 ]
 
 with SessionLocal() as db:

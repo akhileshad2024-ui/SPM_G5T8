@@ -278,6 +278,7 @@ class SuitabilityRequest(TimingFields):
     facilities: TextList = []
     accessibility: AccessibilityList = []
     venue_ids: Optional[List[int]] = None  # only these venues; None = every active venue
+    event_id: Optional[int] = None  # the event asking: its own booking is not counted as being in the way
 
 
 class RequirementCheck(BaseModel):
@@ -318,29 +319,20 @@ class BookingOverride(BaseModel):
 # ---- US22: request a venue booking
 
 class BookingRequestCreate(BaseModel):
-    """A coordinator's request to book a venue for an event. The coordinator comes from the login session."""
-    event_id: RequiredText
-    event_name: RequiredText
-    event_status: RequiredText
-    rebooking: bool = False  # the event already went through a booking (replacement venue, or after a rejection)
-    date: DateOnly
-    start: ClockTime
-    end: ClockTime
-    attendance: int = Field(..., gt=0)
-    layout: RequiredLayout
-    facilities: TextList = []
-    accessibility: AccessibilityList = []
-    acknowledged: bool = False  # the coordinator accepted the warning about an unsuitable venue
-    bookings: List[BookedPeriod] = []
+    """A coordinator's request to book a venue (named in the URL) for an event.
 
-    @model_validator(mode="after")
-    def _times(self):
-        _end_after_start(self.start, self.end)
-        return self
+    Everything else comes from the server: the event's status, date, times, attendance, layout and
+    needs from the saved event, the setup and teardown from the venue, the coordinator from the login
+    session and the bookings that already hold the venue from the saved bookings.
+    """
+    event_id: int
+    acknowledged: bool = False  # the coordinator accepted the warning about an unsuitable venue
 
 
 class VenueBooking(BaseModel):
-    event_id: str
+    """A saved venue booking request (see models.VenueBooking)."""
+    id: int
+    event_id: int
     event_name: str
     venue_id: int
     venue_name: str
@@ -353,11 +345,20 @@ class VenueBooking(BaseModel):
     hold_end: datetime  # ... to the end of the teardown
     attendance: int
     layout: str
-    status: Literal["pending"]
+    status: Literal["pending", "approved", "rejected", "cancelled"]
     verdict: Verdict
     requested_by: str
     requested_at: datetime
     override: Optional[BookingOverride] = None
+    decided_by: Optional[str] = None
+    decided_at: Optional[datetime] = None
+    decision_reason: Optional[str] = None
+
+
+class BookingDecisionIn(BaseModel):
+    """Venue Staff approving or rejecting a pending booking request."""
+    outcome: Literal["approved", "rejected"]
+    reason: str = ""  # required to reject; an optional note to approve
 
 
 class BookingNotification(BaseModel):

@@ -29,10 +29,10 @@ Run from the repo root:
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 # main.py builds the database engine when imported, so point it at in-memory SQLite
 # first. The real Supabase database is never touched.
@@ -371,9 +371,29 @@ class TestSuitabilityEndpoint(unittest.TestCase):
 
         main.check_venue_suitability(needs(), db=db, _user=COORDINATOR)
 
-        db.query.assert_called_once_with(models.Venue)
-        self.assertEqual(str(db.query.return_value.filter.call_args.args[0]), str(models.Venue.is_active == True))
+        self.assertEqual(db.query.call_args_list[0], call(models.Venue))
+        self.assertEqual(str(db.query.return_value.filter.call_args_list[0].args[0]), str(models.Venue.is_active == True))
         self.assertEqual([str(a) for a in db.query.return_value.filter.return_value.order_by.call_args.args], ["Venue.id"])
+
+    def test_it_counts_saved_bookings_as_holding_their_venue(self):
+        db = self.fake_db([make_venue(id=1)])
+        saved = SimpleNamespace(venue_id=1, date=date.fromisoformat(MON), start_time="10:00", end_time="12:00",
+                                status="pending", event_id=9, event_name="Career Fair")
+        db.query.return_value.filter.return_value.all.return_value = [saved]  # the saved bookings that hold venues
+
+        result = main.check_venue_suitability(needs(date=MON, start="10:00", end="12:00"), db=db, _user=COORDINATOR)
+
+        self.assertEqual(result.results[0].verdict, "unsuitable")
+        self.assertIn("Clashes with Career Fair, already requested", result.results[0].checks[-1].reason)
+        self.assertEqual(db.query.call_args_list[1], call(models.VenueBooking))
+
+    def test_the_asking_events_own_booking_is_not_counted_as_being_in_its_way(self):
+        db = self.fake_db([])
+
+        main.check_venue_suitability(needs(event_id=7), db=db, _user=COORDINATOR)
+
+        own = db.query.return_value.filter.return_value.filter  # the second filter on the bookings query
+        self.assertEqual(str(own.call_args.args[0]), str(models.VenueBooking.event_id != 7))
 
     def test_it_returns_each_venue_with_its_verdict_and_every_check(self):
         db = self.fake_db([make_venue(id=1, cap=100), make_venue(id=2, name="Small Room", cap=10)])
@@ -417,10 +437,12 @@ class TestPageMatchesBackend(unittest.TestCase):
         source = self.source("lib/venues/suitability.ts")
         building = source[source.index("export function buildSuitabilityRequest"):]
 
-        for field in ("attendance", "layout", "facilities", "accessibility", "date", "start", "end", "bookings"):
+        for field in ("attendance", "layout", "facilities", "accessibility", "date", "start", "end", "event_id"):
             self.assertIn(field, schemas.SuitabilityRequest.model_fields)
             with self.subTest(field=field):
                 self.assertRegex(building, rf"\b{field}\s*[:=]")
+        # Which venues are held is read from the saved bookings on the server, so the page sends none.
+        self.assertNotIn("bookings", building)
 
     def test_the_page_has_a_label_for_every_verdict_and_every_kind_of_check(self):
         source = self.source("lib/venues/suitability.ts")

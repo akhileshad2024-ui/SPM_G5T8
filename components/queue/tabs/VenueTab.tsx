@@ -72,7 +72,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
 
   // Ask the backend how well each venue fits this event's recorded needs. Redone whenever those needs
   // or the bookings that could be in the way change.
-  const request = JSON.stringify(buildSuitabilityRequest(event, app.state.events));
+  const request = JSON.stringify(buildSuitabilityRequest(event));
   const catalogue = app.state.venues.length;
   useEffect(() => {
     if (!catalogue) return;

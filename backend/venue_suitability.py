@@ -87,10 +87,14 @@ def assess(venue, needs, bookings=()):
     return verdict_for(checks), checks
 
 
-def assess_venues(venues, needs) -> list:
-    """(venue, verdict, checks) for each active venue, or only the ones in needs.venue_ids when given."""
+def assess_venues(venues, needs, saved_bookings=()) -> list:
+    """(venue, verdict, checks) for each active venue, or only the ones in needs.venue_ids when given.
+
+    `saved_bookings` are the bookings that hold venues (venue_bookings.held_periods); any the request
+    itself lists are counted too.
+    """
     held: Dict[int, list] = defaultdict(list)
-    for booking in needs.bookings:
+    for booking in [*needs.bookings, *saved_bookings]:
         held[booking.venue_id].append(booking)
 
     results = []

@@ -45,7 +45,7 @@ export function VenueSearch({ onResults }: { onResults: (venues: Venue[] | null)
     const id = ++latest.current;
     setBusy(true);
     try {
-      const body = buildSearchRequest(next, app.state.events);
+      const body = buildSearchRequest(next);
       const res = await apiFetch<VenueSearchResponse>("/venues/search", { method: "POST", body: JSON.stringify(body) });
       if (id !== latest.current) return;
       setOutcome({ total: res.total, applied: res.applied_filters, message: res.message });

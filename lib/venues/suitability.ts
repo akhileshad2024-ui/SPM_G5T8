@@ -4,7 +4,6 @@
  * itself happens in the backend (backend/venue_suitability.py).
  */
 import type { EventRecord, RequirementCheck, SuitabilityVerdict } from "../types";
-import { heldBookings, type VenueSearchRequest } from "./search";
 import { toIsoDate } from "./rules";
 
 export const VERDICT_LABEL: Record<SuitabilityVerdict, string> = {
@@ -29,7 +28,8 @@ export interface SuitabilityRequest {
   date?: string;
   start?: string;
   end?: string;
-  bookings: VenueSearchRequest["bookings"];
+  /** The saved event asking, so its own booking is not counted as being in its way. */
+  event_id?: number;
 }
 
 const CLOCK = /^\d{2}:\d{2}$/;
@@ -42,24 +42,20 @@ export function eventTiming(event: Pick<EventRecord, "date" | "start" | "end">):
     : null;
 }
 
-/**
- * The event's recorded venue needs. The event's own booking is left out of the bookings that could be in the way,
- * so the venue it already asked for is not reported as clashing with itself.
- */
-export function buildSuitabilityRequest(event: EventRecord, events: EventRecord[]): SuitabilityRequest {
+/** The event's recorded venue needs. The server knows which venues are held, so no bookings are sent. */
+export function buildSuitabilityRequest(event: EventRecord): SuitabilityRequest {
   const timing = eventTiming(event);
   const request: SuitabilityRequest = {
     attendance: event.pax,
     facilities: event.facilities,
     accessibility: event.access,
-    bookings: [],
   };
   if (event.layout) request.layout = event.layout;
+  if (event.backendId != null) request.event_id = event.backendId;
   if (timing) {
     request.date = timing.date;
     request.start = timing.start;
     request.end = timing.end;
-    request.bookings = heldBookings(events, event.id);
   }
   return request;
 }

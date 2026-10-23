@@ -8,7 +8,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import event_drafts, event_submission
-import booking_request, event_review, models, registrations, schemas, venue_search, venue_suitability
+import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -40,6 +40,8 @@ INACTIVE_VENUE_VIEWERS = (Role.venue, Role.coordinator)
 VENUE_SEARCHERS = (Role.coordinator,)
 # Who may check a venue's suitability for an event (US21) and request a booking (US22).
 BOOKING_REQUESTERS = (Role.coordinator,)
+# Who may approve or reject a booking request (Venue Staff).
+BOOKING_DECIDERS = (Role.venue,)
 # Who may create event requests (US03/US04).
 EVENT_REQUESTERS = (Role.organiser,)
 # Who may register for events (US29-US31).
@@ -192,11 +194,11 @@ def get_venues(include_inactive: bool = Query(False), db: Session = Depends(get_
 
 # Fulfills US20: search and filter active venues. Every filter given must match; when a date and time
 # are given, only venues free for that period (setup and turnaround included) are returned.
-# POST because the page also sends the bookings that hold venues (see schemas.BookedPeriod).
+# The bookings that hold venues are read from the saved bookings, so a venue another coordinator has requested is not free.
 @app.post("/venues/search", response_model=schemas.VenueSearchResponse)
 def search_venues(criteria: schemas.VenueSearchRequest, db: Session = Depends(get_db), _user: User = Depends(require_roles(*VENUE_SEARCHERS))):
     active = db.query(models.Venue).filter(models.Venue.is_active == True).order_by(models.Venue.id).all()
-    found = venue_search.find_venues(active, criteria)
+    found = venue_search.find_venues(active, criteria, venue_bookings.held_periods(db))
     applied = venue_search.describe_filters(criteria)
     return schemas.VenueSearchResponse(
         venues=[schemas.VenueResponse.model_validate(v) for v in found],
@@ -210,37 +212,76 @@ def search_venues(criteria: schemas.VenueSearchRequest, db: Session = Depends(ge
 @app.post("/venues/suitability", response_model=schemas.SuitabilityResponse)
 def check_venue_suitability(needs: schemas.SuitabilityRequest, db: Session = Depends(get_db), _user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
     active = db.query(models.Venue).filter(models.Venue.is_active == True).order_by(models.Venue.id).all()
+    held = venue_bookings.held_periods(db, exclude_event_id=needs.event_id)  # the asking event's own booking isn't in its way
     return schemas.SuitabilityResponse(results=[
         schemas.VenueSuitability(venue=schemas.VenueResponse.model_validate(venue), verdict=verdict, checks=checks)
-        for venue, verdict, checks in venue_suitability.assess_venues(active, needs)
+        for venue, verdict, checks in venue_suitability.assess_venues(active, needs, held)
     ])
 
-# Fulfills US22 (and the override half of US21): request a venue for an approved event. The venue is
-# provisionally held (status "pending") and Venue Staff are told. A venue that is not fully suitable is
-# refused unless the coordinator has acknowledged the warning, and the acknowledgement is returned to be
-# kept against the event. Rules broken -> 409 with the reason.
+# Fulfills US22 (and the override half of US21): request a venue for an approved event. The booking is
+# saved as "pending", so the venue is held, Venue Staff can see it and it survives a reload. Only the
+# coordinator the event is assigned to may ask. Everything the rules need comes from the saved event, the
+# venue and the saved bookings, never from the page. A venue that is not fully suitable is refused unless
+# the coordinator has acknowledged the warning; the acknowledgement is kept on the booking. Rules broken -> 409.
 @app.post("/venues/{venue_id}/booking-requests", response_model=schemas.BookingRequestResponse)
 def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
     venue = db.get(models.Venue, venue_id)
     if venue is None:
         raise HTTPException(status_code=404, detail="Venue not found")
+    event = db.get(models.Event, request.event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.coordinator_id != user.id:
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
 
-    here = [b for b in request.bookings if b.venue_id == venue.id]
     try:
-        booking_request.require_bookable_event(request.event_status, request.rebooking)
+        needs = booking_request.needs_from_event(event)
+        booking_request.require_bookable_event(event.status.value, event.booking_state is not None)
         booking_request.require_active_venue(venue)
-        booking_request.require_no_pending_duplicate(venue, request)
-        verdict, checks = venue_suitability.assess(venue, request, here)
+        held = venue_bookings.held_periods(db, venue_ids=[venue.id])
+        booking_request.require_no_pending_duplicate(venue, needs, held)
+        verdict, checks = venue_suitability.assess(venue, needs, [b for b in held if b.event_id != str(event.id)])
         booking_request.require_acknowledgement(verdict, checks, request.acknowledged)
     except booking_request.BookingRefused as refusal:
         raise HTTPException(status_code=409, detail=refusal.message)
 
     now = datetime.now(timezone.utc)
     override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, now)
+    row = venue_bookings.save_request(db, event, booking_request.build_booking(venue, event, needs, verdict, user.email, now, override))
     return schemas.BookingRequestResponse(
-        booking=booking_request.build_booking(venue, request, verdict, user.email, now, override),
-        notification=booking_request.build_notification(venue, request, override),
+        booking=venue_bookings.to_record(row),
+        notification=booking_request.build_notification(venue, event, needs, override),
     )
+
+# The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events
+# they are involved in (event_access.py), oldest first. The event page merges them into its events, so a
+# pending request, its hold and any override are still there after a reload.
+@app.get("/bookings", response_model=List[schemas.VenueBooking])
+def list_bookings(db: Session = Depends(get_db), user: User = Depends(require_roles(Role.coordinator, Role.venue))):
+    visible = involved_events(db.query(models.Event), user).with_entities(models.Event.id)
+    rows = (
+        db.query(models.VenueBooking)
+        .filter(models.VenueBooking.event_id.in_(visible))
+        .order_by(models.VenueBooking.requested_at, models.VenueBooking.id)
+        .all()
+    )
+    return [venue_bookings.to_record(row) for row in rows]
+
+# Venue Staff approve or reject a pending booking request. Rejecting needs a reason. The event's current
+# venue follows the decision; a confirmed booking then blocks the venue for others. Rules broken -> 409.
+@app.post("/bookings/{booking_id}/decision", response_model=schemas.VenueBooking)
+def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_DECIDERS))):
+    booking = db.get(models.VenueBooking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking request not found")
+    try:
+        venue_bookings.decide(db, booking, body.outcome, body.reason, user.email, datetime.now(timezone.utc))
+    except booking_request.BookingRefused as refusal:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=refusal.message)
+    db.commit()
+    db.refresh(booking)
+    return venue_bookings.to_record(booking)
 
 # Fulfills US18: full details of one active venue — any signed-in user.
 # A deactivated venue is "not found", the same as it being left out of the list.
