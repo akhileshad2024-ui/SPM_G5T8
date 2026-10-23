@@ -54,6 +54,7 @@ def to_record(row: models.VenueBooking) -> dict:
         "requested_by": row.requested_by, "requested_at": _utc(row.requested_at),
         "override": row.override,
         "decided_by": row.decided_by, "decided_at": _utc(row.decided_at), "decision_reason": row.decision_reason,
+        "flag": row.flag,
     }
 
 

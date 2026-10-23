@@ -353,6 +353,26 @@ class VenueBooking(BaseModel):
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
     decision_reason: Optional[str] = None
+    flag: Optional["BookingFlag"] = None
+
+
+class BookingFlag(BaseModel):
+    """US39: the booking's venue is unavailable during it; the coordinator must arrange an alternative."""
+    kind: Literal["venue_unavailable"]
+    reason: str
+    note: Optional[str] = None
+    period_start: str
+    period_end: str
+    message: str
+    flagged_at: datetime
+
+
+VenueBooking.model_rebuild()
+
+
+class VenueUpdateResponse(VenueResponse):
+    """PUT /venues/{id}: the saved venue, plus the bookings its unavailability change has newly flagged (US39)."""
+    flagged_bookings: List[VenueBooking] = []
 
 
 class BookingDecisionIn(BaseModel):

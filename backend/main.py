@@ -8,7 +8,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import event_drafts, event_submission
-import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability
+import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -305,8 +305,10 @@ def create_venue(venue: schemas.VenueCreate, db: Session = Depends(get_db), user
     db.refresh(new_venue)
     return new_venue
 
-# Fulfills US17: Edit & Deactivate
-@app.put("/venues/{venue_id}", response_model=schemas.VenueResponse)
+# Fulfills US17: Edit & Deactivate, and US39: record, edit or end early an unavailability period.
+# Bookings holding the venue during a period are flagged (never cancelled) and returned, so their
+# coordinators can be told; a booking whose period was ended early or removed is un-flagged.
+@app.put("/venues/{venue_id}", response_model=schemas.VenueUpdateResponse)
 def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session = Depends(get_db), user: User = Depends(require_roles(*VENUE_MANAGERS))):
     db_venue = db.query(models.Venue).filter(models.Venue.id == venue_id).first()
     if not db_venue:
@@ -320,9 +322,13 @@ def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session =
     if not changes:
         return db_venue
 
-    record_change(db, db_venue, change_action(changes), user.email, changes, datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc)
+    record_change(db, db_venue, change_action(changes), user.email, changes, now)
+    flagged = venue_unavailability.flag_affected_bookings(db, db_venue, now) if "unavailability" in changes else []
     db.commit()
     db.refresh(db_venue)
+    # Not a column: only read by the response model (VenueUpdateResponse.flagged_bookings).
+    db_venue.flagged_bookings = [venue_bookings.to_record(row) for row in flagged]
     return db_venue
 
 # Fulfills US17: venues are never deleted, only deactivated, so their booking history is kept.

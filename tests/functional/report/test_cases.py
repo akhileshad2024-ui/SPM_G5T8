@@ -1,5 +1,5 @@
 """
-The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37):
+The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US39):
 the "written once" half of the test-case template. The Playwright specs in tests/functional/ carry
 the same IDs in their titles, e.g. "[TC-US18-01]".
 
@@ -288,3 +288,42 @@ case("TC-US37-05", "US37", "AC5", "Check a booking request takes setup and teard
      ["Open the event's Venue tab", "Look for any setup or teardown field", "Select Request booking and read the request sent and the booking returned"],
      f"{COORD_DATA}\nVenue Setup=20, Turnaround=60",
      "The Venue tab has no setup or teardown field and the request contains none. The booking records setup 20 min and teardown 60 min and holds the venue 09:40-13:00.")
+
+# ------------------------------------------------------------------ US39 Mark Venue Temporarily Unavailable
+BOOKED = "A venue with setup 30 min and turnaround 45 min, and an approved event on a future date 10:00-12:00 whose booking of it Venue Staff approved."
+case("TC-US39-01", "US39", "AC1", "Check Venue Staff can record an unavailable period with a start, an end and a reason",
+     f"{ENV} {STAFF} A venue exists with no unavailable periods.",
+     ["Open Venue Catalogue and Edit the venue", "Select + Add unavailable period and read the Reason options",
+      "Enter an end before the start; Save Venue", "Fix the end, choose Other with no note; Save Venue", "Add a note; Save Venue"],
+     f"{STAFF_DATA}\nPeriod=<date> 12:00 to 08:00, then 12:00 to 18:00; Reason=Other; Note=Flooded after the storm",
+     "The reasons are Maintenance, Equipment failure, Renovation, Safety concern, Internal activity and Other. An end before the start shows "
+     "'The end must be after the start.'; Other with no note shows 'Add a note when the reason is \"Other\".'. With a note the venue is updated "
+     "and the period is saved with its start, end, reason and note.")
+case("TC-US39-02", "US39", "AC2", "Check the venue is left out of venue search for the period",
+     f"{ENV} {COORD} A venue in a location of its own, open that day.",
+     ["Open Venues, choose the location; search the date 10:00-12:00", "Venue Staff records Renovation 08:00-20:00 on that date",
+      "Search the same date and time again", "Search the next day"],
+     f"{COORD_DATA}\nPeriod=<date> 08:00-20:00, Renovation",
+     "The venue is listed before the period is recorded, not listed during the period, and listed again the next day. "
+     "(The calendar half of AC2 waits for US19: the Bookings calendar still shows one fixed week.)")
+case("TC-US39-03", "US39", "AC3, AC4", "Check an overlapping booking is flagged, kept, and the event left unchanged",
+     f"{ENV} {STAFF} {BOOKED}",
+     ["Open Venue Catalogue and Edit the venue", "Add an unavailable period over the booking (Maintenance); Save Venue",
+      "Open Booking requests", "Read the booking (GET /bookings) and the event (GET /events/{id})"],
+     f"{STAFF_DATA}\nPeriod=<date> 08:00-20:00, Maintenance",
+     "The message says '<venue> updated. 1 booking flagged to coordinators.' and the event is listed under 'Confirmed bookings needing attention'. "
+     "The booking is still approved and carries a 'venue_unavailable' flag saying a replacement venue is required; the event's status, name, date, "
+     "times, venue and booking state are unchanged.")
+case("TC-US39-04", "US39", "AC5", "Check the event's coordinator is notified that a replacement venue is required",
+     f"{ENV} {COORD} {BOOKED} Venue Staff then marked the venue unavailable over the booking (Safety concern, note 'Ceiling repair').",
+     ["Sign in as the coordinator", "Open Notifications", "Open the event in the Review queue and its Venue tab"],
+     f"{COORD_DATA}",
+     "Notifications holds 'Replacement venue required' for the event, naming 'Safety concern: Ceiling repair'. The Venue tab shows "
+     "'Alternative arrangements needed for <venue>.'")
+case("TC-US39-05", "US39", "AC6", "Check Venue Staff can edit a period or end it early, and the flag follows",
+     f"{ENV} {STAFF} {BOOKED} The venue is unavailable over the booking (Maintenance 08:00-20:00), so the booking is flagged.",
+     ["Edit the venue, change the period's end to 09:00; Save Venue; read the booking", "Edit the venue, change the end back to 20:00; Save Venue; read the booking",
+      "Edit the venue, Remove the period; Save Venue; read the booking"],
+     f"{STAFF_DATA}\nEnd 20:00 -> 09:00 -> 20:00, then removed",
+     "Ending at 09:00 (before the booking's 09:30 setup) clears the flag. Back to 20:00 flags it again ('1 booking flagged to coordinators.'). "
+     "Removing the period clears the flag. The booking stays approved throughout.")

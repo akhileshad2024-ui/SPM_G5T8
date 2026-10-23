@@ -496,9 +496,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         patch({ events: stored.map(eventFromApi) });
         const role = state.user?.role;
         if (role !== "coordinator" && role !== "venue") return;
-        return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) =>
-          patch((s) => ({ events: attachBookings(s.events, bookings) })),
-        );
+        return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
+          patch((s) => ({ events: attachBookings(s.events, bookings) }));
+          // US39: the coordinator is told about each booking whose venue has become unavailable.
+          if (role === "coordinator") {
+            for (const b of bookings) {
+              if (b.flag && (b.status === "pending" || b.status === "approved")) {
+                notify("coordinator", "Replacement venue required", `${b.event_name} (${b.date}): ${b.flag.message}`);
+              }
+            }
+          }
+        });
       })
       .catch(handleApiError);
 
@@ -831,12 +839,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       saveVenue: async (id, input) => {
         try {
-          const saved = venueFromApi(
-            await apiFetch<ApiVenue>(id ? `/venues/${id}` : "/venues", {
-              method: id ? "PUT" : "POST",
-              body: JSON.stringify(input),
-            }),
-          );
+          const res = await apiFetch<ApiVenue>(id ? `/venues/${id}` : "/venues", {
+            method: id ? "PUT" : "POST",
+            body: JSON.stringify(input),
+          });
+          const saved = venueFromApi(res);
+          // US39: the server has saved the flag on these bookings; keep the events in step with it.
+          if (res.flagged_bookings?.length) {
+            const flaggedById = new Map(res.flagged_bookings.map((b) => [b.id, b]));
+            patch((s) => ({
+              events: s.events.map((e) => {
+                const updated = e.bookingRequest && flaggedById.get(e.bookingRequest.id);
+                return updated ? { ...e, bookingRequest: updated } : e;
+              }),
+            }));
+          }
           const before = state.venues;
           const after = before.some((v) => v.id === saved.id)
             ? before.map((v) => (v.id === saved.id ? saved : v))

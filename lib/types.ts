@@ -144,6 +144,18 @@ export interface VenueBookingRecord {
   decided_by: string | null;
   decided_at: string | null;
   decision_reason: string | null;
+  /** US39: set while the venue is unavailable during this booking; the coordinator must arrange an alternative. */
+  flag: BookingFlag | null;
+}
+
+export interface BookingFlag {
+  kind: "venue_unavailable";
+  reason: UnavailabilityReason;
+  note: string | null;
+  period_start: string;
+  period_end: string;
+  message: string;
+  flagged_at: string;
 }
 
 export interface BookingRequestResponse {
@@ -157,6 +169,8 @@ export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy
   is_active: boolean;
   last_updated_by: string;
   last_updated_at: string;
+  /** PUT /venues/{id} only (US39): the bookings an unavailability change has newly flagged. */
+  flagged_bookings?: VenueBookingRecord[];
 }
 
 /** Body for POST /venues and PUT /venues/{id}. */

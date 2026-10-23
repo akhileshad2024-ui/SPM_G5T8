@@ -146,6 +146,9 @@ class VenueBooking(Base):
     decided_by = Column(String, nullable=True)
     decided_at = Column(DateTime(timezone=True), nullable=True)
     decision_reason = Column(Text, nullable=True)
+    # US39: set while the venue is unavailable during this booking ({kind, reason, note, period_start,
+    # period_end, message, flagged_at}). The booking is kept; the coordinator must arrange an alternative.
+    flag = Column(JSON(none_as_null=True), nullable=True)
 
 
 class EventStatusChange(Base):
