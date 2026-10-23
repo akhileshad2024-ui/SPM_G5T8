@@ -7,7 +7,8 @@ import { bookingProblems } from "@/lib/venues/rules";
 
 export default function BookingsPage() {
   const app = useApp();
-  const pending = app.state.events.filter((e) => e.bookingState === "pending");
+  // US41: one card per pending booking; an event may be waiting on several venues.
+  const pending = app.state.events.flatMap((e) => (e.bookings ?? []).filter((b) => b.status === "pending").map((b) => ({ event: e, booking: b })));
   // Confirmed bookings that a venue change (setup/turnaround, unavailability, deactivation) has put in trouble.
   // They are listed here, never removed (Week 7 changes #1 and #2).
   const problems = bookingProblems(app.state.events, app.state.venues);
@@ -38,8 +39,8 @@ export default function BookingsPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="section-heading">Pending booking requests</div>
-        {pending.map((e) => (
-          <BookingRequestCard key={e.id} event={e} />
+        {pending.map(({ event, booking }) => (
+          <BookingRequestCard key={booking.id} event={event} booking={booking} />
         ))}
         {pending.length === 0 && (
           <div className="card" style={{ padding: 46, textAlign: "center", fontSize: 13, color: "var(--text-subtle)" }}>

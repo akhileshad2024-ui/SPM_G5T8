@@ -223,6 +223,7 @@ def check_venue_suitability(needs: schemas.SuitabilityRequest, db: Session = Dep
 # coordinator the event is assigned to may ask. Everything the rules need comes from the saved event, the
 # venue and the saved bookings, never from the page. A venue that is not fully suitable is refused unless
 # the coordinator has acknowledged the warning; the acknowledgement is kept on the booking. Rules broken -> 409.
+# US41: an event may book several venues, each once, with this booking's own attendance, layout and purpose.
 @app.post("/venues/{venue_id}/booking-requests", response_model=schemas.BookingRequestResponse)
 def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
     venue = db.get(models.Venue, venue_id)
@@ -235,10 +236,12 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
 
     try:
-        needs = booking_request.needs_from_event(event)
-        booking_request.require_bookable_event(event.status.value, event.booking_state is not None)
+        needs = booking_request.needs_from_event(event, request.attendance, request.layout)
+        rebooking = event.booking_state is not None or bool(venue_bookings.event_bookings(db, event.id))
+        booking_request.require_bookable_event(event.status.value, rebooking)
         booking_request.require_active_venue(venue)
         held = venue_bookings.held_periods(db, venue_ids=[venue.id])
+        booking_request.require_new_venue_for_event(venue, event.id, held)
         booking_request.require_no_pending_duplicate(venue, needs, held)
         verdict, checks = venue_suitability.assess(venue, needs, [b for b in held if b.event_id != str(event.id)])
         booking_request.require_acknowledgement(verdict, checks, request.acknowledged)
@@ -247,7 +250,7 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 
     now = datetime.now(timezone.utc)
     override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, now)
-    row = venue_bookings.save_request(db, event, booking_request.build_booking(venue, event, needs, verdict, user.email, now, override))
+    row = venue_bookings.save_request(db, event, booking_request.build_booking(venue, event, needs, verdict, user.email, now, override, request.purpose))
     return schemas.BookingRequestResponse(
         booking=venue_bookings.to_record(row),
         notification=booking_request.build_notification(venue, event, needs, override),
@@ -282,6 +285,78 @@ def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session
     db.commit()
     db.refresh(booking)
     return venue_bookings.to_record(booking)
+
+
+def coordinators_event(db: Session, event_id: int, user: User) -> models.Event:
+    """The event, if `user` is the coordinator it is assigned to (404 / 403 otherwise)."""
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.coordinator_id != user.id:
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    return event
+
+
+def coordinators_booking(db: Session, booking_id: int, user: User) -> models.VenueBooking:
+    booking = db.get(models.VenueBooking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking request not found")
+    coordinators_event(db, booking.event_id, user)
+    return booking
+
+
+# Fulfills US41: change one booking's attendance, layout or purpose; the event's other bookings are kept.
+# The venue is checked again for the new needs (an unsuitable result needs acknowledging, as in US21),
+# and an approved booking goes back to Venue Staff as pending. Rules broken -> 409.
+@app.patch("/bookings/{booking_id}", response_model=schemas.VenueBooking)
+def change_booking(booking_id: int, body: schemas.BookingChange, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
+    booking = coordinators_booking(db, booking_id, user)
+    event = db.get(models.Event, booking.event_id)
+    venue = db.get(models.Venue, booking.venue_id)
+    try:
+        venue_bookings.require_holding(booking)
+        needs = booking_request.needs_from_event(event, body.attendance or booking.attendance, body.layout or booking.layout)
+        booking_request.require_active_venue(venue)
+        others = [b for b in venue_bookings.held_periods(db, venue_ids=[venue.id]) if b.event_id != str(event.id)]
+        verdict, checks = venue_suitability.assess(venue, needs, others)
+        booking_request.require_acknowledgement(verdict, checks, body.acknowledged)
+    except booking_request.BookingRefused as refusal:
+        raise HTTPException(status_code=409, detail=refusal.message)
+
+    override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, datetime.now(timezone.utc))
+    values = {"attendance": needs.attendance, "layout": needs.layout, "verdict": verdict,
+              "override": booking_request.stored_override(override)}
+    if "purpose" in body.model_fields_set:
+        values["purpose"] = body.purpose or None
+    venue_bookings.change(db, booking, values)
+    db.commit()
+    db.refresh(booking)
+    return venue_bookings.to_record(booking)
+
+
+# Fulfills US41: cancel one of the event's bookings; the others are kept.
+@app.post("/bookings/{booking_id}/cancel", response_model=schemas.VenueBooking)
+def cancel_booking(booking_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
+    booking = coordinators_booking(db, booking_id, user)
+    try:
+        venue_bookings.cancel(db, [booking])
+    except booking_request.BookingRefused as refusal:
+        raise HTTPException(status_code=409, detail=refusal.message)
+    db.commit()
+    db.refresh(booking)
+    return venue_bookings.to_record(booking)
+
+
+# Fulfills US41: the coordinator explicitly cancels every booking of the event that still holds a venue.
+@app.post("/events/{event_id}/bookings/cancel", response_model=List[schemas.VenueBooking])
+def cancel_all_bookings(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_REQUESTERS))):
+    event = coordinators_event(db, event_id, user)
+    holding = [b for b in venue_bookings.event_bookings(db, event.id) if b.status in venue_bookings.HOLDING]
+    if not holding:
+        raise HTTPException(status_code=409, detail="This event has no booking to cancel.")
+    venue_bookings.cancel(db, holding)
+    db.commit()
+    return [venue_bookings.to_record(row) for row in holding]
 
 # Fulfills US18: full details of one active venue — any signed-in user.
 # A deactivated venue is "not found", the same as it being left out of the list.
