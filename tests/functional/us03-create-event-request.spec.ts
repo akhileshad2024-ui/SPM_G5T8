@@ -10,12 +10,11 @@ import { futureDate, observed } from "./support/venues";
  * Test cases: docs/testing/US03_Create_Event_Request_Test_Cases.xlsx (TC-025 to TC-037), run here in a
  * real browser against the functional-test database.
  *
- * TC-029 to TC-032 are skipped: there are no mandatory fields to check. The customer never specified
- * which fields a request must have, so submission doesn't require any (Product Owner decision,
- * 24 Oct 2026, in line with US04's "do not apply an invented mandatory-field list").
+ * TC-029 to TC-032 (mandatory-field checks) were dropped: the customer never specified which fields a
+ * request must have, so submission doesn't require any (Product Owner decision, 24 Oct 2026, in line
+ * with US04's "do not apply an invented mandatory-field list").
  * TC-033 and TC-034 check what the date pickers enforce: they only offer valid dates.
  */
-const NOT_REQUIRED = "Not a requirement: no mandatory-field list (Product Owner decision, 24 Oct 2026; see the note at the top of this file).";
 
 /** Today as YYYY-MM-DD in the browser's (local) time zone, which is what the date pickers use. */
 const localToday = () => {
@@ -146,22 +145,6 @@ test.describe("US03 - Create Event Request", () => {
     await expect(page.getByText("Registration cap")).toHaveCount(0);
     await expect(summary(page, "Registration")).toContainText("Not enabled");
     observed(info, 'Ticking registration showed the cap and closing-date fields and the summary "Enabled · cap 120"; unticking hid them and the summary showed "Not enabled".');
-  });
-
-  test("[TC-029] [US03-AC5] missing mandatory event details are reported", async () => {
-    test.skip(true, NOT_REQUIRED);
-  });
-
-  test("[TC-030] [US03-AC5] missing venue and equipment details are reported", async () => {
-    test.skip(true, NOT_REQUIRED);
-  });
-
-  test("[TC-031] [US03-AC5] missing registration details are reported", async () => {
-    test.skip(true, NOT_REQUIRED);
-  });
-
-  test("[TC-032] [US03-AC5] invalid values are rejected", async () => {
-    test.skip(true, NOT_REQUIRED);
   });
 
   test("[TC-033] [US03-AC6] the date picker doesn't offer a date in the past", async ({ page }, info) => {
