@@ -301,6 +301,8 @@ export interface AppApi {
 
   // ---- review workflow ----
   startReview: (id: string) => void;
+  saveClarificationReply: (backendId: number, message: string) => Promise<boolean>;
+  resumeReview: (backendId: number) => Promise<boolean>;
   confirmEvent: (id: string) => void;
   openModal: (kind: ModalKind, id: string) => void;
   closeModal: () => void;
@@ -436,6 +438,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else {
         handleApiError(err);
       }
+      return false;
+    }
+  };
+
+  const saveClarificationStep = async (backendId: number, step: string, body: Record<string, unknown>): Promise<boolean> => {
+    try {
+      const saved = eventFromApi(await apiFetch<StoredEvent>(`/events/${backendId}/${step}`, {
+        method: "POST", body: JSON.stringify(body),
+      }));
+      patch((s) => ({ events: s.events.some((e) => e.id === saved.id)
+        ? s.events.map((e) => e.id === saved.id ? saved : e) : [...s.events, saved] }));
+      flash(step === "resume-review" ? "Review resumed." : "Response saved.");
+      return true;
+    } catch (err) {
+      handleApiError(err);
       return false;
     }
   };
@@ -820,6 +837,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         patch({ modal: null, modalText: "" });
       },
 
+      // US09: save through FastAPI; no browser-only reply or notification is created.
+      saveClarificationReply: (backendId, message) => saveClarificationStep(backendId, "clarification-response", { message }),
+      resumeReview: (backendId) => saveClarificationStep(backendId, "resume-review", {}),
       loadEvent: (backendId) => apiFetch<StoredEvent>(`/events/${backendId}`),
 
       reloadVenues: async () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/lib/state/app-context";
+import { useRef, useState } from "react";
 import { attendanceLabel, lastUpdatedLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord, EventTab } from "@/lib/types";
@@ -22,6 +23,15 @@ const TABS: Array<[EventTab, string]> = [
 export function EventWorkspace({ event }: { event: EventRecord }) {
   const app = useApp();
   const tab = app.state.tab;
+  const resumePending = useRef(false);
+  const [resuming, setResuming] = useState(false);
+  async function resume() {
+    if (resumePending.current || event.backendId === undefined) return;
+    resumePending.current = true;
+    setResuming(true);
+    try { await app.resumeReview(event.backendId); }
+    finally { resumePending.current = false; setResuming(false); }
+  }
 
   const actions: Array<{ label: string; onClick: () => void; variant: "primary" | "ghost" | "danger" | "muted" }> = [];
   if (event.status === "submitted") {
@@ -32,7 +42,11 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
     actions.push({ label: "Reject", onClick: () => app.openModal("reject", event.id), variant: "danger" });
     actions.push({ label: "Approve", onClick: () => app.openModal("approve", event.id), variant: "primary" });
   } else if (event.status === "pending_clarification") {
-    actions.push({ label: "Awaiting organiser reply", onClick: () => app.flash(`Waiting for ${event.organiser} to respond.`, "warn"), variant: "muted" });
+    if (event.clarification?.response && event.backendId !== undefined) {
+      actions.push({ label: resuming ? "Resuming…" : "Resume review", onClick: () => void resume(), variant: "primary" });
+    } else {
+      actions.push({ label: "Awaiting organiser reply", onClick: () => app.flash(`Waiting for ${event.organiser} to respond.`, "warn"), variant: "muted" });
+    }
   } else if (event.status === "rejected" || event.status === "cancelled") {
     // Closed: nothing left for the coordinator to do.
   } else if (event.bookingState === "pending") {

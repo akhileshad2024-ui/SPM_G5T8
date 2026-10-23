@@ -246,6 +246,9 @@ export interface ClarificationRequest {
   message: string;
   requestedBy: string;
   requestedAt: string;
+  /** US09: a saved response never directly edits the event's submitted fields. */
+  response?: { message: string; respondedBy: string; respondedAt: string };
+  history?: ClarificationRequest[];
 }
 
 export interface ReviewDecision {

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { eventFromApi, eventKey } from "@/lib/events/request/api";
 import { EventDetails } from "@/components/ui/EventDetails";
+import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import { StatusPill } from "@/components/ui/Pill";
 import type { EventRecord } from "@/lib/types";
@@ -57,6 +58,7 @@ export default function EventDetailsPage() {
             <span style={{ fontSize: 12, color: "var(--text-subtle)" }}>{event.id}</span>
           </div>
           <EventDetails event={event} />
+          <ClarificationThread event={event} />
           <StatusHistoryToggle event={event} />
         </div>
       )}
