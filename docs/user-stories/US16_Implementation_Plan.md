@@ -1,6 +1,6 @@
 # US16 — Update Event Details
 
-Status: requirements approved; core implementation created; browser verification pending.
+Status: AC1/AC2/AC4 implemented and verified; AC3 notification delivery pending US36.
 Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
 
 ## Approved requirements
@@ -105,3 +105,40 @@ contract is available; do not mark all US16 AC complete before that verification
 - Playwright US16-TC01 created; acceptance config selects it with TC_STORY=US16.
 - Blue shared TC revised to the implemented labels and exact sequence before
   browser execution. AC3 and overall story completion remain pending.
+
+## Verification milestone (2026-10-23 / 24 SGT)
+
+- Implementation commit: `e7c2c54` on `spring3-us16-yuetong`; not pushed.
+- Shared-database US16-TC01 run 1 passed, Chromium, 26.2 seconds total
+  (25.6 seconds test time), 2026-10-23 23:59 SGT. Generated EVENT_ID=34.
+  This was Codex (Playwright), not a manual Wen execution.
+- All 22 TC steps were followed: UI submission/assignment, ordinary purpose
+  correction, attendance 85→90 with impact warning, persistent actor/value/time
+  history, refresh, organiser re-login/read-only verification, final sign-out.
+  No API fixture, seed, reset, cleanup or automatic retry. Shared record preserved.
+- Archived browser evidence: `coverage/us16/acceptance-run1/report/index.html`
+  and `coverage/us16/acceptance-run1/results`. Actual result appended to the
+  existing yellow US16-TC01 record; no prior record overwritten.
+- Scoped backend tests: 29 unit cases + 9 integration cases passed.
+- Scoped coverage: 19 statements, 6 branch outcomes, all covered (100%);
+  HTML `coverage/us16/html/index.html`, JSON `coverage/us16/coverage.json`.
+  This is NOT 100% repository, API-file or frontend coverage.
+- Frontend regression: 296 tests / 18 files passed.
+- TypeScript `npx tsc --noEmit` passed; `npm run build` passed. Existing multiple
+  lockfile/workspace-root warning remains; no unrelated config changes made.
+- First full backend run: 1049 passed, 462 subtests passed, one failure in
+  US31 withdrawal deadline test while the suite crossed Singapore midnight.
+  That test fixes TODAY=campus_today() at module import, whereas the API checks
+  the current day at request time. This is consistent with a stale date at the
+  midnight boundary. No registration production/test code was changed.
+- The failed deadline case passed on a fresh isolated run; the full backend
+  rerun after midnight passed: 1050 tests + 462 subtests, 32.35 seconds.
+- CI's normal Playwright testMatch includes the new US16 spec, using isolated
+  fixture passwords/data. That CI regression is distinct from the shared run
+  above; remote CI/peer review/merge have not been performed by this work.
+- AC3 persistent affected-user notifications remains unimplemented/unverified
+  until the US36 delivery boundary is integrated. US16 is NOT marked Done.
+
+The standalone SQL proposal file was removed at Wen's request; the SQL was
+provided directly in chat. Preserve reproducible schema deployment instructions
+in the team's normal migration workflow before another environment is deployed.
