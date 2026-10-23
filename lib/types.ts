@@ -119,9 +119,10 @@ export interface BookingOverride {
   unmet: Array<{ label: string; severity: "block" | "warn"; reason: string }>;
 }
 
-/** A venue booking request as the backend returns it (backend `VenueBooking`). */
+/** A saved venue booking request as the backend returns it (backend `VenueBooking`). */
 export interface VenueBookingRecord {
-  event_id: string;
+  id: number;
+  event_id: number;
   event_name: string;
   venue_id: number;
   venue_name: string;
@@ -134,11 +135,15 @@ export interface VenueBookingRecord {
   hold_end: string;
   attendance: number;
   layout: string;
-  status: "pending";
+  /** pending and approved bookings hold the venue; rejected ones and ones replaced by a later request do not. */
+  status: "pending" | "approved" | "rejected" | "cancelled";
   verdict: SuitabilityVerdict;
   requested_by: string;
   requested_at: string;
   override: BookingOverride | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_reason: string | null;
 }
 
 export interface BookingRequestResponse {

@@ -25,10 +25,14 @@ def meets_requirements(venue, criteria) -> bool:
     return _has_all(venue.facilities, criteria.facilities) and _has_all(venue.accessibility, criteria.accessibility)
 
 
-def find_venues(venues, criteria) -> list:
-    """The active venues that meet every requirement and, if a period was given, are free for it."""
+def find_venues(venues, criteria, saved_bookings=()) -> list:
+    """The active venues that meet every requirement and, if a period was given, are free for it.
+
+    `saved_bookings` are the bookings that hold venues (venue_bookings.held_periods); any the
+    request itself lists are counted too.
+    """
     held: Dict[int, list] = defaultdict(list)
-    for booking in criteria.bookings:
+    for booking in [*criteria.bookings, *saved_bookings]:
         held[booking.venue_id].append(booking)
 
     found = []

@@ -34,7 +34,7 @@ import unittest
 from datetime import date, datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 # main.py builds the database engine when imported, so point it at in-memory SQLite
 # first. The real Supabase database is never touched.
@@ -526,9 +526,8 @@ class TestSearchEndpoint(unittest.TestCase):
 
         main.search_venues(request(), db=db, _user=COORDINATOR)
 
-        db.query.assert_called_once_with(models.Venue)
-        db.query.return_value.filter.assert_called_once()
-        self.assertEqual(str(db.query.return_value.filter.call_args.args[0]), str(models.Venue.is_active == True))
+        self.assertEqual(db.query.call_args_list[0], call(models.Venue))
+        self.assertEqual(str(db.query.return_value.filter.call_args_list[0].args[0]), str(models.Venue.is_active == True))
         self.assertEqual([str(a) for a in query.order_by.call_args.args], ["Venue.id"])
 
     def test_it_returns_the_full_details_of_each_match(self):
@@ -541,6 +540,18 @@ class TestSearchEndpoint(unittest.TestCase):
         self.assertEqual(result.total, 1)
         self.assertIsInstance(result.venues[0], schemas.VenueResponse)
         self.assertEqual((result.venues[0].id, result.venues[0].name, result.venues[0].cap), (5, "Seminar Room", 40))
+
+    def test_it_leaves_out_venues_held_by_saved_bookings(self):
+        db = MagicMock()
+        db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [make_venue(id=1), make_venue(id=2)]
+        saved = SimpleNamespace(venue_id=1, date=date(2027, 1, 4), start_time="11:00", end_time="13:00",
+                                status="pending", event_id=9, event_name="Career Fair")
+        db.query.return_value.filter.return_value.all.return_value = [saved]  # the saved bookings that hold venues
+
+        result = main.search_venues(request(date=MON, start="10:00", end="12:00"), db=db, _user=COORDINATOR)
+
+        self.assertEqual([v.id for v in result.venues], [2])
+        self.assertEqual(db.query.call_args_list[1], call(models.VenueBooking))
 
     def test_it_uses_the_bookings_sent_with_the_search(self):
         db = MagicMock()
@@ -642,12 +653,13 @@ class TestPageMatchesBackend(unittest.TestCase):
     def test_the_page_sends_the_field_names_the_backend_expects(self):
         # Only the code that builds the request counts, not the form's own state, which uses the same words.
         source = self.source("lib/venues/search.ts")
-        building = source[source.index("export function heldBookings"):]
+        building = source[source.index("export function buildSearchRequest"):]
 
-        for model in (schemas.VenueSearchRequest, schemas.BookedPeriod):
-            for field in model.model_fields:
-                with self.subTest(model=model.__name__, field=field):
-                    self.assertRegex(building, rf"\b{field}\s*[:=]")
+        for field in set(schemas.VenueSearchRequest.model_fields) - {"bookings"}:
+            with self.subTest(field=field):
+                self.assertRegex(building, rf"\b{field}\s*[:=]")
+        # Which venues are held is read from the saved bookings on the server, so the page sends none.
+        self.assertNotIn("bookings", building)
 
     def test_the_page_offers_each_applied_filter_a_clear_button_and_uses_the_fixed_accessibility_list(self):
         component = self.source("components/venues/VenueSearch.tsx")

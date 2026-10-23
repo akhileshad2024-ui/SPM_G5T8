@@ -78,8 +78,9 @@ TARGETS = {
     ],
     "test_us22_submit_booking_request": [
         "booking_request.py",
-        "main.py:request_venue_booking",
-        "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse",
+        "venue_bookings.py",
+        "main.py:request_venue_booking,list_bookings,decide_booking",
+        "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn",
     ],
 }
 

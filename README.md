@@ -4,11 +4,11 @@ A Next.js (App Router + TypeScript) rebuild of the ConnectSphere event-operation
 prototype: one request moving through review, venue booking, equipment
 reservation, and registration, with a different view per role.
 
-Sign-in, the venue catalogue and event requests are served by a FastAPI backend
-(`backend/`) on Supabase Postgres; the app starts with no sample events. Actions
-that are not yet saved on the server (review decisions, venue bookings, equipment
-reservations, registrations, notifications) only change the browser's copy, held
-in a single React context (`lib/state/app-context.tsx`), and are lost on reload.
+Sign-in, the venue catalogue, event requests and venue booking requests are served by a
+FastAPI backend (`backend/`) on Supabase Postgres; the app starts with no sample events.
+Actions that are not yet saved on the server (equipment reservations, notifications)
+only change the browser's copy, held in a single React context
+(`lib/state/app-context.tsx`), and are lost on reload.
 
 ## Login & role-based access control (RBAC)
 
@@ -78,7 +78,9 @@ Depends(require_roles(Role.venue, ...))    # only these roles, else 403
 | `GET /venues/{id}` | any signed-in user (active venues only; a deactivated venue is a 404) |
 | `POST /venues/search` | Event Coordinator (search and filter active venues) |
 | `POST /venues/suitability` | Event Coordinator (compare an event's venue needs with each venue) |
-| `POST /venues/{id}/booking-requests` | Event Coordinator (request a venue for an approved event) |
+| `POST /venues/{id}/booking-requests` | Event Coordinator assigned to the event (request a venue for an approved event) |
+| `GET /bookings` | Event Coordinator, Venue Staff (the saved booking requests of the events they can see) |
+| `POST /bookings/{id}/decision` | Venue Staff (approve or reject a pending booking request) |
 | `GET /venues?include_inactive=true` | Venue Staff, Event Coordinator |
 | `POST /venues`, `PUT /venues/{id}` | Venue Staff |
 | `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
@@ -205,24 +207,33 @@ recorded needs by the backend (`backend/venue_suitability.py`, `POST /venues/sui
 
 Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-requests`):
 
-- The request holds the event's date, start and end, expected attendance and layout, plus the
-  venue's setup and teardown periods (the venue's own configured times, Week 7 change #1).
+- The page names only the event. The server reads the event's saved date, start and end, expected
+  attendance, layout and needs, and the venue's setup and teardown periods (the venue's own
+  configured times, Week 7 change #1), so the booking records exactly what the event asks for.
+  Only the coordinator the event is assigned to may ask.
 - Only an **approved** event can ask for a venue. An event that already went through a booking (a
   replacement venue because the first became unavailable, or a new request after a rejection) may
   also ask once it is planning or confirmed, so Week 7 change #2 keeps working.
-- The booking is recorded as **pending** and the venue is **provisionally held** from the start of
-  setup to the end of teardown (pending requests count when checking availability, as before).
-  Venue Staff get a notification and see the hold and any override on the request.
+- The booking is **saved** (`venue_bookings` table) as **pending** and the venue is **provisionally
+  held** from the start of setup to the end of teardown. Pending and approved bookings hold a
+  venue: search (US20), suitability (US21) and further requests all read them from the table, so a
+  venue another coordinator has requested is not free. The booking survives a reload and Venue Staff
+  see it on their Booking requests page, with the hold and any override. The new table is created
+  automatically when the backend starts; no manual database change is needed.
 - **No second pending request** for the same venue and time period (setup and teardown included;
   touching periods are fine). This cannot be overridden.
 - A venue that is not fully suitable can still be requested, but only after the coordinator
   acknowledges the warning. The **override** (verdict, who acknowledged, when, every unmet
-  requirement) is returned, kept on the event (`venueOverrides`), added to its activity log and
-  shown to Venue Staff. A clash with an already *approved* booking can be acknowledged too, as the
-  story allows; Venue Staff still cannot approve a clashing booking.
-- Events live in the browser, so the page sends the event's status and the bookings that currently
-  hold venues with each request, and keeps the returned booking on the event. The backend checks
-  every rule regardless. Once events are stored in the backend the same rules can read them directly.
+  requirement) is saved with the booking, shown on the event (`venueOverrides`) and to Venue Staff.
+  A clash with an already *approved* booking can be acknowledged too, as the story allows; Venue
+  Staff still cannot approve a clashing booking.
+- **Venue Staff decide** (`POST /bookings/{id}/decision`): approving makes the booking confirmed and
+  blocks the venue for others (refused if an approved booking already holds an overlapping period,
+  or the venue was deactivated); rejecting needs a reason and releases the venue, handing the event
+  back to its previous approved venue if it had one. Asking for a replacement venue releases the
+  event's earlier pending request, and approving the replacement releases its earlier booking.
+- Not yet saved: the notification itself (the server produces its text; the page shows it in the
+  browser) and the activity log lines, which are rebuilt only for the current session.
 - Events now state accessibility needs from the same fixed set as venues (Wheelchair Access, Special
   Physical Seating, Mobility/Facility Arrangements), so the two can be compared.
 
@@ -263,7 +274,7 @@ lib/
   venue-rules.ts   Venue availability: occupied windows, conflicts, unavailability — no React
   venue-search.ts  Venue search (US20): filter state, request body, clearing one filter — no React
   venue-suitability.ts  Venue suitability (US21): request body and verdict wording — no React
-  venue-booking.ts      Venue booking request (US22): request body and who may send one — no React
+  venue-booking.ts      Venue booking request (US22): request body, who may send one, saved bookings onto events — no React
   venue-form.ts    Venue catalogue form state + client-side validation — no React
   api.ts           fetch wrapper for the backend (/api/*)
   app-context.tsx  Global state + every mutation (signIn, approve, requestBooking, ...)
@@ -274,7 +285,8 @@ backend/
   venue_availability.py  Shared availability rules: occupied windows, closed days/hours, unavailability, clashes
   venue_search.py        Venue search rules (US20): requirements + free-for-the-period check
   venue_suitability.py   Suitability rules (US21): verdict, every need compared, override record
-  booking_request.py     Booking request rules (US22): approved event, no duplicate pending, record, notification
+  booking_request.py     Booking request rules (US22): approved event, no duplicate pending, values to save, notification
+  venue_bookings.py      Saved bookings (US22): what holds a venue, saving a request, Venue Staff's decision
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns)

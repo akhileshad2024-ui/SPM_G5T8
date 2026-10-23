@@ -35,9 +35,9 @@ import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
-import { bookingProblem, buildBookingRequest } from "../venues/booking";
+import { attachBookings, bookingProblem, buildBookingRequest } from "../venues/booking";
 import { VERDICT_LABEL } from "../venues/suitability";
-import { availabilityIssues, newlyAffectedBookings, venueFromApi } from "../venues/rules";
+import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
 import type {
   ApiVenue,
@@ -56,6 +56,7 @@ import type {
   ToastKind,
   Venue,
   VenueFilter,
+  VenueBookingRecord,
   WorkflowResult,
   VenueInput,
   NotificationRecord,
@@ -487,8 +488,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The events this user may see, then (for coordinators and Venue Staff) their saved booking requests,
+  // so a pending request, its hold and any override are still there after a reload.
   const loadEvents = () =>
-    apiFetch<StoredEvent[]>("/events").then((stored) => patch({ events: stored.map(eventFromApi) }), handleApiError);
+    apiFetch<StoredEvent[]>("/events")
+      .then((stored) => {
+        patch({ events: stored.map(eventFromApi) });
+        const role = state.user?.role;
+        if (role !== "coordinator" && role !== "venue") return;
+        return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) =>
+          patch((s) => ({ events: attachBookings(s.events, bookings) })),
+        );
+      })
+      .catch(handleApiError);
+
+  /** Venue Staff approve or reject a pending booking request; the server checks the rules and saves the decision. */
+  const decideBooking = async (e: EventRecord, outcome: "approved" | "rejected", reason: string): Promise<boolean> => {
+    const bookingId = e.bookingRequest?.id;
+    if (bookingId === undefined) {
+      flash("This booking request isn't saved yet. Reload the page and try again.", "warn");
+      return false;
+    }
+    try {
+      const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}/decision`, {
+        method: "POST",
+        body: JSON.stringify({ outcome, reason }),
+      });
+      if (outcome === "approved") {
+        patchEvent(
+          e.id,
+          { bookingState: "approved", bookingRequest: booking },
+          { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` },
+        );
+        notify("coordinator", "Venue booking approved", `${booking.venue_name} confirmed for ${e.name}.`);
+        flash(`${booking.venue_name} confirmed for ${e.name}.`);
+      } else {
+        patchEvent(e.id, { bookingState: "rejected", venue: null, bookingRequest: booking }, { title: "Venue booking rejected", body: reason });
+        notify("coordinator", "Venue booking rejected", `${e.name}: ${reason}`);
+        flash("Booking rejected. Coordinator notified.", "bad");
+      }
+      return true;
+    } catch (err) {
+      handleApiError(err);
+      return false;
+    }
+  };
 
   /** The attendee's own registrations (US30), as saved on the server. */
   const loadMyRegistrations = () =>
@@ -757,6 +801,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             "bad",
           );
         }
+        if (m.kind === "rejectBooking") saving = decideBooking(e, "rejected", text);
         if (saving) {
           // The modal stays open (with the text) until the step is saved.
           void saving.then((done) => done && patch({ modal: null, modalText: "" }));
@@ -767,11 +812,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           flash("Add a short note before sending.", "warn");
           return;
         }
-        if (m.kind === "rejectBooking") {
-          patchEvent(m.id, { bookingState: "rejected", venue: null }, { title: "Venue booking rejected", body: text });
-          notify("coordinator", "Venue booking rejected", `${e.name}: ${text}`);
-          flash("Booking rejected. Coordinator notified.", "bad");
-        } else if (m.kind === "change") {
+        if (m.kind === "change") {
           patchEvent(m.id, { status: "under_review", changeNote: text }, { title: "Change requested by organiser", body: text });
           notify("coordinator", "Change request", `${e.name}: ${text}`);
           flash("Change request submitted.");
@@ -826,7 +867,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const res = await apiFetch<BookingRequestResponse>(`/venues/${venueId}/booking-requests`, {
             method: "POST",
-            body: JSON.stringify(buildBookingRequest(e, state.events, acknowledged)),
+            body: JSON.stringify(buildBookingRequest(e, acknowledged)),
           });
           const { booking } = res;
           // Asking for a replacement keeps every other detail of the event (Week 7 change #2).
@@ -868,22 +909,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       approveBooking: (eventId) => {
         const e = getEvent(state.events, eventId);
-        if (!e || !e.venue) return;
-        const v = getVenue(state.venues, e.venue);
-        if (!v) return;
-        // Conflicts include each venue's setup and turnaround time (Week 7 change #1).
-        const blocker = availabilityIssues(state.events, v, e, "approved").find((i) => i.level === "block");
-        if (blocker) {
-          flash(`Can't approve: ${blocker.text}`, "warn");
-          return;
-        }
-        patchEvent(
-          eventId,
-          { bookingState: "approved" },
-          { title: "Venue booking approved", body: `${v.name} confirmed for ${e.date}, ${e.start}–${e.end}.` }
-        );
-        notify("coordinator", "Venue booking approved", `${v.name} confirmed for ${e.name}.`);
-        flash(`${v.name} confirmed for ${e.name}.`);
+        if (e) void decideBooking(e, "approved", "");
       },
 
       reserveEquipment: (eventId) => {

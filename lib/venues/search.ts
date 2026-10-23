@@ -3,8 +3,7 @@
  * expects (`VenueSearchRequest` in backend/schemas.py), and clearing one filter at a time.
  * The searching itself happens in the backend (backend/venue_search.py).
  */
-import type { EventRecord, VenueFilterKey, VenueSearchFilters } from "../types";
-import { holdsBooking, toIsoDate } from "./rules";
+import type { VenueFilterKey, VenueSearchFilters } from "../types";
 
 export const EMPTY_FILTERS: VenueSearchFilters = {
   date: "",
@@ -27,15 +26,6 @@ export interface VenueSearchRequest {
   accessibility: string[];
   layout?: string;
   facilities: string[];
-  bookings: Array<{
-    venue_id: number;
-    date: string;
-    start: string;
-    end: string;
-    status: "pending" | "approved";
-    event_id: string;
-    event_name: string;
-  }>;
 }
 
 /** Clears one filter, leaving the others as they were. "timing" is the date and both times together. */
@@ -67,34 +57,12 @@ export function filterProblem(filters: VenueSearchFilters): string | null {
   return null;
 }
 
-/** The bookings that currently hold a venue, which a search or request must keep clear of. `exceptEventId` leaves one event's own out. */
-export function heldBookings(events: EventRecord[], exceptEventId?: string): VenueSearchRequest["bookings"] {
-  const clock = /^\d{2}:\d{2}$/;
-  const held: VenueSearchRequest["bookings"] = [];
-  for (const e of events) {
-    const venueId = Number(e.venue);
-    const date = toIsoDate(e.date);
-    if (e.id === exceptEventId || !holdsBooking(e) || !Number.isInteger(venueId) || !date || !clock.test(e.start) || !clock.test(e.end)) continue;
-    held.push({
-      venue_id: venueId,
-      date,
-      start: e.start,
-      end: e.end,
-      status: e.bookingState === "approved" ? "approved" : "pending",
-      event_id: e.id,
-      event_name: e.name,
-    });
-  }
-  return held;
-}
-
-export function buildSearchRequest(filters: VenueSearchFilters, events: EventRecord[]): VenueSearchRequest {
-  const request: VenueSearchRequest = { accessibility: filters.accessibility, facilities: filters.facilities, bookings: [] };
+export function buildSearchRequest(filters: VenueSearchFilters): VenueSearchRequest {
+  const request: VenueSearchRequest = { accessibility: filters.accessibility, facilities: filters.facilities };
   if (filters.date) {
     request.date = filters.date;
     request.start = filters.start;
     request.end = filters.end;
-    request.bookings = heldBookings(events); // only matters when searching a period
   }
   if (filters.attendance) request.attendance = Number(filters.attendance);
   if (filters.location.trim()) request.location = filters.location.trim();

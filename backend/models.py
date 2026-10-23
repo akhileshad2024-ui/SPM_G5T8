@@ -113,6 +113,41 @@ class Event(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class VenueBooking(Base):
+    """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
+    so it survives a reload, Venue Staff can see it, and other searches see the venue as held.
+
+    status: pending (the venue is held) | approved | rejected | cancelled (replaced by a later request).
+    The venue is held from hold_start (start of setup) to hold_end (end of teardown), in the same
+    local wall-clock time as the event; those two are stored without a time zone on purpose.
+    """
+    __tablename__ = "venue_bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    event_name = Column(String, nullable=False)
+    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=False, index=True)
+    venue_name = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="pending")
+    date = Column(Date, nullable=False)
+    start_time = Column(String, nullable=False)  # "HH:MM"
+    end_time = Column(String, nullable=False)
+    setup_minutes = Column(Integer, nullable=False)
+    teardown_minutes = Column(Integer, nullable=False)
+    hold_start = Column(DateTime, nullable=False)
+    hold_end = Column(DateTime, nullable=False)
+    attendance = Column(Integer, nullable=False)
+    layout = Column(String, nullable=False)
+    verdict = Column(String, nullable=False)  # suitable | partially_suitable | unsuitable, when it was requested
+    requested_by = Column(String, nullable=False)
+    requested_at = Column(DateTime(timezone=True), nullable=False)
+    # US21: set when the coordinator went ahead with a venue that was not fully suitable.
+    override = Column(JSON(none_as_null=True), nullable=True)
+    decided_by = Column(String, nullable=True)
+    decided_at = Column(DateTime(timezone=True), nullable=True)
+    decision_reason = Column(Text, nullable=True)
+
+
 class EventStatusChange(Base):
     """US13: one row per status change of an event, oldest first, written only by
     event_status.change_status() so every story records changes the same way."""
