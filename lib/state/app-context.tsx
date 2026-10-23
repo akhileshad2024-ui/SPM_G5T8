@@ -45,6 +45,7 @@ import type {
   AuthUser,
   BookingRequestResponse,
   EventRecord,
+  EventDetailsUpdate,
   RegistrationRecord,
   EventRequestErrors,
   EventTab,
@@ -303,6 +304,7 @@ export interface AppApi {
   startReview: (id: string) => void;
   saveClarificationReply: (backendId: number, message: string) => Promise<boolean>;
   resumeReview: (backendId: number) => Promise<boolean>;
+  saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
   confirmEvent: (id: string) => void;
   openModal: (kind: ModalKind, id: string) => void;
   closeModal: () => void;
@@ -840,6 +842,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // US09: save through FastAPI; no browser-only reply or notification is created.
       saveClarificationReply: (backendId, message) => saveClarificationStep(backendId, "clarification-response", { message }),
       resumeReview: (backendId) => saveClarificationStep(backendId, "resume-review", {}),
+      saveEventDetails: async (backendId, values) => {
+        try {
+          const saved = eventFromApi(await apiFetch<StoredEvent>(`/events/${backendId}/details`, {
+            method: "PATCH", body: JSON.stringify(values),
+          }));
+          // Preserve attached booking data; this endpoint edits details, not bookings.
+          patch((s) => ({ events: s.events.map((e) => e.backendId === backendId ? { ...e, ...saved, bookingRequest: e.bookingRequest } : e) }));
+          flash("Event details saved.");
+          return true;
+        } catch (err) { handleApiError(err); return false; }
+      },
       loadEvent: (backendId) => apiFetch<StoredEvent>(`/events/${backendId}`),
 
       reloadVenues: async () => {

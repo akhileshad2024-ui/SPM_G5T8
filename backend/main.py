@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
@@ -7,7 +8,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
-import event_drafts, event_submission
+import event_drafts, event_submission, event_updates
 import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
@@ -534,6 +535,56 @@ def decide_request(event_id: int, body: schemas.DecisionIn, db: Session = Depend
                    user: User = Depends(require_roles(*EVENT_REVIEWERS))):
     return review_step(event_id, db, user,
                        lambda event, now: event_review.decide(db, event, user, body.outcome, body.reason, now))
+
+
+# US16: details and important-change history are committed atomically.
+@app.patch("/events/{event_id}/details", response_model=schemas.EventView, response_model_exclude_unset=True)
+def update_event_details(event_id: int, body: schemas.EventDetailsUpdate,
+                         db: Session = Depends(get_db),
+                         user: User = Depends(require_roles(Role.coordinator))):
+    # Serialize edits to this event; do not overwrite unrelated fields from a stale form.
+    event = db.query(models.Event).filter(models.Event.id == event_id).with_for_update().first()
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    has_arrangements = bool(event.venue_id or event.booking_state or event.equipment_state)
+    has_arrangements = has_arrangements or db.query(models.VenueBooking).filter(
+        models.VenueBooking.event_id == event_id,
+        models.VenueBooking.status.in_(["pending", "approved"]),
+    ).first() is not None or registrations.registered_count(db, event_id) > 0
+    try:
+        changes, affects = event_updates.prepare_update(
+            event, user, body.model_dump(include=body.model_fields_set), has_arrangements)
+    except event_updates.UpdateError as err:
+        db.rollback()
+        raise HTTPException(err.status_code, str(err))
+    if changes:
+        now = datetime.now(timezone.utc)
+        for key, value in changes.items():
+            setattr(event, event_updates.DETAIL_FIELDS[key], value)
+        event.updated_at = now
+        if affects:
+            db.add(models.EventDetailChange(event_id=event.id, changed_by_id=user.id,
+                changed_at=now, changes=jsonable_encoder(changes), affects_arrangements=True))
+        db.commit()
+        db.refresh(event)
+    return event_view(db, event, user)
+
+
+@app.get("/events/{event_id}/detail-changes", response_model=List[schemas.EventDetailChangeResponse])
+def event_detail_history(event_id: int, db: Session = Depends(get_db),
+                          user: User = Depends(require_roles(Role.coordinator, Role.organiser))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(403, "You don't have permission to do that")
+    rows = db.query(models.EventDetailChange, User.name).join(
+        User, User.id == models.EventDetailChange.changed_by_id).filter(
+        models.EventDetailChange.event_id == event_id).order_by(
+        models.EventDetailChange.changed_at, models.EventDetailChange.id).all()
+    return [schemas.EventDetailChangeResponse(id=change.id, changes=change.changes,
+        changedBy=name, changedAt=utc(change.changed_at),
+        affectsArrangements=change.affects_arrangements) for change, name in rows]
 
 
 # Fulfills US03: keep editing a saved draft (and US04: submit it) without creating a new request.

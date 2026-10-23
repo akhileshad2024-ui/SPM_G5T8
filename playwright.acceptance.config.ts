@@ -11,8 +11,8 @@ for (const key of ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD"]) {
 
 export default defineConfig({
   testDir: "tests/functional",
-  testMatch: "us09-respond-clarification.spec.ts",
-  grep: /US09-TC01/,
+  testMatch: process.env.TC_STORY === "US16" ? "us16-update-event-details.spec.ts" : "us09-respond-clarification.spec.ts",
+  grep: process.env.TC_STORY === "US16" ? /US16-TC01/ : /US09-TC01/,
   workers: 1,
   retries: 0, // Do not automatically repeat shared-data writes.
   timeout: 120_000,
