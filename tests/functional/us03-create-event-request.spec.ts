@@ -10,14 +10,18 @@ import { futureDate, observed } from "./support/venues";
  * Test cases: docs/testing/US03_Create_Event_Request_Test_Cases.xlsx (TC-025 to TC-037), run here in a
  * real browser against the functional-test database.
  *
- * KNOWN DEFECT (TC-029 to TC-034): since US04-US06 moved the wizard to POST /event-requests/submit
- * (13 Oct 2026), nothing checks the request before it is submitted: the wizard no longer calls
- * validateEventRequest (lib/events/request/validation.ts) and that endpoint doesn't run
- * schemas.submission_errors. An empty or invalid request is accepted. Those tests check the required
- * behaviour and are marked test.fail(); once the defect is fixed Playwright reports them as passing
- * unexpectedly, and the marks should be removed.
+ * TC-029 to TC-032 are skipped: there are no mandatory fields to check. The customer never specified
+ * which fields a request must have, so submission doesn't require any (Product Owner decision,
+ * 24 Oct 2026, in line with US04's "do not apply an invented mandatory-field list").
+ * TC-033 and TC-034 check what the date pickers enforce: they only offer valid dates.
  */
-const DEFECT = "Known defect: requests are submitted without validation since US04-US06 (see the note at the top of this file).";
+const NOT_REQUIRED = "Not a requirement: no mandatory-field list (Product Owner decision, 24 Oct 2026; see the note at the top of this file).";
+
+/** Today as YYYY-MM-DD in the browser's (local) time zone, which is what the date pickers use. */
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 const BASICS = { description: "Eight student ventures pitch to investors", type: "networking", start: "18:30", end: "21:00", pax: "95" };
 
@@ -38,7 +42,6 @@ const regCapBox = (page: Page) => page.locator('input[type="number"]').first();
 const regCloseBox = (page: Page) => page.locator('input[type="date"]').first();
 /** A value in the step 3 Summary: the element right after its label. */
 const summary = (page: Page, item: string) => page.getByText(item, { exact: true }).locator("xpath=following-sibling::div[1]");
-const outstanding = (page: Page) => page.getByRole("alert").filter({ hasText: "Outstanding mandatory fields" });
 
 async function openNewRequest(page: Page) {
   await signIn(page, MAYA, /\/my-events/);
@@ -145,84 +148,36 @@ test.describe("US03 - Create Event Request", () => {
     observed(info, 'Ticking registration showed the cap and closing-date fields and the summary "Enabled · cap 120"; unticking hid them and the summary showed "Not enabled".');
   });
 
-  test("[TC-029] [US03-AC5] missing mandatory event details are reported and the request isn't submitted", async ({ page, baseURL }) => {
-    test.fail(true, DEFECT);
-    await openNewRequest(page);
-    await next(page);
-    await next(page);
-    await submit(page);
-    for (const message of ["Event name is required.", "Event description is required.", "Event type is required.", "Preferred date is required.",
-      "Expected attendance must be a positive whole number."]) {
-      await expect(outstanding(page), message).toContainText(message);
-    }
-    await expect(page).toHaveURL(/\/new-request$/);
-    expect(await saved(await apiAs(baseURL!, MAYA), "")).toHaveLength(0);
+  test("[TC-029] [US03-AC5] missing mandatory event details are reported", async () => {
+    test.skip(true, NOT_REQUIRED);
   });
 
-  test("[TC-030] [US03-AC5] missing venue and equipment details are reported", async ({ page }) => {
-    test.fail(true, DEFECT);
-    await openNewRequest(page);
-    await fillBasics(page, unique("Missing Venue"), futureDate(30));
-    await next(page);
-    await equipmentRow(page, "Projector").getByRole("button", { name: "+" }).click();
-    await next(page);
-    await submit(page);
-    for (const message of ["Venue location is required.", "Venue capacity must be a positive whole number.", "Equipment technical requirements are required."]) {
-      await expect(outstanding(page), message).toContainText(message);
-    }
-    await expect(page).toHaveURL(/\/new-request$/);
+  test("[TC-030] [US03-AC5] missing venue and equipment details are reported", async () => {
+    test.skip(true, NOT_REQUIRED);
   });
 
-  test("[TC-031] [US03-AC5] missing registration details are reported", async ({ page }) => {
-    test.fail(true, DEFECT);
-    await openNewRequest(page);
-    await completeRequest(page, unique("Missing Registration"), futureDate(30));
-    await registrationBox(page).check();
-    await regCapBox(page).fill("");
-    await submit(page);
-    await expect(page.getByText("Registration capacity must be a positive whole number.").first()).toBeVisible();
-    await expect(page.getByText("Registration closing date is required.").first()).toBeVisible();
-    await expect(page).toHaveURL(/\/new-request$/);
+  test("[TC-031] [US03-AC5] missing registration details are reported", async () => {
+    test.skip(true, NOT_REQUIRED);
   });
 
-  test("[TC-032] [US03-AC5] invalid values are rejected", async ({ page }) => {
-    test.fail(true, DEFECT);
-    await openNewRequest(page);
-    await fillBasics(page, unique("Invalid Values"), futureDate(30), { start: "18:30", end: "17:00", pax: "0" });
-    await next(page);
-    await fillVenue(page);
-    await next(page);
-    await submit(page);
-    await expect(outstanding(page)).toContainText("Expected attendance must be a positive whole number.");
-    await expect(outstanding(page)).toContainText("End time must be later than start time.");
-    await expect(page).toHaveURL(/\/new-request$/);
+  test("[TC-032] [US03-AC5] invalid values are rejected", async () => {
+    test.skip(true, NOT_REQUIRED);
   });
 
-  test("[TC-033] [US03-AC6] an event date in the past cannot be entered", async ({ page }) => {
-    test.fail(true, DEFECT);
+  test("[TC-033] [US03-AC6] the date picker doesn't offer a date in the past", async ({ page }, info) => {
     await openNewRequest(page);
-    // The picker only offers today onwards.
-    await expect(dateBox(page)).toHaveAttribute("min", futureDate(0));
-    await completeRequest(page, unique("Past Date"), futureDate(-1));
-    await submit(page);
-    await expect(outstanding(page)).toContainText("Preferred date cannot be in the past.");
-    await expect(page).toHaveURL(/\/new-request$/);
+    await expect(dateBox(page)).toHaveAttribute("min", localToday());
+    observed(info, `The Proposed date picker's earliest date is today (${localToday()}).`);
   });
 
-  test("[TC-034] [US03-AC5] the registration closing date must be between today and the event date", async ({ page }) => {
-    test.fail(true, DEFECT);
+  test("[TC-034] [US03-AC4] the closing-date picker only offers today to the event date", async ({ page }, info) => {
     const eventDate = futureDate(30);
     await openNewRequest(page);
     await completeRequest(page, unique("Closing Date"), eventDate);
     await registrationBox(page).check();
-    await regCapBox(page).fill("120");
+    await expect(regCloseBox(page)).toHaveAttribute("min", localToday());
     await expect(regCloseBox(page)).toHaveAttribute("max", eventDate);
-    await regCloseBox(page).fill(futureDate(-1));
-    await submit(page);
-    await expect(page.getByText("Registration closing date cannot be in the past.").first()).toBeVisible();
-    await regCloseBox(page).fill(futureDate(31));
-    await submit(page);
-    await expect(page.getByText("Registration must close on or before the event date.").first()).toBeVisible();
+    observed(info, `With the event on ${eventDate}, the Registration closes picker offered ${localToday()} to ${eventDate}.`);
   });
 
   test("[TC-035] [US03-AC7] a draft can be saved, reopened and saved again without a duplicate", async ({ page, baseURL }, info) => {
