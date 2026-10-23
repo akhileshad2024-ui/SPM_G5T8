@@ -104,6 +104,7 @@ def submit_event_request(
         organiser_id=user.id, facilities=[], accessibility=[], equipment=[], registration_required=False,
     )
     now = datetime.now(timezone.utc)
+    check_event_date(request.event_details, now)
     is_new = request.draft_id is None
     if request.event_details is not None:
         # Reuse shared field mapping without adding submission-required fields.
@@ -622,6 +623,18 @@ def check_submission(request: schemas.EventRequestIn, now: datetime) -> None:
             status_code=422,
             detail={"message": "Complete the outstanding fields before submission.", "errors": errors},
         )
+
+
+PAST_DATE = "Preferred date cannot be in the past."
+
+
+def check_event_date(details: schemas.EventRequestIn | None, now: datetime) -> None:
+    """US03 AC6: a request can't be submitted for a date that has already passed (campus date).
+
+    No field is mandatory (the customer never specified any), so a missing date is fine.
+    """
+    if details is not None and details.preferredDate is not None and details.preferredDate < schemas.campus_today(now):
+        raise HTTPException(status_code=422, detail={"message": PAST_DATE, "errors": {"preferredDate": PAST_DATE}})
 
 
 def apply_event_request(event: models.Event, request: schemas.EventRequestIn, now: datetime) -> None:
