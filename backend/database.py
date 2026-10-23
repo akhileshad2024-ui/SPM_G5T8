@@ -18,7 +18,9 @@ if not SQLALCHEMY_DATABASE_URL:
         f"DATABASE_URL is not set. Add your PostgreSQL connection string to {ENV_FILE}."
     )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# pool_pre_ping: Supabase closes idle connections, so check each pooled one before reusing it
+# (otherwise the next request fails with "server closed the connection unexpectedly").
+engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
