@@ -6,6 +6,7 @@ import { canAssignCoordinator } from "@/lib/events/review/assignment";
 import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
 import { EventDetailsToggle } from "@/components/ui/EventDetails";
+import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -127,20 +128,10 @@ export function RequestTab({ event }: { event: EventRecord }) {
 
         {clarification && (
           <div className={`card ${styles.card}`}>
-            <div className="eyebrow">
-              {clarification.kind === "amendment" ? "Amendment request" : "Clarification request"}
-            </div>
-            <div className={styles.thread}>
-              <div>
-                <div className={styles.messageMeta}>
-                  {clarification.requestedBy} · {formatTimestamp(clarification.requestedAt)}
-                </div>
-                <div className={styles.message}>{clarification.message}</div>
-              </div>
-              {event.status === "pending_clarification" && (
-                <div className={styles.hint}>Waiting for {event.organiser} to respond.</div>
-              )}
-            </div>
+            <ClarificationThread event={event} />
+            {event.status === "pending_clarification" && !clarification.response && (
+              <div className={styles.hint}>Waiting for {event.organiser} to respond.</div>
+            )}
           </div>
         )}
 
