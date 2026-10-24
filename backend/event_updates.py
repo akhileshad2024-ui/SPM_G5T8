@@ -4,14 +4,12 @@ AC1: only the assigned coordinator edits planning details.
 AC4: identify arrangement-sensitive changes; this does NOT rebook/reapprove.
 The API owns the transaction and AC2 history. US36 notification delivery is pending.
 """
-from login.models import Role
-from models import EventStatus
-
 # Implementation boundary: planning is submitted through approved, not a new AC
 # defining every future workflow state. Confirmed-event direct editing is unopened.
+# Use stored string values rather than importing ORM enums: this pure module
+# must be importable without database configuration (including in unit-test CI).
 PLANNING_STATUSES = {
-    EventStatus.submitted, EventStatus.under_review,
-    EventStatus.pending_clarification, EventStatus.approved,
+    "submitted", "under_review", "pending_clarification", "approved",
 }
 
 # Public API field -> existing events column. Never allow ownership/status edits.
@@ -43,7 +41,7 @@ def prepare_update(event, user, values, has_arrangements=False):
     Existing arrangements make even a descriptive edit potentially important;
     the flag is a warning, not a claim that every booking is invalid.
     """
-    if user.role != Role.coordinator or event.coordinator_id != user.id:
+    if user.role != "coordinator" or event.coordinator_id != user.id:
         raise UpdateError(403, "Only the assigned Event Coordinator can edit these details.")
     if event.status not in PLANNING_STATUSES:
         raise UpdateError(409, "Direct detail editing is available only during planning.")

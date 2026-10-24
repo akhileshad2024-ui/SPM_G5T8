@@ -142,3 +142,31 @@ contract is available; do not mark all US16 AC complete before that verification
 The standalone SQL proposal file was removed at Wen's request; the SQL was
 provided directly in chat. Preserve reproducible schema deployment instructions
 in the team's normal migration workflow before another environment is deployed.
+
+## PR #28 CI import fix (2026-10-24 SGT)
+
+- Initial run: https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/40046460773
+  Backend failed at `python -m unittest discover -s tests/unit -v`, before pytest
+  or coverage could execute. Frontend and functional jobs succeeded.
+- Exact error: importing US16's unit test imported event_updates → login.models
+  → database, which raised `DATABASE_URL is not set` on the clean CI runner.
+  Local backend/.env and pytest's conftest had masked the import dependency.
+- Fix: remove ORM role/status imports from the pure event_updates module and
+  its unit tests. Compare stored string values (the existing ORM enums inherit
+  from str); permissions and planning scope stay unchanged. No schema, secrets,
+  workflow bypass, skipped tests, business AC or other story code changed.
+- Add a US16 technical regression test that imports the module in a fresh
+  subprocess with empty database/auth settings and asserts no database/models
+  modules were imported. This is not a new customer AC or a new manual TC.
+- Focused verification: 39 tests passed; updated module coverage remains 100%
+  for 17 statements and 6 branch outcomes (two import statements removed).
+- Reproduce CI unit discovery with DATABASE_URL/JWT_SECRET unset, not set to
+  empty strings: existing venue tests intentionally use setdefault for their
+  SQLite fixture. The empty-string full-discovery diagnostic failed in that
+  existing venue fixture; it is not the GitHub runner's unset environment and
+  no venue code was modified.
+- Remote rerun verification is pending publication of this fix to the same PR.
+  Shared TC01 was not rerun; do not append a fictional yellow execution record.
+- Local CI-equivalent unit discovery: 251 tests passed with database/auth
+  variables unset. Full backend regression: 1051 tests + 462 subtests passed
+  in 48.90 seconds, including ORM-backed API permission/persistence coverage.

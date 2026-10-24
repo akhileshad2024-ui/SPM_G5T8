@@ -2,23 +2,23 @@
 from types import SimpleNamespace
 from pathlib import Path
 import sys
+import os
+import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
 
 import pytest
 import event_updates as rules
-from login.models import Role
-from models import EventStatus as S
 
 
 def event(**overrides):
     values = {column: None for column in rules.DETAIL_FIELDS.values()}
     return SimpleNamespace(**{**values, "coordinator_id": 2,
-        "status": S.under_review, "purpose": "Original", "expected_attendance": 85, **overrides})
+        "status": "under_review", "purpose": "Original", "expected_attendance": 85, **overrides})
 
 
 def coordinator(**overrides):
-    return SimpleNamespace(**{"id": 2, "role": Role.coordinator, **overrides})
+    return SimpleNamespace(**{"id": 2, "role": "coordinator", **overrides})
 
 
 def test_AC1_TC01_prepares_edit_without_mutating_event():
@@ -27,14 +27,15 @@ def test_AC1_TC01_prepares_edit_without_mutating_event():
     assert saved.purpose == "Original"
 
 
-@pytest.mark.parametrize("user", [coordinator(id=9), coordinator(role=Role.organiser)])
+@pytest.mark.parametrize("user", [coordinator(id=9), coordinator(role="organiser")])
 def test_AC1_denies_unassigned_people(user):
     with pytest.raises(rules.UpdateError) as error:
         rules.prepare_update(event(), user, {"purpose": "Revised"})
     assert error.value.status_code == 403
 
 
-@pytest.mark.parametrize("status", list(S))
+@pytest.mark.parametrize("status", ["draft", "submitted", "under_review", "pending_clarification",
+                                    "approved", "confirmed", "rejected", "cancelled"])
 def test_planning_boundary_does_not_open_confirmed_or_closed_events(status):
     if status in rules.PLANNING_STATUSES:
         assert rules.prepare_update(event(status=status), coordinator(), {}) == ({}, False)
@@ -68,3 +69,20 @@ def test_AC4_each_arrangement_field_is_classified(key):
     # Test the confirmed field mapping, not framework type conversion.
     changes, affects = rules.prepare_update(event(), coordinator(), {key: "changed"})
     assert changes == {key: "changed"} and affects
+
+
+def test_technical_import_needs_no_database_or_auth_configuration():
+    """CI regression: a fresh interpreter must not import the database at all.
+
+    pytest's conftest sets a SQLite URL; this subprocess prevents that setup
+    from hiding accidental ORM imports in a supposedly pure business module.
+    """
+    backend = str(Path(__file__).resolve().parents[3] / "backend")
+    script = (
+        f"import sys; sys.path.insert(0, {backend!r}); import event_updates; "
+        "assert 'database' not in sys.modules; assert 'models' not in sys.modules; "
+        "assert 'login.models' not in sys.modules"
+    )
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True,
+        env={**os.environ, "DATABASE_URL": "", "JWT_SECRET": ""})
+    assert result.returncode == 0, result.stderr
