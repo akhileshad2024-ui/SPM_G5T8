@@ -37,6 +37,7 @@ ACCOUNTS = [
     ("daniel.ortiz@connectsphere.edu", "Daniel Ortiz", Role.venue),
     ("wei.lim@connectsphere.edu", "Wei Lim", Role.tech),
     ("sam.adeyemi@student.connectsphere.edu", "Sam Adeyemi", Role.attendee),
+    ("taylor@student.connectsphere.edu", "Taylor Test", Role.attendee),
     # US01: accounts the login tests lock, fail against or change the password of, so no other test is affected.
     ("lockout.test@connectsphere.edu", "Lockout Test", Role.tech),
     ("failcount.test@connectsphere.edu", "Fail Count Test", Role.venue),

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Date, Time, Text, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Date, Time, Text, Enum, ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.sql import func
 from database import Base
 
@@ -226,3 +226,42 @@ class Registration(Base):
     # When the attendee last joined (registered or waitlisted): the waitlist is served in this order.
     registered_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class EquipmentStock(Base):
+    """Shared lock and serviceable quantity for each catalogue item (US27/28)."""
+    __tablename__ = "equipment_stock"
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    total = Column(Integer, nullable=False)
+    maintenance = Column(Integer, nullable=False, default=0)
+    out_of_service = Column(Integer, nullable=False, default=0)
+    __table_args__ = (CheckConstraint("total >= 0 AND maintenance >= 0 AND out_of_service >= 0 AND maintenance + out_of_service <= total", name="ck_serviceable_equipment_stock"),)
+
+
+class EquipmentAssignment(Base):
+    __tablename__ = "equipment_assignments"
+    event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
+    tech_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+
+class EquipmentReservation(Base):
+    __tablename__ = "equipment_reservations"
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    item_id = Column(String, ForeignKey("equipment_stock.id"), nullable=False, index=True)
+    quantity = Column(Integer, nullable=False)
+    start = Column(DateTime, nullable=False)
+    end = Column(DateTime, nullable=False)
+    __table_args__ = (UniqueConstraint("event_id", "item_id", name="uq_equipment_reservation"),
+                      CheckConstraint('quantity > 0 AND "start" < "end"', name="ck_equipment_reservation_period"))
+
+
+class EquipmentUpdate(Base):
+    __tablename__ = "equipment_updates"
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    item_id = Column(String, nullable=True)
+    changed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(DateTime(timezone=True), nullable=False)
+    changes = Column(JSON, nullable=False)

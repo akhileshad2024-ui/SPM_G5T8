@@ -320,8 +320,7 @@ export interface AppApi {
   /**
    * Loads one stored event's latest saved details (GET /events/{id}), as the backend sends
    * them: only the fields the signed-in role may see. Throws ApiError (403 not involved,
-   * 404 not found). It does not replace the event in the list, because review, booking and
-   * equipment actions are still kept in the browser until their stories save them.
+   * 404 not found). Detail readers load independently from list state.
    */
   loadEvent: (backendId: number) => Promise<StoredEvent>;
 
@@ -352,10 +351,6 @@ export interface AppApi {
   cancelBooking: (eventId: string, bookingId: number) => Promise<boolean>;
   /** US41: cancel every booking of the event that still holds a venue. */
   cancelAllBookings: (eventId: string) => Promise<boolean>;
-
-  // ---- equipment ----
-  reserveEquipment: (eventId: string) => void;
-  releaseEquipment: (eventId: string) => void;
 
   // ---- attendee registration (US29-US32), saved on the server ----
   registerForEvent: (eventId: string) => void;
@@ -1076,27 +1071,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           handleApiError(err);
           return false;
         }
-      },
-
-      reserveEquipment: (eventId) => {
-        const e = getEvent(state.events, eventId);
-        if (!e) return;
-        const short = (e.equip || []).filter((it) => it.qty > freeQty(state.events, it.id, eventId));
-        if (short.length) {
-          flash(`Not enough ${equipName(short[0].id).toLowerCase()} free at that date and time.`, "warn");
-          return;
-        }
-        patchEvent(
-          eventId,
-          { equipState: "reserved" },
-          { title: "Equipment reserved", body: `${(e.equip || []).map((it) => `${it.qty} × ${equipName(it.id)}`).join(", ")} reserved for this event.` }
-        );
-        notify("coordinator", "Equipment reserved", `All requested equipment for ${e.name} is now reserved.`);
-        flash(`Equipment reserved for ${e.name}.`);
-      },
-      releaseEquipment: (eventId) => {
-        patchEvent(eventId, { equipState: "requested" }, { title: "Reservation released", body: "Equipment returned to the pool." });
-        flash("Reservation released.", "warn");
       },
 
       // The browser checks the rules for an instant answer; the server decides (capacity, waitlist)

@@ -9,6 +9,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
+import equipment
 import event_drafts, event_submission, event_changes, event_updates
 import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
 from venue_audit import apply_update, change_action, creation_changes, record_change
@@ -32,6 +33,9 @@ app.add_middleware(
 app.middleware("http")(enforce_https)
 
 app.include_router(auth.router)
+app.include_router(equipment.router)
+with Session(engine) as equipment_db:
+    equipment.seed_catalogue(equipment_db)
 
 # RBAC: who may manage the venue catalogue (US17).
 VENUE_MANAGERS = (Role.venue,)
@@ -705,6 +709,9 @@ def update_event_details(event_id: int, body: schemas.EventDetailsUpdate,
     except event_updates.UpdateError as err:
         db.rollback()
         raise HTTPException(err.status_code, str(err))
+    if changes and set(changes) & {"equip", "date", "start", "end"}:
+        if any(line.get("status") in {"reserved", "fulfilled"} for line in event.equipment or []):
+            raise HTTPException(409, "Release equipment reservations before changing equipment or the event period; fulfilled items cannot be amended.")
     if changes:
         now = datetime.now(timezone.utc)
         for key, value in changes.items():

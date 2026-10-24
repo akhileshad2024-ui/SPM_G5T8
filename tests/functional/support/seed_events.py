@@ -83,6 +83,7 @@ with SessionLocal() as db:
         venue_id=venue.id, booking_state="approved", submitted_at=now - timedelta(minutes=7),
         decision={"outcome": "approved", "reason": "Programme and venue confirmed.", "by": "Priya Tan", "at": now.isoformat()},
     )
+    db.add(models.EquipmentAssignment(event_id=symposium.id, tech_id=user(db, "wei.lim@connectsphere.edu").id))
     history(db, symposium, [
         (None, S.submitted, maya, None),
         (S.submitted, S.under_review, priya, None),
