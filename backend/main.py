@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
@@ -9,7 +10,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
+import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -261,21 +262,50 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 # The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events
 # they are involved in (event_access.py), oldest first. The event page merges them into its events, so a
 # pending request, its hold and any override are still there after a reload.
+def expire_lapsed_holds(db: Session) -> None:
+    """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released.
+    Called before bookings or events are read; there is no background job."""
+    if hold_expiry.expire_due(db, datetime.now(timezone.utc)):
+        db.commit()
+
+
 @app.get("/bookings", response_model=List[schemas.VenueBooking])
 def list_bookings(db: Session = Depends(get_db), user: User = Depends(require_roles(Role.coordinator, Role.venue))):
+    expire_lapsed_holds(db)
     visible = involved_events(db.query(models.Event), user).with_entities(models.Event.id)
+    shown = models.VenueBooking.event_id.in_(visible)
+    if user.role == Role.venue:
+        # US42-AC4: Venue Staff also see expired holds, whose events no longer hold a venue.
+        shown = or_(shown, models.VenueBooking.status == "expired")
     rows = (
         db.query(models.VenueBooking)
-        .filter(models.VenueBooking.event_id.in_(visible))
+        .filter(shown)
         .order_by(models.VenueBooking.requested_at, models.VenueBooking.id)
         .all()
     )
     return [venue_bookings.to_record(row) for row in rows]
 
+# Fulfills US42-AC1: Venue Staff set or change when a pending request's tentative hold expires. It must be in
+# the future and no later than the start of setup. Rules broken -> 409.
+@app.post("/bookings/{booking_id}/hold", response_model=schemas.VenueBooking)
+def set_hold_expiry(booking_id: int, body: schemas.BookingHoldIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_DECIDERS))):
+    booking = db.get(models.VenueBooking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking request not found")
+    try:
+        hold_expiry.set_expiry(booking, body.expires_at, user.email, datetime.now(timezone.utc))
+    except booking_request.BookingRefused as refusal:
+        raise HTTPException(status_code=409, detail=refusal.message)
+    db.commit()
+    db.refresh(booking)
+    return venue_bookings.to_record(booking)
+
+
 # Venue Staff approve or reject a pending booking request. Rejecting needs a reason. The event's current
 # venue follows the decision; a confirmed booking then blocks the venue for others. Rules broken -> 409.
 @app.post("/bookings/{booking_id}/decision", response_model=schemas.VenueBooking)
 def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_DECIDERS))):
+    expire_lapsed_holds(db)  # US42: a hold that has lapsed is saved as expired before any decision
     booking = db.get(models.VenueBooking, booking_id)
     if booking is None:
         raise HTTPException(status_code=404, detail="Booking request not found")
@@ -506,6 +536,7 @@ def create_event(request: schemas.EventRequestIn, db: Session = Depends(get_db),
 # fields each role sees: event_fields.py.
 @app.get("/events", response_model=List[schemas.EventView], response_model_exclude_unset=True)
 def list_events(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    expire_lapsed_holds(db)
     query = involved_events(db.query(models.Event), user)
     return [event_view(db, event, user) for event in query.order_by(models.Event.id.desc()).all()]
 
@@ -513,6 +544,7 @@ def list_events(db: Session = Depends(get_db), user: User = Depends(get_current_
 # Fulfills US15: the latest saved details of one event, as the user's role may see them.
 @app.get("/events/{event_id}", response_model=schemas.EventView, response_model_exclude_unset=True)
 def get_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    expire_lapsed_holds(db)
     event = db.get(models.Event, event_id)
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")

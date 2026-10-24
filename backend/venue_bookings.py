@@ -9,9 +9,10 @@ summary of them for the rest of the app (events.venue_id with events.booking_sta
 its main venue is the first approved booking, else the first pending one.
 """
 
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
+import hold_expiry
 import models
 import schemas
 from booking_request import BookingRefused
@@ -21,8 +22,14 @@ from venue_availability import format_date
 HOLDING = ("pending", "approved")
 
 
-def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Optional[int] = None) -> List[schemas.BookedPeriod]:
-    """The bookings that currently hold venues, as the availability rules read them."""
+def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Optional[int] = None,
+                 now: Optional[datetime] = None) -> List[schemas.BookedPeriod]:
+    """The bookings that currently hold venues, as the availability rules read them.
+
+    US42: a tentative hold whose expiry has passed no longer holds its venue, even before "expired"
+    has been saved on it.
+    """
+    now = now or datetime.now(timezone.utc)
     query = db.query(models.VenueBooking).filter(models.VenueBooking.status.in_(HOLDING))
     if venue_ids is not None:
         query = query.filter(models.VenueBooking.venue_id.in_(venue_ids))
@@ -34,6 +41,7 @@ def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Op
             status=row.status, event_id=str(row.event_id), event_name=row.event_name,
         )
         for row in query.all()
+        if not hold_expiry.is_lapsed(row, now)
     ]
 
 
@@ -42,8 +50,9 @@ def _utc(moment):
     return moment.replace(tzinfo=timezone.utc) if moment is not None and moment.tzinfo is None else moment
 
 
-def to_record(row: models.VenueBooking) -> dict:
+def to_record(row: models.VenueBooking, now: Optional[datetime] = None) -> dict:
     """A saved booking as the API shows it (schemas.VenueBooking)."""
+    now = now or datetime.now(timezone.utc)
     return {
         "id": row.id, "event_id": row.event_id, "event_name": row.event_name,
         "venue_id": row.venue_id, "venue_name": row.venue_name,
@@ -56,6 +65,9 @@ def to_record(row: models.VenueBooking) -> dict:
         "override": row.override,
         "decided_by": row.decided_by, "decided_at": _utc(row.decided_at), "decision_reason": row.decision_reason,
         "flag": row.flag,
+        # US42: when the tentative hold lapses, who set that, and what the coordinator should be told.
+        "hold_expires_at": _utc(row.hold_expires_at), "hold_expiry_set_by": row.hold_expiry_set_by,
+        "hold_notice": hold_expiry.hold_notice(row, now),
     }
 
 
@@ -85,8 +97,13 @@ def summarise(db, event: models.Event) -> None:
 
 
 def save_request(db, event: models.Event, values: dict) -> models.VenueBooking:
-    """Save the pending booking. The event's other bookings are kept (US41)."""
+    """Save the pending booking. The event's other bookings are kept (US41).
+
+    US42: the new tentative hold gets its default expiry; Venue Staff can change it later.
+    """
     row = models.VenueBooking(**values)
+    if row.hold_expires_at is None:
+        row.hold_expires_at = hold_expiry.default_expiry(row, row.requested_at)
     db.add(row)
     summarise(db, event)
     db.commit()
@@ -128,6 +145,9 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
     Rejecting needs a reason. Approving is refused if the venue was deactivated since, or if an approved
     booking already holds it for an overlapping period (a confirmed booking blocks the venue).
     """
+    # US42-AC4: a hold whose expiry has passed is expired, never a confirmed booking (even if not saved yet).
+    if hold_expiry.is_lapsed(booking, now):
+        booking.status = "expired"
     if booking.status != "pending":
         raise BookingRefused(f"This request is no longer pending (it is {booking.status}).")
     reason = (reason or "").strip()
