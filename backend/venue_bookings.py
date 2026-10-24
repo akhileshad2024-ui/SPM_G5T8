@@ -10,7 +10,7 @@ its main venue is the first approved booking, else the first pending one.
 """
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 import hold_expiry
@@ -18,7 +18,11 @@ import models
 import schemas
 import venue_reassessment
 from booking_request import BookingRefused
+from venue_availability import format_date
 from venue_conflicts import HOLDING, aware as _utc, blocking, conflicts_for, holds_venue, slot_of
+
+# US23-AC5: how long after Venue Staff decide a request the coordinator is still shown the outcome.
+DECISION_NOTICE_WINDOW = timedelta(days=7)
 
 
 def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Optional[int] = None,
@@ -67,6 +71,8 @@ def to_record(row: models.VenueBooking, staff: bool = False, now: Optional[datet
         # US42: when the tentative hold lapses, who set that, and what the coordinator should be told.
         "hold_expires_at": _utc(row.hold_expires_at), "hold_expiry_set_by": row.hold_expiry_set_by,
         "hold_notice": hold_expiry.hold_notice(row, now),
+        # US23-AC5: the outcome the requesting coordinator should be told about.
+        "decision_notice": decision_notice(row, now),
     }
 
 
@@ -95,6 +101,15 @@ def staff_records(db, rows: List[models.VenueBooking], now: datetime) -> List[di
         record["conflicts"] = conflicts_for(slot_of(row), venues[row.venue_id], holding_at[row.venue_id], now) if holding else []
         records.append(record)
     return records
+
+
+def decision_notice(row, now: datetime) -> Optional[str]:
+    """US23-AC5: "approved" or "rejected" while the decision is recent enough to tell the coordinator about.
+    Notifications aren't stored on the server yet (US36), so the page shows these when it loads."""
+    decided = _utc(getattr(row, "decided_at", None))
+    if row.status not in ("approved", "rejected") or decided is None:
+        return None
+    return row.status if now - decided <= DECISION_NOTICE_WINDOW else None
 
 
 def event_bookings(db, event_id: int) -> List[models.VenueBooking]:
@@ -193,6 +208,13 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
     # US42-AC4: a hold whose expiry has passed is expired, never a confirmed booking (even if not saved yet).
     if hold_expiry.is_lapsed(booking, now):
         booking.status = "expired"
+    # US23-AC7: an expired tentative hold can't be approved; there is nothing left to reject either.
+    if booking.status == "expired":
+        expires = hold_expiry.as_utc(booking.hold_expires_at)
+        when = f" on {expires.astimezone(schemas.CAMPUS_TZ):%d %b %Y, %H:%M}" if expires else ""
+        if outcome == "rejected":
+            raise BookingRefused(f"This tentative hold expired{when}, so the venue has already been released.")
+        raise BookingRefused(f"This tentative hold expired{when} and can't be approved.")
     if booking.status != "pending":
         raise BookingRefused(f"This request is no longer pending (it is {booking.status}).")
     reason = (reason or "").strip()

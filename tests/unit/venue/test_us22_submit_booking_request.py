@@ -72,10 +72,9 @@ class DatabaseTestCase(unittest.TestCase):
         Base.metadata.create_all(bind=self.engine)
         self.sessions = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self.db = self.sessions()
-
-    def tearDown(self):
-        self.db.close()
-        self.engine.dispose()
+        # Cleanups run last-registered first: reload() sessions close, then this session, then the engine.
+        self.addCleanup(self.engine.dispose)
+        self.addCleanup(self.db.close)
 
     def venue(self, **overrides) -> models.Venue:
         """An active theatre open Monday to Friday 08:00-22:00 with 30 min setup and 45 min turnaround."""
@@ -143,8 +142,15 @@ class DatabaseTestCase(unittest.TestCase):
         return booking
 
     def reload(self):
-        """A second session on the same database: what a page reload sees."""
-        return self.sessions()
+        """A second session on the same database: what a page reload sees.
+
+        Closed when the test ends (addCleanup also keeps it referenced until then): all sessions share
+        one in-memory connection (StaticPool), and a session left for the garbage collector can reset
+        that connection mid-test, losing rows just saved.
+        """
+        session = self.sessions()
+        self.addCleanup(session.close)
+        return session
 
 
 # ---------------------------------------------------------------- AC1: what a request contains

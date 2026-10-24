@@ -154,7 +154,8 @@ test.describe("US39 - Mark Venue Temporarily Unavailable", () => {
     const bell = page.getByRole("button", { name: /Notifications/ });
     await bell.click();
     // One notification (its CSS-module class is NotificationsPanel_item__<hash>; itemTitle/itemBody are inside it).
-    const notice = page.locator('[class*="NotificationsPanel_item__"]', { hasText: event });
+    // Narrowed to this notification: the coordinator also has others about the event (e.g. US23's "Venue booking approved").
+    const notice = page.locator('[class*="NotificationsPanel_item__"]', { hasText: event }).filter({ hasText: "Replacement venue required" });
     await expect(notice).toContainText("Replacement venue required");
     await expect(notice).toContainText("Safety concern: Ceiling repair");
     await bell.click();
