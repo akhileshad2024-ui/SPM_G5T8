@@ -28,12 +28,16 @@ class BookingRefused(Exception):
         self.message = message
 
 
-def needs_from_event(event) -> SimpleNamespace:
+def needs_from_event(event, attendance=None, layout=None) -> SimpleNamespace:
     """The event's saved date, times, attendance, layout and needs, in the form the rules use.
 
+    US41: one booking may be for part of the event (e.g. a breakout session), so `attendance` and
+    `layout`, when given, replace the event's own for this booking.
     Refuses an event that doesn't have them yet, since there is nothing to book a venue for.
     """
-    if event.date is None or event.start_time is None or event.end_time is None or not event.expected_attendance or not event.layout:
+    attendance = attendance or event.expected_attendance
+    layout = layout or event.layout
+    if event.date is None or event.start_time is None or event.end_time is None or not attendance or not layout:
         raise BookingRefused("Complete the event's date, times, attendance and layout before requesting a venue.")
     if event.end_time <= event.start_time:
         raise BookingRefused("The event's end time must be after its start time.")
@@ -41,8 +45,8 @@ def needs_from_event(event) -> SimpleNamespace:
         date=event.date,
         start=event.start_time.strftime("%H:%M"),
         end=event.end_time.strftime("%H:%M"),
-        attendance=event.expected_attendance,
-        layout=event.layout.lower(),
+        attendance=attendance,
+        layout=layout.lower(),
         facilities=list(event.facilities or []),
         accessibility=list(event.accessibility or []),
     )
@@ -74,6 +78,12 @@ def require_no_pending_duplicate(venue, needs, held) -> None:
                 )
 
 
+def require_new_venue_for_event(venue, event_id: int, held) -> None:
+    """US41: an event can book several venues, but each only once. `held` are the bookings holding `venue`."""
+    if any(b.venue_id == venue.id and b.event_id == str(event_id) for b in held):
+        raise BookingRefused(f"This event already has a booking for {venue.name}. Change or cancel that booking instead.")
+
+
 def require_acknowledgement(verdict: str, checks: list, acknowledged: bool) -> None:
     """A venue that is not fully suitable can still be requested, but only once the coordinator accepts the warning."""
     if verdict == SUITABLE or acknowledged:
@@ -87,7 +97,7 @@ def stored_override(override):
     return None if override is None else {**override, "acknowledged_at": override["acknowledged_at"].isoformat()}
 
 
-def build_booking(venue, event, needs, verdict: str, requested_by: str, requested_at: datetime, override) -> dict:
+def build_booking(venue, event, needs, verdict: str, requested_by: str, requested_at: datetime, override, purpose=None) -> dict:
     """The values of the pending booking: the venue is held from the start of setup to the end of teardown."""
     hold = occupied_window(event_window(needs.date, needs.start, needs.end), venue)
     return {
@@ -105,6 +115,7 @@ def build_booking(venue, event, needs, verdict: str, requested_by: str, requeste
         "hold_end": to_datetime(hold[1]),
         "attendance": needs.attendance,
         "layout": needs.layout,
+        "purpose": purpose or None,
         "verdict": verdict,
         "requested_by": requested_by,
         "requested_at": requested_at,

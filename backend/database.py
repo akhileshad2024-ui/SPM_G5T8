@@ -32,7 +32,11 @@ def connection_args(database_url: str) -> dict:
     return {}
 
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connection_args(SQLALCHEMY_DATABASE_URL))
+# pool_pre_ping: Supabase closes idle connections, so check each pooled one before reusing it
+# (otherwise the next request fails with "server closed the connection unexpectedly").
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args=connection_args(SQLALCHEMY_DATABASE_URL), pool_pre_ping=True
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

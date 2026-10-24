@@ -27,6 +27,12 @@ FROM (
 ) s
 WHERE v.id = s.id AND v.unavailability IS NULL;
 
+-- 2b. US39: bookings caught by an unavailability period are flagged, never cancelled. Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS flag json;
+
+-- 2c. US41: each booking of an event has its own purpose (e.g. "Breakout session"). Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS purpose varchar;
+
 -- 3. LATER, once every teammate's branch uses the new venue model (staging/main merged and pulled).
 --    Branches that still read "unavailableDates" break without it. This cannot be undone.
 -- ALTER TABLE venues DROP COLUMN "unavailableDates";

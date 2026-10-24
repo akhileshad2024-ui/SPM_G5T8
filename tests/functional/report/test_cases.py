@@ -1,5 +1,5 @@
 """
-The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37):
+The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US39, US41):
 the "written once" half of the test-case template. The Playwright specs in tests/functional/ carry
 the same IDs in their titles, e.g. "[TC-US18-01]".
 
@@ -288,3 +288,79 @@ case("TC-US37-05", "US37", "AC5", "Check a booking request takes setup and teard
      ["Open the event's Venue tab", "Look for any setup or teardown field", "Select Request booking and read the request sent and the booking returned"],
      f"{COORD_DATA}\nVenue Setup=20, Turnaround=60",
      "The Venue tab has no setup or teardown field and the request contains none. The booking records setup 20 min and teardown 60 min and holds the venue 09:40-13:00.")
+
+# ------------------------------------------------------------------ US39 Mark Venue Temporarily Unavailable
+BOOKED = "A venue with setup 30 min and turnaround 45 min, and an approved event on a future date 10:00-12:00 whose booking of it Venue Staff approved."
+case("TC-US39-01", "US39", "AC1", "Check Venue Staff can record an unavailable period with a start, an end and a reason",
+     f"{ENV} {STAFF} A venue exists with no unavailable periods.",
+     ["Open Venue Catalogue and Edit the venue", "Select + Add unavailable period and read the Reason options",
+      "Enter an end before the start; Save Venue", "Fix the end, choose Other with no note; Save Venue", "Add a note; Save Venue"],
+     f"{STAFF_DATA}\nPeriod=<date> 12:00 to 08:00, then 12:00 to 18:00; Reason=Other; Note=Flooded after the storm",
+     "The reasons are Maintenance, Equipment failure, Renovation, Safety concern, Internal activity and Other. An end before the start shows "
+     "'The end must be after the start.'; Other with no note shows 'Add a note when the reason is \"Other\".'. With a note the venue is updated "
+     "and the period is saved with its start, end, reason and note.")
+case("TC-US39-02", "US39", "AC2", "Check the venue is left out of venue search for the period",
+     f"{ENV} {COORD} A venue in a location of its own, open that day.",
+     ["Open Venues, choose the location; search the date 10:00-12:00", "Venue Staff records Renovation 08:00-20:00 on that date",
+      "Search the same date and time again", "Search the next day"],
+     f"{COORD_DATA}\nPeriod=<date> 08:00-20:00, Renovation",
+     "The venue is listed before the period is recorded, not listed during the period, and listed again the next day. "
+     "(The calendar half of AC2 waits for US19: the Bookings calendar still shows one fixed week.)")
+case("TC-US39-03", "US39", "AC3, AC4", "Check an overlapping booking is flagged, kept, and the event left unchanged",
+     f"{ENV} {STAFF} {BOOKED}",
+     ["Open Venue Catalogue and Edit the venue", "Add an unavailable period over the booking (Maintenance); Save Venue",
+      "Open Booking requests", "Read the booking (GET /bookings) and the event (GET /events/{id})"],
+     f"{STAFF_DATA}\nPeriod=<date> 08:00-20:00, Maintenance",
+     "The message says '<venue> updated. 1 booking flagged to coordinators.' and the event is listed under 'Confirmed bookings needing attention'. "
+     "The booking is still approved and carries a 'venue_unavailable' flag saying a replacement venue is required; the event's status, name, date, "
+     "times, venue and booking state are unchanged.")
+case("TC-US39-04", "US39", "AC5", "Check the event's coordinator is notified that a replacement venue is required",
+     f"{ENV} {COORD} {BOOKED} Venue Staff then marked the venue unavailable over the booking (Safety concern, note 'Ceiling repair').",
+     ["Sign in as the coordinator", "Open Notifications", "Open the event in the Review queue and its Venue tab"],
+     f"{COORD_DATA}",
+     "Notifications holds 'Replacement venue required' for the event, naming 'Safety concern: Ceiling repair'. The Venue tab shows "
+     "'Alternative arrangements needed for <venue>.'")
+case("TC-US39-05", "US39", "AC6", "Check Venue Staff can edit a period or end it early, and the flag follows",
+     f"{ENV} {STAFF} {BOOKED} The venue is unavailable over the booking (Maintenance 08:00-20:00), so the booking is flagged.",
+     ["Edit the venue, change the period's end to 09:00; Save Venue; read the booking", "Edit the venue, change the end back to 20:00; Save Venue; read the booking",
+      "Edit the venue, Remove the period; Save Venue; read the booking"],
+     f"{STAFF_DATA}\nEnd 20:00 -> 09:00 -> 20:00, then removed",
+     "Ending at 09:00 (before the booking's 09:30 setup) clears the flag. Back to 20:00 flags it again ('1 booking flagged to coordinators.'). "
+     "Removing the period clears the flag. The booking stays approved throughout.")
+
+# ------------------------------------------------------------------ US41 Manage Multiple Venue Bookings for an Event
+TWO_VENUES = ("A hall (theatre, capacity 200) and a seminar room (classroom, capacity 40), and an approved event "
+              "(120 people, theatre, needs a Projector and Wheelchair Access) on a future date, assigned to the coordinator.")
+VENUE_TAB_US41 = ["Open the Review queue, show All, search for the event and open it", "Open the Venue tab and set Minimum capacity to 0"]
+case("TC-US41-01", "US41", "AC1", "Check one event can request several venues, each only once",
+     f"{ENV} {COORD} {TWO_VENUES}",
+     VENUE_TAB_US41 + ["Under New booking set Purpose 'Main programme'; Request booking on the hall",
+                       "Set Purpose 'Breakout session', Attendance 30, Layout Classroom; Request booking on the room",
+                       "Read the room's card and the 'Venue bookings for this event' list", "Request the room again (POST /venues/{id}/booking-requests)"],
+     f"{COORD_DATA}\nHall: Main programme; Room: Breakout session, 30, Classroom",
+     "Both bookings are listed as Pending; the room's card shows 'Requested'; asking for the room again is refused (409).")
+case("TC-US41-02", "US41", "AC2", "Check attendance, layout and purpose are set for each booking",
+     f"{ENV} {COORD} {TWO_VENUES}",
+     VENUE_TAB_US41 + ["Request the hall with Purpose 'Main programme'", "Request the room with Purpose 'Breakout session', Attendance 30, Layout Classroom",
+                       "Read the two rows of 'Venue bookings for this event'"],
+     f"{COORD_DATA}\nHall: Main programme (event's 120, theatre); Room: Breakout session, 30, Classroom",
+     "The hall row shows 'Main programme' and '120 people · Theatre layout'; the room row shows 'Breakout session' and '30 people · Classroom layout'.")
+case("TC-US41-03", "US41", "AC3", "Check each booking is checked on its own for suitability",
+     f"{ENV} {COORD} {TWO_VENUES}",
+     VENUE_TAB_US41 + ["Read the room's verdict with the event's own needs", "Set Attendance 30 and Layout Classroom under New booking; read the verdict again"],
+     f"{COORD_DATA}\nAttendance 120 -> 30; Layout Theatre -> Classroom",
+     "The room is Unsuitable for the whole event (120, theatre) and Suitable for a 30-person classroom booking.")
+case("TC-US41-04", "US41", "AC4", "Check all of the event's bookings are seen together with their statuses",
+     f"{ENV} {COORD} {TWO_VENUES} The coordinator has requested the hall and the room (Breakout session).",
+     ["As Venue Staff, open Booking requests; find the two requests for the event", "Approve the hall's request",
+      "As the coordinator, reload and open the event's Venue tab"],
+     f"{STAFF_DATA}\n{COORD_DATA}",
+     "Venue Staff see one request per booking (the room's shows 'Breakout session'). After approving the hall, the coordinator's list "
+     "shows '2 active' with the hall Approved and the room Pending.")
+case("TC-US41-05", "US41", "AC5", "Check one booking can be changed or cancelled without affecting the others, or all cancelled",
+     f"{ENV} {COORD} {TWO_VENUES} The coordinator has requested the hall (Main programme) and the room (Breakout session, 30).",
+     ["On the room's row select Change, set Attendance 35, Save change", "On the hall's row select Cancel booking, then Confirm cancel",
+      "Request the hall again", "Select Cancel all bookings, then Yes, cancel all"],
+     f"{COORD_DATA}\nRoom attendance 30 -> 35",
+     "The room shows 35 people while the hall stays at 120. Cancelling the hall leaves the room Pending. Cancel all cancels the "
+     "remaining two ('2 bookings cancelled.', '0 active').")
