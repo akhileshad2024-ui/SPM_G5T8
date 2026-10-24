@@ -228,3 +228,33 @@ app surface. No branch was pushed and no PR was created. User handoff: publish
 spring3-us33-yuetong through their authenticated GitHub Desktop, then create the
 scoped US33 PR with pending boundaries above. Do not mark delivery or DoD complete.
 US34 AC2/AC3 approval requested separately before requirements/code changes.
+
+### PR #29 regression correction (2026-10-24 SGT)
+
+User published the branch; PR #29 was created successfully:
+https://github.com/akhileshad2024-ui/SPM_G5T8/pull/29.
+Its initial functional job failed US15 TC-051: a body-wide assertion collected
+US33's adjacent Change requests section in addition to US15's six detail sections.
+Add a stable event-details test identifier and scope US15 section enumeration to
+that component. Preserve exact role-specific section/field assertions, approved
+AC, TC inputs and business behavior. No shared DB change or shared TC rerun.
+
+Delivery rule: run all configured backend/frontend/functional tests, coverage,
+type check and build before handing off code-changing PR updates. Development
+may still use focused checks. The personal workflow skill records this rule.
+
+Full local regression also exposed US15 TC-058 saving twice within the same
+SQLite timestamp second. Wait for the next second before the second UI save;
+retain the strict later-timestamp assertion. No business rule or TC input changes.
+Run 1: 131 passed, 1 failed (TC-058), 1 skipped; archived under
+coverage/us33/pr29-regression-run1/. Run 2 on the corrected test: 132 passed,
+1 skipped, no failures (4.1m); coverage/functional/report/index.html. The existing
+HTTPS-only browser case is skipped on local HTTP; it requires deployed TLS.
+US33 isolated regression event69/request1 is not a new shared acceptance run.
+Other verification: CI unit discovery289, full backend1116 plus488subtests,
+frontend296 and type check passed. Backend statement98.21%/branch97.21%; frontend
+statement16.05%/branch19.65% are repository measurements, not scoped US33 claims.
+Reports remain ignored; CI uploads its own SHA-linked evidence. US14/34/36 and
+peer approval/merge/green merge-commit CI remain pending.
+Production build passed after the final full browser run; existing workspace-root
+lockfile warning remains unchanged. Development services restored after verification.

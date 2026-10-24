@@ -34,8 +34,8 @@ FIELDS.coordinator = FIELDS.organiser.filter((f) => f !== "draftForm");
 FIELDS.venue = [...BASICS, "coordinatorId", "coordinator", "pax", "venueLocation", "venueCapacity", "layout", "facilities", "access",
   "venue", "venueName", "bookingState"];
 
-/** The open details' section titles. */
-const sectionTitles = (scope: Locator) => scope.locator("section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+/** Check only US15 details, not adjacent features such as US33 change requests. */
+const sectionTitles = (scope: Locator) => scope.getByTestId("event-details").locator("section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
 /** The value shown for `label` in the `section` of the open details. */
 const value = (scope: Locator, section: string, label: string) =>
   scope.locator(`section[aria-label="${section}"] dt`, { hasText: new RegExp(`^${label}$`) }).locator("xpath=following-sibling::dd[1]");
@@ -168,6 +168,8 @@ test.describe("US15 - View Event Information", () => {
     await myEventsRow(page, name).getByRole("button", { name: "Continue" }).click();
     await page.getByPlaceholder("Alumni Homecoming Dinner").fill(renamed);
     await page.getByPlaceholder("180").fill("85");
+    // SQLite records whole seconds: save in a later second to test a later timestamp.
+    await expect.poll(() => Date.now()).toBeGreaterThan(first.stamp + 1000);
     await page.getByRole("button", { name: "Save as draft" }).click();
     await expect(toast(page)).toContainText("Draft saved.");
     const second = await view(renamed);
