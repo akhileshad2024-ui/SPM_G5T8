@@ -683,6 +683,29 @@ class ClarificationResponseIn(BaseModel):
 
 # ---------------------------------------------------------------- event-request drafts (US05)
 
+class EventChangeRequestIn(BaseModel):
+    """Identity, review state and decision cannot be supplied by the organiser."""
+    model_config = ConfigDict(extra="forbid")
+    proposed_changes: str
+
+
+class EventChangeRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    requested_by_id: int
+    requested_at: datetime
+    proposed_changes: str
+    status: str
+    decision: Optional[Dict[str, Any]] = None
+
+    @field_validator("requested_at")
+    @classmethod
+    def utc_timestamp(cls, value):
+        # SQLite drops timezone information; stored request timestamps are UTC.
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
 class EventDraftSave(BaseModel):
     """Only the event information is accepted; organiser identity comes from the session."""
     event_information: Dict[str, Any]

@@ -113,6 +113,19 @@ class Event(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class EventChangeRequest(Base):
+    """US33 proposals; US34 may later record a decision without losing the request."""
+    __tablename__ = "event_change_requests"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    requested_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    proposed_changes = Column(Text, nullable=False)
+    status = Column(Text, nullable=False, default="pending", server_default="pending")
+    decision = Column(JSON(none_as_null=True), nullable=True)
+
+
 class VenueBooking(Base):
     """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
     so it survives a reload, Venue Staff can see it, and other searches see the venue as held.

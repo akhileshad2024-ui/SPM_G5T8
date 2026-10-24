@@ -308,6 +308,7 @@ export interface AppApi {
   closeModal: () => void;
   setModalText: (text: string) => void;
   confirmModal: () => void;
+  changeRequestPending: boolean;
 
   // ---- event information (US15) ----
   /**
@@ -377,6 +378,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const draftSaveGuard = useRef(createPendingRequestGuard());
+  const changeRequestLock = useRef(false);
+  const [changeRequestPending, setChangeRequestPending] = useState(false);
   // Ignores repeat clicks while an event request is being saved, so one click = one row.
   const savingRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -811,7 +814,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
 
       openModal: (kind, id, bookingId) => patch({ modal: { ...MODAL_CONTENT[kind], id, bookingId }, modalText: "" }),
-      closeModal: () => patch({ modal: null, modalText: "" }),
+      closeModal: () => { if (!changeRequestLock.current) patch({ modal: null, modalText: "" }); },
+      changeRequestPending,
       setModalText: (modalText) => patch({ modalText }),
       confirmModal: () => {
         const m = state.modal;
@@ -819,6 +823,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const text = (state.modalText || "").trim();
         const e = getEvent(state.events, m.id);
         if (!e) return;
+
+        if (m.kind === "change") {
+          if (changeRequestLock.current || e.backendId === undefined) return;
+          changeRequestLock.current = true;
+          setChangeRequestPending(true);
+          // US33: save only a proposal. No event mutation or fake notification.
+          void apiFetch(`/events/${e.backendId}/change-requests`, {
+            method: "POST", body: JSON.stringify({ proposed_changes: text }),
+          }).then(() => {
+            patch({ modal: null, modalText: "" });
+            flash("Change request submitted.");
+          }).catch(handleApiError).finally(() => {
+            changeRequestLock.current = false;
+            setChangeRequestPending(false);
+          });
+          return;
+        }
 
         // Review-workflow modals: the domain functions check the text, then the step is saved.
         const now = new Date();
@@ -857,11 +878,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!text) {
           flash("Add a short note before sending.", "warn");
           return;
-        }
-        if (m.kind === "change") {
-          patchEvent(m.id, { status: "under_review", changeNote: text }, { title: "Change requested by organiser", body: text });
-          notify("coordinator", "Change request", `${e.name}: ${text}`);
-          flash("Change request submitted.");
         }
         patch({ modal: null, modalText: "" });
       },
@@ -1165,7 +1181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     return value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, isSavingDraft]);
+  }, [state, isSavingDraft, changeRequestPending]);
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;
 }

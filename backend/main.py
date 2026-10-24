@@ -7,7 +7,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
-import event_drafts, event_submission
+import event_drafts, event_submission, event_changes
 import booking_request, event_review, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
@@ -518,6 +518,40 @@ def get_event(event_id: int, db: Session = Depends(get_db), user: User = Depends
     if not is_involved(event, user):
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
     return event_view(db, event, user)
+
+
+# US33: a proposal is a separate record, not an edit or event-status transition.
+@app.post("/events/{event_id}/change-requests", response_model=schemas.EventChangeRequestResponse, status_code=201)
+def request_event_change(event_id: int, body: schemas.EventChangeRequestIn,
+                         db: Session = Depends(get_db),
+                         user: User = Depends(require_roles(Role.organiser))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    try:
+        prepared = event_changes.prepare_request(event, user, body.proposed_changes)
+    except event_changes.ChangeRequestError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+    saved = models.EventChangeRequest(event_id=event.id, requested_by_id=user.id,
+                                     requested_at=datetime.now(timezone.utc), **prepared)
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+
+@app.get("/events/{event_id}/change-requests", response_model=List[schemas.EventChangeRequestResponse])
+def list_event_change_requests(event_id: int, db: Session = Depends(get_db),
+                               user: User = Depends(require_roles(Role.organiser, Role.coordinator))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    owner = user.role == Role.organiser and event.organiser_id == user.id
+    assigned = user.role == Role.coordinator and event.coordinator_id == user.id
+    if not (owner or assigned):
+        raise HTTPException(403, "You don't have permission to view these requests")
+    return db.query(models.EventChangeRequest).filter_by(event_id=event_id).order_by(
+        models.EventChangeRequest.requested_at, models.EventChangeRequest.id).all()
 
 
 # Fulfills US13: an event's timestamped status history, oldest first — only for users involved in it.
