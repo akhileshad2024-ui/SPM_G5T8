@@ -1,5 +1,5 @@
 import type { Actor, EventRecord, EventStatus, WorkflowResult } from "../../types";
-import { fail, isCoordinator, withChanges } from "./shared";
+import { fail, isLead, withChanges } from "./shared";
 
 /**
  * Coordinators can only be assigned while an event is still live: once it has
@@ -19,7 +19,7 @@ export function canAssignCoordinator(event: EventRecord): boolean {
 }
 
 /**
- * US11: gives an unassigned event its main internal point of contact.
+ * US11: the Event Coordinator Lead gives an unassigned event its main internal point of contact.
  * `coordinators` is the list of staff who hold the Event Coordinator role.
  * Changing an existing coordinator is reassignment (US12), not handled here.
  */
@@ -28,8 +28,8 @@ export function assignCoordinator(
   actor: Actor,
   { coordinator, coordinators }: { coordinator: string; coordinators: readonly string[] },
 ): WorkflowResult {
-  if (!isCoordinator(actor)) {
-    return fail("Only Event Coordinators can assign coordinators.");
+  if (!isLead(actor)) {
+    return fail("Only the Event Coordinator Lead can assign coordinators.");
   }
   if (!coordinators.includes(coordinator)) {
     return fail(`${coordinator || "That person"} is not an Event Coordinator.`);
@@ -45,7 +45,7 @@ export function assignCoordinator(
     ok: true,
     event: withChanges(
       event,
-      { coordinator },
+      { coordinator, assignedBy: actor.name },
       {
         title: "Coordinator assigned",
         body: `${actor.name} assigned ${coordinator} as the main internal point of contact.`,

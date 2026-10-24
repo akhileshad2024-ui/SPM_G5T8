@@ -1,5 +1,5 @@
 import { expect, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
-import { MAYA, PRIYA, apiAs, assignTo, startReviewVia, unique } from "./app";
+import { GRACE, MAYA, PRIYA, apiAs, assignTo, startReviewVia, unique } from "./app";
 
 /**
  * Helpers for the venue functional tests (US17, US18, US20, US21, US22, US37).
@@ -102,7 +102,7 @@ export async function eventFor(baseURL: string, name: string, opts: EventOptions
   });
   expect(res.status(), await res.text()).toBe(201);
   const id: number = (await res.json()).id;
-  await assignTo(priya, id, PRIYA);
+  await assignTo(await apiAs(baseURL, GRACE), id, PRIYA);
   await startReviewVia(priya, id);
   if (approve) {
     const decision = await priya.post(`/api/events/${id}/decision`, { data: { outcome: "approved", reason: "" } });

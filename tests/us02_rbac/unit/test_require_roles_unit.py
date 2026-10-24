@@ -67,4 +67,4 @@ def test_each_endpoint_gets_its_own_check():
 
 def test_roles_match_the_frontend():
     """lib/types.ts Role must list the same roles, or page access and API checks disagree."""
-    assert [r.value for r in Role] == ["organiser", "coordinator", "venue", "tech", "attendee"]
+    assert [r.value for r in Role] == ["organiser", "coordinator", "venue", "tech", "attendee", "lead"]

@@ -1,0 +1,14 @@
+Coverage report for test_us22_submit_booking_request  (unit tests)
+Generated: 2026-10-24 17:10:55
+Test file: tests/unit/venue/test_us22_submit_booking_request.py
+Result: 60 tests, all passed
+Measured code: booking_request.py, venue_bookings.py:held_periods,to_record,event_bookings,summarise,save_request,require_holding,change,cancel,decide, main.py:request_venue_booking,list_bookings,decide_booking, schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn
+
+Name                                                                                                                 Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------------------------------------------------------------------
+booking_request.py                                                                                                      49     0   100%  
+venue_bookings.py:held_periods,to_record,event_bookings,summarise,save_request,require_holding,change,cancel,decide     64    15    77%  130-131, 139-145, 150-154, 156
+main.py:request_venue_booking,list_bookings,decide_booking                                                              46     0   100%  
+schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn               43     0   100%  
+---------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                                  202    15    93%

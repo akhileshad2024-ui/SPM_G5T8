@@ -8,9 +8,14 @@ export function fail(error: string): WorkflowResult {
   return { ok: false, error };
 }
 
-/** Only Event Coordinators may review, decide on, or assign event requests. */
+/** Only Event Coordinators may review and decide on event requests. */
 export function isCoordinator(actor: Actor): boolean {
   return actor.role === "coordinator";
+}
+
+/** Only the Event Coordinator Lead may assign coordinators (US11, US43). */
+export function isLead(actor: Actor): boolean {
+  return actor.role === "lead";
 }
 
 /**

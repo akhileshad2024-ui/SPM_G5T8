@@ -1,0 +1,29 @@
+test_can_review_once_assigned (tests.unit.lead_assignment.test_us43_lead_oversight.TestCoordinatorSeesOnlyTheirs.test_can_review_once_assigned) ... ok
+test_cant_review_an_unassigned_request_or_someone_elses (tests.unit.lead_assignment.test_us43_lead_oversight.TestCoordinatorSeesOnlyTheirs.test_cant_review_an_unassigned_request_or_someone_elses) ... ok
+test_never_sees_a_draft_even_if_assigned (tests.unit.lead_assignment.test_us43_lead_oversight.TestCoordinatorSeesOnlyTheirs.test_never_sees_a_draft_even_if_assigned) ... ok
+test_sees_only_the_events_assigned_to_them (tests.unit.lead_assignment.test_us43_lead_oversight.TestCoordinatorSeesOnlyTheirs.test_sees_only_the_events_assigned_to_them) ... ok
+test_still_sees_their_closed_events (tests.unit.lead_assignment.test_us43_lead_oversight.TestCoordinatorSeesOnlyTheirs.test_still_sees_their_closed_events) ... ok
+test_an_organiser_doesnt_see_another_organisers_events (tests.unit.lead_assignment.test_us43_lead_oversight.TestEveryRolesVisibility.test_an_organiser_doesnt_see_another_organisers_events) ... ok
+test_an_unknown_role_sees_nothing (tests.unit.lead_assignment.test_us43_lead_oversight.TestEveryRolesVisibility.test_an_unknown_role_sees_nothing) ... ok
+test_each_role_sees_its_events (tests.unit.lead_assignment.test_us43_lead_oversight.TestEveryRolesVisibility.test_each_role_sees_its_events) ... ok
+test_a_request_leaves_the_queue_once_assigned (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadQueue.test_a_request_leaves_the_queue_once_assigned) ... ok
+test_leaves_out_drafts_and_closed_requests (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadQueue.test_leaves_out_drafts_and_closed_requests) ... ok
+test_lists_the_live_requests_with_no_coordinator (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadQueue.test_lists_the_live_requests_with_no_coordinator) ... ok
+test_oldest_submission_first (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadQueue.test_oldest_submission_first) ... ok
+test_only_the_lead_assigns_coordinators (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadRole.test_only_the_lead_assigns_coordinators) ... ok
+test_the_lead_is_a_role_of_its_own (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadRole.test_the_lead_is_a_role_of_its_own) ... ok
+test_the_lead_is_not_one_of_the_event_reviewers (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadRole.test_the_lead_is_not_one_of_the_event_reviewers) ... ok
+test_does_not_see_drafts_or_closed_events (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadSeesEveryLiveEvent.test_does_not_see_drafts_or_closed_events) ... ok
+test_sees_every_live_event_assigned_or_not (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadSeesEveryLiveEvent.test_sees_every_live_event_assigned_or_not) ... ok
+test_the_single_event_rule_matches_the_list_rule (tests.unit.lead_assignment.test_us43_lead_oversight.TestLeadSeesEveryLiveEvent.test_the_single_event_rule_matches_the_list_rule) ... ok
+test_only_the_lead_passes_the_assigners_check (tests.unit.lead_assignment.test_us43_lead_oversight.TestServerChecks.test_only_the_lead_passes_the_assigners_check) ... ok
+test_the_lead_cant_open_a_draft (tests.unit.lead_assignment.test_us43_lead_oversight.TestServerChecks.test_the_lead_cant_open_a_draft) ... ok
+test_sees_what_a_coordinator_sees_except_the_review_notes (tests.unit.lead_assignment.test_us43_lead_oversight.TestWhatTheLeadSees.test_sees_what_a_coordinator_sees_except_the_review_notes) ... ok
+test_the_lead_coordinator_and_organiser_see_who_assigned_and_when (tests.unit.lead_assignment.test_us43_lead_oversight.TestWhatTheLeadSees.test_the_lead_coordinator_and_organiser_see_who_assigned_and_when) ... ok
+test_the_queue_shows_each_requests_basic_information (tests.unit.lead_assignment.test_us43_lead_oversight.TestWhatTheLeadSees.test_the_queue_shows_each_requests_basic_information) ... ok
+test_the_review_notes_are_left_out_not_blanked (tests.unit.lead_assignment.test_us43_lead_oversight.TestWhatTheLeadSees.test_the_review_notes_are_left_out_not_blanked) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 1.238s
+
+OK

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
-  action, MAYA, PRIYA, apiAs, assignTo, createRequest, myEventsRow, openInQueue, signIn, startReviewVia, submitDialog,
+  action, GRACE, MAYA, PRIYA, apiAs, assignTo, createRequest, myEventsRow, openInQueue, signIn, startReviewVia, submitDialog,
   toast, unique, workspaceStatus,
 } from "./support/app";
 
@@ -18,7 +18,7 @@ async function reviewing(page: Page, baseURL: string, label: string): Promise<st
   const name = unique(label);
   const priya = await apiAs(baseURL, PRIYA);
   const id = await createRequest(await apiAs(baseURL, MAYA), name);
-  await assignTo(priya, id, PRIYA);
+  await assignTo(await apiAs(baseURL, GRACE), id, PRIYA);
   await startReviewVia(priya, id);
   await signIn(page, PRIYA, /\/queue/);
   await openInQueue(page, name);

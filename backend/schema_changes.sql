@@ -33,6 +33,12 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS flag json;
 -- 2c. US41: each booking of an event has its own purpose (e.g. "Breakout session"). Safe to run more than once.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS purpose varchar;
 
+-- 2d. US43: the Event Coordinator Lead role. The users.role check constraint must allow 'lead'.
+--     (The event_assignments table for US11 is created by the backend on start-up.)
+ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role;
+ALTER TABLE users ADD CONSTRAINT user_role
+  CHECK (role IN ('organiser', 'coordinator', 'venue', 'tech', 'attendee', 'lead'));
+
 -- 3. LATER, once every teammate's branch uses the new venue model (staging/main merged and pulled).
 --    Branches that still read "unavailableDates" break without it. This cannot be undone.
 -- ALTER TABLE venues DROP COLUMN "unavailableDates";
@@ -47,3 +53,8 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expiry_set_by text;
 UPDATE venue_bookings
 SET hold_expires_at = LEAST(requested_at + interval '3 days', hold_start AT TIME ZONE 'Asia/Singapore')
 WHERE status = 'pending' AND hold_expires_at IS NULL;
+
+-- US38 (Week 7 change #1): a booking whose venue setup/turnaround change makes it overlap another is
+-- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
+-- flagged (NULL when nothing needs reassessing). Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;

@@ -53,8 +53,13 @@ def venue(staff):
 
 
 @pytest.fixture
-def approved_event(organiser, coordinator, db):
-    """make() -> the id of an event submitted, assigned to Priya, reviewed and approved, ready to book."""
+def lead(signed_in):
+    return signed_in(Role.lead)
+
+
+@pytest.fixture
+def approved_event(organiser, coordinator, lead, db):
+    """make() -> the id of an event submitted, assigned to Priya by the Lead, reviewed and approved, ready to book."""
 
     def make(name="Design Keynote"):
         res = organiser.post("/events", json={
@@ -66,7 +71,8 @@ def approved_event(organiser, coordinator, db):
         assert res.status_code == 201, res.text
         event_id = res.json()["id"]
         priya = get_user(db, Role.coordinator)
-        for step, body in (("assign", {"coordinatorId": priya.id}), ("review", {}), ("decision", {"outcome": "approved", "reason": ""})):
+        assert lead.post(f"/events/{event_id}/assign", json={"coordinatorId": priya.id}).is_success  # US11: the Lead assigns
+        for step, body in (("review", {}), ("decision", {"outcome": "approved", "reason": ""})):
             assert coordinator.post(f"/events/{event_id}/{step}", json=body).is_success
         return event_id
 

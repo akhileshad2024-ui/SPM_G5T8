@@ -145,19 +145,11 @@ export function periodLabel(p: Venue["unavailability"][number]): string {
 }
 
 /**
- * Why `venue` can't (or can only with caveats) be used for `event` at the event's time:
- * deactivation, closed days/hours, unavailability periods, and clashes with other bookings —
- * all using the occupied window, setup and turnaround included.
- *
- * `clashWith` decides which other bookings count: when choosing a venue, pending requests
- * count too; when checking an existing booking, only confirmed ones do.
+ * Why `venue` can't (or can only with caveats) be used for `event` at the event's time, whatever else is
+ * booked: deactivation and closed days/hours. Clashes with other bookings and unavailability periods are
+ * availabilityIssues(); for a booking Venue Staff are deciding on, the server works those out (US46-US48).
  */
-export function availabilityIssues(
-  events: EventRecord[],
-  venue: Venue,
-  event: EventRecord,
-  clashWith: "approved" | "approved_or_pending" = "approved_or_pending",
-): Issue[] {
+export function scheduleIssues(venue: Venue, event: EventRecord): Issue[] {
   const issues: Issue[] = [];
   if (!venue.isActive) {
     issues.push({ level: "block", text: `${venue.name} has been deactivated.` });
@@ -180,6 +172,26 @@ export function availabilityIssues(
       issues.push({ level: "warn", text: `Setup or turnaround (${describeWindow(occupied, venue)}) runs outside operating hours (${venue.operatingHours}).` });
     }
   }
+  return issues;
+}
+
+/**
+ * Why `venue` can't (or can only with caveats) be used for `event` at the event's time:
+ * deactivation, closed days/hours, unavailability periods, and clashes with other bookings —
+ * all using the occupied window, setup and turnaround included.
+ *
+ * `clashWith` decides which other bookings count: when choosing a venue, pending requests
+ * count too; when checking an existing booking, only confirmed ones do.
+ */
+export function availabilityIssues(
+  events: EventRecord[],
+  venue: Venue,
+  event: EventRecord,
+  clashWith: "approved" | "approved_or_pending" = "approved_or_pending",
+): Issue[] {
+  const issues = scheduleIssues(venue, event);
+  const occupied = occupiedWindow(event, venue);
+  if (!occupied) return issues; // no date/time yet: nothing more to check
 
   for (const period of venue.unavailability) {
     const start = parseDateTime(period.start);
