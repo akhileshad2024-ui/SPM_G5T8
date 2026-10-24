@@ -761,6 +761,13 @@ class EventChangeRequestResponse(BaseModel):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+class EventChangeDecisionIn(BaseModel):
+    """US34: reviewer identity/time come from the server; a reason is optional."""
+    model_config = ConfigDict(extra="forbid")
+    outcome: Literal["accepted", "rejected"]
+    reason: str = ""
+
+
 class EventDraftSave(BaseModel):
     """Only the event information is accepted; organiser identity comes from the session."""
     event_information: Dict[str, Any]

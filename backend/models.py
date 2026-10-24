@@ -114,7 +114,7 @@ class Event(Base):
 
 
 class EventChangeRequest(Base):
-    """US33 proposals; US34 may later record a decision without losing the request."""
+    """US33 proposals and US34 decisions, separate from current event details."""
     __tablename__ = "event_change_requests"
 
     id = Column(Integer, primary_key=True)
