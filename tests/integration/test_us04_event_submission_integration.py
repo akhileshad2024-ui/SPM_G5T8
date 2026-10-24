@@ -1,6 +1,8 @@
 """US04: real FastAPI/SQLAlchemy with isolated SQLite, never shared Supabase."""
 
 from fastapi.testclient import TestClient
+from datetime import datetime, timezone
+from unittest.mock import patch
 from tests.integration.test_us05_save_event_draft_integration import US05DraftApiTestCase
 import models
 from login.models import Role
@@ -62,6 +64,12 @@ class TestEventSubmissionApi(US05DraftApiTestCase):
 
     def test_submission_keeps_shared_event_views_and_status_history_compatible(self):
         # Merge regression: US04 data must remain usable by the main branch's US13/15 views.
+        # Freeze only the business clock, not authentication/session expiry.
+        # The fixture date stays in the future even when this test runs after 2030.
+        clock = patch("main.datetime")
+        business_time = clock.start()
+        self.addCleanup(clock.stop)
+        business_time.now.return_value = datetime(2030, 5, 10, 8, 30, tzinfo=timezone.utc)
         information = {"name": "Shared submission", "purpose": "Compatibility", "pax": "85"}
         response = self.organiser.post("/event-requests/submit", json={
             "event_information": information,
