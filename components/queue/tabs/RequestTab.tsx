@@ -7,6 +7,7 @@ import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/r
 import { Dot } from "@/components/ui/Dot";
 import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
+import { EventDetailsEditor } from "../EventDetailsEditor";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -103,6 +104,7 @@ export function RequestTab({ event }: { event: EventRecord }) {
   return (
     <div className={styles.layout}>
       <div className={styles.main}>
+        <EventDetailsEditor key={event.id} event={event} />
         {decision && (
           <div
             className={`card ${styles.card} ${decision.outcome === "approved" ? styles.decisionApproved : styles.decisionRejected}`}
