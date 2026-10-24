@@ -545,7 +545,7 @@ class TestSearchEndpoint(unittest.TestCase):
         db = MagicMock()
         db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [make_venue(id=1), make_venue(id=2)]
         saved = SimpleNamespace(venue_id=1, date=date(2027, 1, 4), start_time="11:00", end_time="13:00",
-                                status="pending", event_id=9, event_name="Career Fair")
+                                status="pending", event_id=9, event_name="Career Fair", hold_expires_at=None)
         db.query.return_value.filter.return_value.all.return_value = [saved]  # the saved bookings that hold venues
 
         result = main.search_venues(request(date=MON, start="10:00", end="12:00"), db=db, _user=COORDINATOR)

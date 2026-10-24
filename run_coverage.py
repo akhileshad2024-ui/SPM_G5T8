@@ -19,7 +19,8 @@ Two kinds of story are supported:
    measured against the backend code it is meant to test (TARGETS below), so a unit test
    of schemas.py is not marked down for main.py; a file not listed is measured against
    all of backend/. Integration tests (tests/integration/) are not part of this mode;
-   run them by hand if wanted (see README).
+   run them by hand if wanted (see README). A story listed in STORY_FRONTEND (e.g. us43)
+   also gets frontend/coverage_report.txt and frontend/htmlcov/index.html, as in mode 2.
 
 2. Stories with their own test folder in STORY_DIRS (e.g. us01 -> tests/us01_secure_login/),
    whose pytest tests (unit/ and API) are run together. Under
@@ -78,9 +79,43 @@ TARGETS = {
     ],
     "test_us22_submit_booking_request": [
         "booking_request.py",
-        "venue_bookings.py",
+        "venue_bookings.py:held_periods,to_record,event_bookings,summarise,save_request,decide",
         "main.py:request_venue_booking,list_bookings,decide_booking",
         "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn",
+    ],
+    "test_us11_assign_coordinator": [
+        "event_review.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign",
+        "main.py:utc,event_response,list_coordinators,review_step,assign_coordinator",
+        "models.py:EventAssignment",
+    ],
+    "test_us43_lead_oversight": [
+        "event_access.py",
+        "event_fields.py",
+        "main.py:event_view,lead_queue",
+        "login/models.py",
+    ],
+    # US46, US47 and US48 share backend/venue_conflicts.py: each function is measured under the story that owns it.
+    "test_us38_flag_bookings_affected_by_venue_time_changes": [
+        "venue_reassessment.py",
+        "venue_conflicts.py:as_json",
+        "venue_bookings.py:_reassessment",
+        "schemas.py:BookingReassessment",
+    ],
+    "test_us46_prevent_overlapping_confirmed_bookings": [
+        "venue_conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking",
+        "venue_availability.py:clash_text",
+        "venue_bookings.py:require_unobstructed",
+        "schemas.py:BookingConflict",
+    ],
+    "test_us47_flag_conflicting_pending_requests": [
+        "venue_conflicts.py:conflicts_for",
+        "venue_bookings.py:staff_records",
+        "main.py:list_bookings",
+    ],
+    "test_us48_unavailable_periods_and_expired_holds": [
+        "venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts",
+        "venue_availability.py:overlapping_periods,unavailability_text",
+        "venue_bookings.py:held_periods",
     ],
 }
 
@@ -115,11 +150,15 @@ STORY_FRONTEND = {
     "us13": ["lib/events/status-history.ts"],
     "us15": ["lib/events/details.ts"],
     "us29": ["lib/registration.ts"],
+    "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
+    "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
-# Where a story's Vitest tests live, when not in its STORY_DIRS folder.
+# Where a story's Vitest tests live, when not in its STORY_DIRS folder (several separated by spaces).
 STORY_FRONTEND_TESTS = {
     "us03": "tests/unit/event-request",
+    "us11": "tests/unit/event-review",
+    "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 
 
@@ -251,10 +290,17 @@ def run_unit_files(story: str) -> int:
             writer.writerow([now.strftime("%Y-%m-%d %H:%M:%S"), r["kind"], r["name"], r["tests"],
                              "passed" if r["passed"] else "FAILED", f"{r['coverage']:.1f}", f"unit/{r['name']}"])
 
+    frontend = run_frontend_tests(story, stamp_dir)
+    if frontend:
+        (stamp_dir / "summary.txt").write_text(summary + f"\n{frontend}\n", encoding="utf-8")
+
     print(summary)
+    if frontend:
+        print(f"{story.upper()} {frontend}")
     print(f"Report folder: {stamp_dir}")
     print(f'Open one with:  start "" "{results[0]["folder"] / "htmlcov" / "index.html"}"')
-    return 0 if all(r["passed"] for r in results) else 1
+    frontend_failed = frontend is not None and "FAILURES" in frontend
+    return 0 if all(r["passed"] for r in results) and not frontend_failed else 1
 
 
 # ---------------------------------------------------------------- mode 2 helpers
@@ -284,7 +330,7 @@ def run_frontend_tests(story: str, out: Path) -> str | None:
     folder = out / "frontend"
     run = subprocess.run(
         [
-            npx, "vitest", "run", STORY_FRONTEND_TESTS.get(story, STORY_DIRS[story]), "--coverage",
+            npx, "vitest", "run", *(STORY_FRONTEND_TESTS.get(story) or STORY_DIRS[story]).split(), "--coverage",
             *[f"--coverage.include={f}" for f in STORY_FRONTEND[story]],
             "--coverage.reporter=text", "--coverage.reporter=json-summary", "--coverage.reporter=html",
             f"--coverage.reportsDirectory={folder / 'htmlcov'}",

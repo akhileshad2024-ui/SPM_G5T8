@@ -83,11 +83,16 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
           </>
         )}
       </div>
-      {holdExpiryLabel(booking) && (
+{holdExpiryLabel(booking) && (
         // US42: when the tentative hold lapses (or lapsed) unless Venue Staff approve it.
         <div style={{ fontSize: 12.5, color: booking.hold_notice ? "var(--warn-fg)" : "var(--text-muted)", marginTop: 4 }}>
           {holdExpiryLabel(booking)}
           {booking.status === "expired" && " — the venue has been released. Request it again if it is still needed."}
+        </div>
+      )}
+      {holding && booking.reassessment && (
+        <div className="callout callout-danger" role="alert" style={{ marginTop: 8 }}>
+          <strong>Requires Reassessment.</strong> {booking.reassessment.message}
         </div>
       )}
       {booking.status === "rejected" && booking.decision_reason && (

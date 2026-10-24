@@ -1,0 +1,27 @@
+Frontend coverage for US43
+Measured files: lib/events/review/lead.ts, lib/events/review/shared.ts, lib/auth/route-access.ts
+Tests  163 passed (163)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  7 passed (7)
+      Tests  163 passed (163)
+   Start at  13:26:28
+   Duration  1.47s (transform 42%, import 29%, tests 16%, worker 12%)
+
+ % Coverage report from v8
+------------------|---------|----------|---------|---------|-------------------
+File              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------|---------|----------|---------|---------|-------------------
+------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 47/47 )
+Branches     : 100% ( 35/35 )
+Functions    : 100% ( 19/19 )
+Lines        : 100% ( 40/40 )
+================================================================================

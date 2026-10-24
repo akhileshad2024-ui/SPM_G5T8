@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { canAccessRoute, DEFAULT_ROUTE, NAV_FOR, NO_PAGE_PERMISSION, routeRedirect } from "../../lib/auth/route-access";
 import type { Role } from "../../lib/types";
 
-const ROLES: Role[] = ["organiser", "coordinator", "venue", "tech", "attendee"];
+const ROLES: Role[] = ["organiser", "coordinator", "venue", "tech", "attendee", "lead"];
 const ALL_PAGES = ROLES.flatMap((r) => NAV_FOR[r].map(([route]) => route));
 // Pages deliberately in more than one role's navigation (each role sees its own events there).
 const SHARED_PAGES: Record<string, Role[]> = { "/registrations": ["organiser", "coordinator"] }; // US32
@@ -21,6 +21,7 @@ describe("sidebar per role", () => {
     ["venue", ["Booking requests", "Venue catalogue"]],
     ["tech", ["Equipment"]],
     ["attendee", ["Browse events"]],
+    ["lead", ["Assignments"]], // US43
   ])("%s sees only their own pages", (role, labels) => {
     expect(NAV_FOR[role].map(([, label]) => label)).toEqual(labels);
   });
@@ -45,6 +46,7 @@ describe("landing page after sign-in", () => {
     ["venue", "/bookings"],
     ["tech", "/equipment"],
     ["attendee", "/browse"],
+    ["lead", "/assignments"], // US43
   ])("%s lands on %s", (role, route) => {
     expect(DEFAULT_ROUTE[role]).toBe(route);
   });
@@ -74,6 +76,12 @@ describe("canAccessRoute", () => {
   it.each(ROLES)("%s cannot open unknown pages", (role) => {
     expect(canAccessRoute(role, "/admin")).toBe(false);
     expect(canAccessRoute(role, "/")).toBe(false);
+  });
+
+  it("[US43] only the Lead can open the Assignments page, and the Lead can't open the review queue", () => {
+    expect(ROLES.filter((r) => canAccessRoute(r, "/assignments"))).toEqual(["lead"]);
+    expect(canAccessRoute("lead", "/queue")).toBe(false);
+    expect(routeRedirect("coordinator", "/assignments")).toEqual({ to: "/queue", message: NO_PAGE_PERMISSION });
   });
 
   it("blocks the organiser from the coordinator, venue and tech pages (TC-017)", () => {

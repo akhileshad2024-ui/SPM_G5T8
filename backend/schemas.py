@@ -341,6 +341,42 @@ class BookingChange(BaseModel):
     acknowledged: bool = False
 
 
+class BookingConflict(BaseModel):
+    """Something in the way of a booking at its venue, shown to Venue Staff (US46, US47, US48).
+
+    confirmed_booking and unavailable_period stop the booking being confirmed (blocks_approval);
+    pending_request is another pending request overlapping it, for Venue Staff to resolve by hand.
+    """
+    kind: Literal["confirmed_booking", "pending_request", "unavailable_period"]
+    message: str
+    blocks_approval: bool
+    # The other booking (the first two kinds): who and when, and when it occupies the venue, setup and turnaround included.
+    booking_id: Optional[int] = None
+    event_id: Optional[int] = None
+    event_name: Optional[str] = None
+    status: Optional[Literal["pending", "approved"]] = None
+    date: Optional[DateOnly] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
+    occupied_start: Optional[datetime] = None
+    occupied_end: Optional[datetime] = None
+    # The venue's unavailable period (the third kind).
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    reason: Optional[str] = None
+    note: Optional[str] = None
+
+
+class BookingReassessment(BaseModel):
+    """US38: "Requires Reassessment". A change to the venue's setup or turnaround time made this booking overlap another."""
+    reason: Literal["venue_time_changed"]
+    message: str
+    setup_minutes: int
+    turnaround_minutes: int
+    clashes_with: List[BookingConflict] = []  # the bookings it clashes with: Venue Staff only
+    flagged_at: datetime
+
+
 class VenueBooking(BaseModel):
     """A saved venue booking request (see models.VenueBooking)."""
     id: int
@@ -367,6 +403,9 @@ class VenueBooking(BaseModel):
     decided_at: Optional[datetime] = None
     decision_reason: Optional[str] = None
     flag: Optional["BookingFlag"] = None
+    reassessment: Optional[BookingReassessment] = None
+    # Everything in the way of this booking right now. Worked out when Venue Staff ask for the bookings; empty otherwise.
+    conflicts: List[BookingConflict] = []
     # US42: when the tentative hold lapses (UTC), who last set that (None = the default), and the
     # coordinator's notice: "expiring_soon" within 24 hours of expiry, "expired" once it has lapsed.
     hold_expires_at: Optional[datetime] = None
@@ -394,8 +433,10 @@ VenueBooking.model_rebuild()
 
 
 class VenueUpdateResponse(VenueResponse):
-    """PUT /venues/{id}: the saved venue, plus the bookings its unavailability change has newly flagged (US39)."""
+    """PUT /venues/{id}: the saved venue, plus the bookings the change has newly flagged: by an unavailability
+    change (US39), and as "Requires Reassessment" by a setup or turnaround change (US38)."""
     flagged_bookings: List[VenueBooking] = []
+    reassessed_bookings: List[VenueBooking] = []
 
 
 class BookingDecisionIn(BaseModel):
@@ -617,6 +658,8 @@ class EventResponse(BaseModel):
     organiser: str
     coordinatorId: Optional[int] = None
     coordinator: Optional[str] = None
+    assignedBy: Optional[str] = None  # US11: who assigned the coordinator...
+    assignedAt: Optional[datetime] = None  # ...and when
     purpose: str = ""
     eventType: str = ""
     pax: Optional[int] = None
@@ -658,6 +701,8 @@ class EventView(BaseModel):
     organiser: Optional[str] = None
     coordinatorId: Optional[int] = None
     coordinator: Optional[str] = None
+    assignedBy: Optional[str] = None
+    assignedAt: Optional[datetime] = None
     purpose: Optional[str] = None
     eventType: Optional[str] = None
     pax: Optional[int] = None
@@ -759,6 +804,13 @@ class EventChangeRequestResponse(BaseModel):
     def utc_timestamp(cls, value):
         # SQLite drops timezone information; stored request timestamps are UTC.
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+class EventChangeDecisionIn(BaseModel):
+    """US34: reviewer identity/time come from the server; a reason is optional."""
+    model_config = ConfigDict(extra="forbid")
+    outcome: Literal["accepted", "rejected"]
+    reason: str = ""
 
 
 class EventDraftSave(BaseModel):

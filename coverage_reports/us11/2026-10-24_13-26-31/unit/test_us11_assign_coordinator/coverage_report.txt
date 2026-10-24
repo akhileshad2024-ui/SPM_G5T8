@@ -1,0 +1,13 @@
+Coverage report for test_us11_assign_coordinator  (unit tests)
+Generated: 2026-10-24 13:26:31
+Test file: tests/unit/lead_assignment/test_us11_assign_coordinator.py
+Result: 18 tests, all passed
+Measured code: event_review.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign, main.py:utc,event_response,list_coordinators,review_step,assign_coordinator, models.py:EventAssignment
+
+Name                                                                                 Stmts  Miss  Cover  Missing
+-------------------------------------------------------------------------------------------------------------------
+event_review.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign     22     0   100%  
+main.py:utc,event_response,list_coordinators,review_step,assign_coordinator             29     0   100%  
+models.py:EventAssignment                                                                7     0   100%  
+-------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                   58     0   100%

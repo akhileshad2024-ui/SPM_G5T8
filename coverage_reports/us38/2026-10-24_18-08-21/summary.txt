@@ -1,0 +1,4 @@
+US38 unit test and coverage summary - 2026-10-24 18:08:21
+
+type    test file                          tests  result   coverage
+unit    test_us38_flag_bookings_affected_by_venue_time_changes    47  passed     100.0%

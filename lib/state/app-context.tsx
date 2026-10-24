@@ -31,11 +31,12 @@ import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
+import { assignmentNotices } from "../events/review/lead";
 import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
-import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails } from "../venues/booking";
+import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails, mergeBookings, releasedSummary } from "../venues/booking";
 import { fromExpiryInput, holdNotices } from "../venues/hold-expiry";
 import { VERDICT_LABEL } from "../venues/suitability";
 import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
@@ -137,7 +138,7 @@ interface AppState {
   role: Role;
   events: EventRecord[];
   registrations: RegistrationRecord[];
-  /** US11: the Event Coordinator accounts an event can be assigned to (loaded for coordinators). */
+  /** US11: the Event Coordinator accounts an event can be assigned to (loaded for the Lead). */
   coordinators: Coordinator[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
@@ -504,9 +505,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const applyVenues = (venues: Venue[]) => patch({ venues });
 
-  /** Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2). */
-  const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[]): EventRecord[] => {
-    const affected = newlyAffectedBookings(events, before, after);
+  /**
+   * Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2).
+   * `savedByServer` are the events whose bookings the server has already flagged (US38, US39): it saved the
+   * flag and the coordinator is told from it, so they are not flagged again here.
+   */
+  const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[], savedByServer: Set<string> = new Set()): EventRecord[] => {
+    const affected = newlyAffectedBookings(events, before, after).filter(({ event }) => !savedByServer.has(event.id));
     for (const { event, issues } of affected) {
       const summary = issues.map((i) => i.text).join(" ");
       patchEvent(event.id, {}, { title: "Venue issue — alternative arrangements needed", body: summary });
@@ -528,6 +533,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .then((stored) => {
         patch({ events: stored.map(eventFromApi) });
         const role = state.user?.role;
+        // US11: a coordinator is told about each request the Lead assigned them that they haven't started on.
+        if (role === "coordinator") {
+          for (const n of assignmentNotices(stored)) notify("coordinator", n.title, n.body);
+        }
         if (role !== "coordinator" && role !== "venue") return;
         return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
           patch((s) => ({ events: attachBookings(s.events, bookings) }));
@@ -540,6 +549,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             for (const b of bookings) {
               if (b.flag && (b.status === "pending" || b.status === "approved")) {
                 notify("coordinator", "Replacement venue required", `${b.event_name} (${b.date}): ${b.flag.message}`);
+              }
+              // US38: a change to the venue's setup or turnaround time leaves this booking overlapping another.
+              if (b.reassessment && (b.status === "pending" || b.status === "approved")) {
+                notify("coordinator", "Booking requires reassessment", `${b.event_name} (${b.date}): ${b.reassessment.message}`);
               }
             }
           }
@@ -554,14 +567,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncEventBookings = async (e: EventRecord) => {
     if (e.backendId === undefined) return;
     const [stored, bookings] = await Promise.all([
-      apiFetch<StoredEvent>(`/events/${e.backendId}`),
+      // Venue Staff can only read an event while one of its bookings holds a venue: once the last is rejected it is no longer theirs to read.
+      apiFetch<StoredEvent>(`/events/${e.backendId}`).catch((err) => (err instanceof ApiError && err.status === 403 ? null : Promise.reject(err))),
       apiFetch<VenueBookingRecord[]>("/bookings"),
     ]);
-    const fresh = eventFromApi(stored);
+    const fresh = stored ? eventFromApi(stored) : null;
+    // All of them, not only this event's: approving or cancelling one changes what is in the way of the others
+    // at the venue (US46, US47) and whether they still Require Reassessment (US38).
     patch((s) => ({
       events: attachBookings(
-        s.events.map((x) => (x.id === e.id ? { ...x, venue: fresh.venue, bookingState: fresh.bookingState } : x)),
-        bookings.filter((b) => b.event_id === e.backendId),
+        s.events.map((x) => {
+          if (x.id !== e.id) return x;
+          return fresh ? { ...x, venue: fresh.venue, bookingState: fresh.bookingState } : { ...x, ...releasedSummary(x.bookings ?? []) };
+        }),
+        bookings,
       ),
     }));
   };
@@ -573,6 +592,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         method: "POST",
         body: JSON.stringify({ outcome, reason }),
       });
+      // The server sends back the decided booking as it now is; its other bookings and the rest of the venue's follow in syncEventBookings.
+      patch((s) => ({ events: mergeBookings(s.events, [booking]) }));
       if (outcome === "approved") {
         patchEvent(e.id, {}, { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` });
         notify("coordinator", "Venue booking approved", `${booking.venue_name} confirmed for ${e.name}.`);
@@ -586,6 +607,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err) {
       handleApiError(err);
+      // Refused because of what is in the way (US46, US48): it may have changed since this page loaded, so show what is there now.
+      if (err instanceof ApiError && err.status === 409) await syncEventBookings(e).catch(() => {});
       return false;
     }
   };
@@ -618,9 +641,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   );
 
-  // US11: coordinators assign events to coordinator accounts, so load them.
+  // US11/US43: the Lead assigns events to coordinator accounts, so load them.
   useEffect(() => {
-    if (!state.authed || state.role !== "coordinator") return;
+    if (!state.authed || state.role !== "lead") return;
     apiFetch<Coordinator[]>("/coordinators").then((coordinators) => patch({ coordinators }), () => patch({ coordinators: [] }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);
@@ -919,22 +942,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify(input),
           });
           const saved = venueFromApi(res);
-          // US39: the server has saved the flag on these bookings; keep the events in step with it.
-          if (res.flagged_bookings?.length) {
-            const flaggedById = new Map(res.flagged_bookings.map((b) => [b.id, b]));
-            patch((s) => ({
-              events: s.events.map((e) => {
-                const updated = e.bookingRequest && flaggedById.get(e.bookingRequest.id);
-                return updated ? { ...e, bookingRequest: updated } : e;
-              }),
-            }));
-          }
+          // US39 and US38: the server has saved these flags (venue unavailable, Requires Reassessment); keep the events in step with them.
+          const savedByServer = [...(res.flagged_bookings ?? []), ...(res.reassessed_bookings ?? [])];
+          if (savedByServer.length) patch((s) => ({ events: mergeBookings(s.events, savedByServer) }));
+          const serverEvents = state.events.filter((e) => savedByServer.some((b) => b.event_id === e.backendId));
           const before = state.venues;
           const after = before.some((v) => v.id === saved.id)
             ? before.map((v) => (v.id === saved.id ? saved : v))
             : [...before, saved];
           applyVenues(after);
-          return { ok: true, venue: saved, flagged: flagAffectedBookings(state.events, before, after) };
+          const flaggedHere = flagAffectedBookings(state.events, before, after, new Set(serverEvents.map((e) => e.id)));
+          // One entry per event, however it was found.
+          const flagged = [...new Map([...serverEvents, ...flaggedHere].map((e) => [e.id, e])).values()];
+          return { ok: true, venue: saved, flagged };
         } catch (err) {
           if (err instanceof ApiError && err.status === 422) {
             return { ok: false, error: err.message, fields: err.fields };

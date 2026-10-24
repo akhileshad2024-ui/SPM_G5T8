@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { MAYA, PASSWORD, PRIYA, SAM, WEI, signIn } from "./support/app";
+import { GRACE, MAYA, PASSWORD, PRIYA, SAM, WEI, signIn } from "./support/app";
 import { DANIEL, observed } from "./support/venues";
 import { sql } from "./support/scenario";
 
@@ -50,7 +50,8 @@ test.describe("US01 - Secure Login", () => {
 
   test("[TC-002] [US01-AC1] each role lands on its own home page after login", async ({ page }, info) => {
     const seen: string[] = [];
-    for (const [who, landing] of [[PRIYA, "/queue"], [MAYA, "/my-events"], [DANIEL, "/bookings"], [WEI, "/equipment"], [SAM, "/browse"]] as const) {
+    for (const [who, landing] of [[PRIYA, "/queue"], [MAYA, "/my-events"], [DANIEL, "/bookings"], [WEI, "/equipment"], [SAM, "/browse"],
+      [GRACE, "/assignments"]] as const) {
       await signIn(page, who, new RegExp(`${landing}$`));
       seen.push(`${who.email} -> ${landing}`);
       await signOut(page);

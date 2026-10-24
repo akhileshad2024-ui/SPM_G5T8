@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  action, MARCUS, MAYA, PRIYA, apiAs, assignTo, createRequest, myEventsRow, openInQueue, signIn, toast, unique,
+  action, GRACE, MARCUS, MAYA, PRIYA, apiAs, assignTo, createRequest, myEventsRow, openInQueue, signIn, toast, unique,
   workspaceStatus,
 } from "./support/app";
 
@@ -14,9 +14,10 @@ import {
  */
 test.describe("US07 - Review Submitted Event Requests", () => {
   test("[US07-AC2] [US07-AC4] a coordinator finds a submitted request and sees what the organiser asked for", async ({ page, baseURL }) => {
-    // Given: Maya has submitted a request.
+    // Given: Maya has submitted a request, and the Lead has assigned it to Priya (US43).
     const name = unique("Alumni Dinner");
-    await createRequest(await apiAs(baseURL!, MAYA), name);
+    const id = await createRequest(await apiAs(baseURL!, MAYA), name);
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);
 
     // When: Priya opens it from the review queue.
     await signIn(page, PRIYA, /\/queue/);
@@ -46,7 +47,8 @@ test.describe("US07 - Review Submitted Event Requests", () => {
   test("[US07-AC5] requirements that don't add up are flagged for clarification", async ({ page, baseURL }) => {
     // Given: a request expecting more people than the venue capacity it asks for.
     const name = unique("Oversized Gala");
-    await createRequest(await apiAs(baseURL!, MAYA), name, { attendance: 200, venueCapacity: 150 });
+    const id = await createRequest(await apiAs(baseURL!, MAYA), name, { attendance: 200, venueCapacity: 150 });
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);
 
     // When: Priya opens it.
     await signIn(page, PRIYA, /\/queue/);
@@ -61,7 +63,7 @@ test.describe("US07 - Review Submitted Event Requests", () => {
     // Given: a submitted request assigned to Priya.
     const name = unique("Design Keynote");
     const id = await createRequest(await apiAs(baseURL!, MAYA), name);
-    await assignTo(await apiAs(baseURL!, PRIYA), id, PRIYA);
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);
 
     // When: Priya starts the review.
     await signIn(page, PRIYA, /\/queue/);
@@ -83,7 +85,7 @@ test.describe("US07 - Review Submitted Event Requests", () => {
     const maya = await apiAs(baseURL!, MAYA);
     const priya = await apiAs(baseURL!, PRIYA);
     const id = await createRequest(maya, name);
-    await assignTo(priya, id, PRIYA);
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);
     expect((await priya.post(`/api/events/${id}/review`, { data: {} })).ok()).toBeTruthy();
 
     // When: Maya opens My Events.
@@ -97,7 +99,7 @@ test.describe("US07 - Review Submitted Event Requests", () => {
     // Given: a request assigned to Priya.
     const name = unique("Priya's Workshop");
     const id = await createRequest(await apiAs(baseURL!, MAYA), name);
-    await assignTo(await apiAs(baseURL!, PRIYA), id, PRIYA);
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);
 
     // When: Marcus, another coordinator, searches his queue for it.
     await signIn(page, MARCUS, /\/queue/);
