@@ -72,8 +72,11 @@ class DatabaseTestCase(unittest.TestCase):
         Base.metadata.create_all(bind=self.engine)
         self.sessions = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self.db = self.sessions()
+        self.reloads = []
 
     def tearDown(self):
+        for session in self.reloads:
+            session.close()
         self.db.close()
         self.engine.dispose()
 
@@ -120,8 +123,14 @@ class DatabaseTestCase(unittest.TestCase):
         return (session or self.db).query(models.VenueBooking).order_by(models.VenueBooking.id).all()
 
     def reload(self):
-        """A second session on the same database: what a page reload sees."""
-        return self.sessions()
+        """A second session on the same database: what a page reload sees.
+
+        Kept until tearDown: all sessions share one in-memory connection (StaticPool), and a session
+        left for the garbage collector can reset that connection mid-test, losing rows just saved.
+        """
+        session = self.sessions()
+        self.reloads.append(session)
+        return session
 
 
 # ---------------------------------------------------------------- AC1: what a request contains
