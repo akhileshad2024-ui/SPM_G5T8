@@ -358,7 +358,7 @@ class VenueBooking(BaseModel):
     attendance: int
     layout: str
     purpose: Optional[str] = None
-    status: Literal["pending", "approved", "rejected", "cancelled"]
+    status: Literal["pending", "approved", "rejected", "cancelled", "expired"]  # expired: US42
     verdict: Verdict
     requested_by: str
     requested_at: datetime
@@ -367,6 +367,16 @@ class VenueBooking(BaseModel):
     decided_at: Optional[datetime] = None
     decision_reason: Optional[str] = None
     flag: Optional["BookingFlag"] = None
+    # US42: when the tentative hold lapses (UTC), who last set that (None = the default), and the
+    # coordinator's notice: "expiring_soon" within 24 hours of expiry, "expired" once it has lapsed.
+    hold_expires_at: Optional[datetime] = None
+    hold_expiry_set_by: Optional[str] = None
+    hold_notice: Optional[Literal["expiring_soon", "expired"]] = None
+
+
+class BookingHoldIn(BaseModel):
+    """US42-AC1: when a pending request's tentative hold should expire (with its time zone)."""
+    expires_at: datetime
 
 
 class BookingFlag(BaseModel):
@@ -731,6 +741,29 @@ class ClarificationResponseIn(BaseModel):
 
 
 # ---------------------------------------------------------------- event-request drafts (US05)
+
+class EventChangeRequestIn(BaseModel):
+    """Identity, review state and decision cannot be supplied by the organiser."""
+    model_config = ConfigDict(extra="forbid")
+    proposed_changes: str
+
+
+class EventChangeRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    event_id: int
+    requested_by_id: int
+    requested_at: datetime
+    proposed_changes: str
+    status: str
+    decision: Optional[Dict[str, Any]] = None
+
+    @field_validator("requested_at")
+    @classmethod
+    def utc_timestamp(cls, value):
+        # SQLite drops timezone information; stored request timestamps are UTC.
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
 
 class EventDraftSave(BaseModel):
     """Only the event information is accepted; organiser identity comes from the session."""

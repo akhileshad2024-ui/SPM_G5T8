@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, GRACE, MAYA, PRIYA, PASSWORD, submitDialog, workspaceStatus } from "./support/app";
+import { action, MAYA, PRIYA, PASSWORD, submitDialog, workspaceStatus } from "./support/app";
+import { singaporeTestDate } from "./support/dates";
+
+test.use({ timezoneId: "Asia/Singapore" });
 
 /** Numbered UI workflow matches the shared US09-TC01. No API fixture or reset.
  * Acceptance config uses the existing DB and written TC passwords. Normal CI
@@ -53,9 +56,9 @@ async function openQueueEvent(page: Page, eventId: string) {
   await row.click();
 }
 
-async function unchangedDetails(page: Page) {
+async function unchangedDetails(page: Page, eventDateLabel: string) {
   const event = page.getByRole("region", { name: "Event", exact: true });
-  for (const [label, value] of [["Expected attendance", "85"], ["Date", "20 Nov 2026"], ["Time", "18:00 – 21:00"]]) {
+  for (const [label, value] of [["Expected attendance", "85"], ["Date", eventDateLabel], ["Time", "18:00 – 21:00"]]) {
     await expect(event.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })
       .locator("xpath=following-sibling::dd[1]")).toHaveText(value);
   }
@@ -64,6 +67,8 @@ async function unchangedDetails(page: Page) {
 for (const kind of ["clarification", "amendment"] as const) {
   const id = kind === "clarification" ? "US09-TC01" : "US09-REGRESSION";
   test(`[${id}][AC1–AC3] complete ${kind} response workflow`, async ({ page }, testInfo) => {
+    const eventDate = singaporeTestDate(new Date());
+    await testInfo.attach("test-date", { body: `EVENT_DATE=${eventDate.iso}; timezone=Asia/Singapore`, contentType: "text/plain" });
     // Steps 1–4: app started as a precondition; log in and capture existing IDs.
     await signIn(page, MAYA, /\/my-events/);
     const views = page.getByRole("link", { name: "View", exact: true });
@@ -72,12 +77,12 @@ for (const kind of ["clarification", "amendment"] as const) {
     await action(page, "New event request").click();
     await expect(page).toHaveURL(/\/new-request/);
 
-    // Step 5: exact written inputs, not generated names or dates.
+    // Step 5: written inputs; EVENT_DATE is captured once at workflow start.
     await page.getByPlaceholder("Alumni Homecoming Dinner").fill(NAME);
     await page.getByPlaceholder("What is this event for, and who is it for?").fill(PURPOSE);
     await field(page, "Expected attendance").locator("input").fill("85");
     await field(page, "Event type").locator("select").selectOption({ label: "Conference" });
-    await field(page, "Proposed date").locator("input").fill("2026-11-20");
+    await field(page, "Proposed date").locator("input").fill(eventDate.iso);
     await field(page, "Start").locator("input").fill("18:00");
     await field(page, "End").locator("input").fill("21:00");
     await action(page, "Continue").click();
@@ -145,7 +150,7 @@ for (const kind of ["clarification", "amendment"] as const) {
     await expect(thread.getByText(`${MAYA.name}: ${RESPONSE}`, { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: NAME, exact: true })).toBeVisible();
     await expect(page.locator(".pill").first()).toHaveText("Pending Clarification");
-    await unchangedDetails(page);
+    await unchangedDetails(page, eventDate.label);
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${href}$`));
     await expect(thread).toContainText(QUESTION);
@@ -170,7 +175,7 @@ for (const kind of ["clarification", "amendment"] as const) {
     await expect(action(page, "Approve")).toBeVisible();
     await expect(action(page, "Reject")).toBeVisible();
     await action(page, "Details").click();
-    await unchangedDetails(page);
+    await unchangedDetails(page, eventDate.label);
     await signOut(page);
   });
 }

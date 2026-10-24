@@ -113,6 +113,19 @@ class Event(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class EventChangeRequest(Base):
+    """US33 proposals; US34 may later record a decision without losing the request."""
+    __tablename__ = "event_change_requests"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    requested_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    proposed_changes = Column(Text, nullable=False)
+    status = Column(Text, nullable=False, default="pending", server_default="pending")
+    decision = Column(JSON(none_as_null=True), nullable=True)
+
+
 class EventDetailChange(Base):
     """US16: important detail changes, not status transitions or venue edits."""
     __tablename__ = "event_detail_changes"
@@ -129,7 +142,8 @@ class VenueBooking(Base):
     """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
     so it survives a reload, Venue Staff can see it, and other searches see the venue as held.
 
-    status: pending (the venue is held) | approved | rejected | cancelled (by the coordinator, US41).
+    status: pending (the venue is held) | approved | rejected | cancelled (by the coordinator, US41)
+    | expired (US42: the tentative hold lapsed before Venue Staff approved it; the venue is free again).
     An event may have several bookings at once, each at a different venue (US41).
     The venue is held from hold_start (start of setup) to hold_end (end of teardown), in the same
     local wall-clock time as the event; those two are stored without a time zone on purpose.
@@ -164,6 +178,10 @@ class VenueBooking(Base):
     # US39: set while the venue is unavailable during this booking ({kind, reason, note, period_start,
     # period_end, message, flagged_at}). The booking is kept; the coordinator must arrange an alternative.
     flag = Column(JSON(none_as_null=True), nullable=True)
+    # US42: when this tentative hold lapses if not approved (UTC), and the Venue Staff member who last set it
+    # (None while it is the default set on request). See hold_expiry.py.
+    hold_expires_at = Column(DateTime(timezone=True), nullable=True)
+    hold_expiry_set_by = Column(String, nullable=True)
 
 
 class EventAssignment(Base):
