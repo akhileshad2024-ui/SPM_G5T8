@@ -159,7 +159,8 @@ Under Review) and confirming an event (US14, Approved → Confirmed).
   flagged: the coordinator gets a notification, the event's activity log and
   venue tab explain the problem, and the bookings page lists them under
   "Confirmed bookings needing attention". The coordinator can request a
-  replacement venue without losing any other event details.
+  replacement venue without losing any other event details. Two bookings that overlap because the
+  setup/turnaround got longer are flagged separately as "Requires Reassessment" (see Booking conflicts).
 
 ## Venue search (US20)
 
@@ -228,7 +229,7 @@ Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-req
   A clash with an already *approved* booking can be acknowledged too, as the story allows; Venue
   Staff still cannot approve a clashing booking.
 - **Venue Staff decide** (`POST /bookings/{id}/decision`): approving makes the booking confirmed and
-  blocks the venue for others (refused if an approved booking already holds an overlapping period,
+  blocks the venue for others (refused if something confirmed is in the way, see Booking conflicts below,
   or the venue was deactivated); rejecting needs a reason and releases the venue, handing the event
   back to its previous approved venue if it had one. Asking for a replacement venue releases the
   event's earlier pending request, and approving the replacement releases its earlier booking.
@@ -236,6 +237,46 @@ Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-req
   browser) and the activity log lines, which are rebuilt only for the current session.
 - Events now state accessibility needs from the same fixed set as venues (Wheelchair Access, Special
   Physical Seating, Mobility/Facility Arrangements), so the two can be compared.
+
+## Booking conflicts (US38, US46, US47, US48)
+
+Venue Staff see what is in the way of each booking on the **Booking requests** page, and the backend refuses to
+confirm a booking that something confirmed is in the way of. The rules are pure functions in
+`backend/venue_conflicts.py`; `backend/venue_bookings.py` and `backend/venue_reassessment.py` read and save the
+bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
+
+| What is in the way | Blocks approval? | Shown to Venue Staff |
+|---|---|---|
+| A **confirmed** booking at the same venue (US46) | Yes | "Can't be approved while this stands.", with the booking's event, date, time and status |
+| One of the venue's **unavailable periods** (US48) | Yes, the same as a confirmed booking | "<venue> is unavailable (Maintenance: note) from ... to ..." |
+| Another **pending** request (US47) | No: Venue Staff choose which to approve | "Needs manual resolution" |
+
+- **Setup and turnaround are included (US46).** Each booking occupies the venue from *start - setup* to
+  *end + turnaround*, using the venue's configured times for both bookings (10:00-12:00 with 30 and 45 min
+  occupies 09:30-12:45). Windows that only touch do not overlap.
+- **Checked again at confirmation (US46).** Approving re-reads what is saved at that moment, not what was true when
+  the request was made or the page loaded, and locks the venue's row (effective on PostgreSQL) so two Venue Staff
+  confirming overlapping bookings together are checked one after the other. The refusal names the booking in the way.
+- **Expired holds are left out (US48).** A pending booking whose `hold_expires_at` has passed holds nothing:
+  conflict checks, venue search, suitability and the re-check after a venue time change all ignore it. Approved
+  bookings never expire. US42 sets `hold_expires_at` (a default on request, changeable by Venue Staff) and saves
+  "expired" on a lapsed hold, which releases the event's venue.
+- **Pending requests that conflict (US47).** A second pending request for the same time is refused when it is made
+  (US22), so two pending requests only conflict after a venue's setup or turnaround time changes (below), or when
+  two are made at the same moment. Both are flagged for manual resolution; nothing is approved or rejected
+  automatically. Once one is confirmed, it blocks the other, which can then only be rejected.
+- **A venue's setup or turnaround time changes (US38).** `PUT /venues/{id}` re-checks every pending and confirmed
+  booking at the venue that has not ended yet. Its hold is brought into line with the venue's new times, and a
+  booking that now overlaps another it did not overlap before is marked **Requires Reassessment** with the
+  booking(s) it clashes with (`reassessed_bookings` in the response). Nothing is removed, cancelled or rejected.
+  The flag is saved on the booking (`venue_bookings.reassessment`) and clears by itself when nothing clashes any
+  more (the other booking is rejected or cancelled, or the times are put back). The coordinator is notified from
+  the saved flag (the page builds the notification when it loads; stored notifications come with US36) and is
+  not told which other event it clashes with. Venue Staff are.
+- `GET /bookings` gives Venue Staff each booking with its `conflicts`. Coordinators get their bookings without them.
+- **Database:** `venue_bookings` gains the `reassessment` column (and uses US42's `hold_expires_at`). The backend does
+  not alter existing tables, so run the US38 step of `backend/schema_changes.sql` once in the Supabase SQL Editor
+  before using these features; until then, reading bookings fails on the missing column.
 
 ## Project structure
 
@@ -275,6 +316,7 @@ lib/
   venue-search.ts  Venue search (US20): filter state, request body, clearing one filter — no React
   venue-suitability.ts  Venue suitability (US21): request body and verdict wording — no React
   venue-booking.ts      Venue booking request (US22): request body, who may send one, saved bookings onto events — no React
+  venues/conflicts.ts   Booking conflicts (US46-US48): which block approval, which need manual resolution — no React
   venue-form.ts    Venue catalogue form state + client-side validation — no React
   api.ts           fetch wrapper for the backend (/api/*)
   app-context.tsx  Global state + every mutation (signIn, approve, requestBooking, ...)
@@ -286,10 +328,13 @@ backend/
   venue_search.py        Venue search rules (US20): requirements + free-for-the-period check
   venue_suitability.py   Suitability rules (US21): verdict, every need compared, override record
   booking_request.py     Booking request rules (US22): approved event, no duplicate pending, values to save, notification
-  venue_bookings.py      Saved bookings (US22): what holds a venue, saving a request, Venue Staff's decision
+  venue_bookings.py      Saved bookings (US22): what holds a venue, saving a request, Venue Staff's decision (checked again, US46)
+  venue_conflicts.py     Booking conflict rules (US46-US48): what is in the way of a booking, and whether it blocks approval
+  venue_reassessment.py  Venue setup/turnaround change (US38): re-check future bookings, "Requires Reassessment" flags
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
-  schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns, US42 hold expiry)
+  schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns, US38 reassessment, US42 hold expiry)
+
   seed_venues.py   Script: add five demo venues to the catalogue
   login/           Authentication + RBAC (see above)
 ```
@@ -322,7 +367,8 @@ Start the backend with `uvicorn main:app --reload` (from `backend/`).
 predates US17, run the steps in `backend/schema_changes.sql` once in the Supabase
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
 column) must wait until every branch uses the new venue model. US42 (tentative
-holds expire) adds two `venue_bookings` columns: run its step in that file once too.
+holds expire) adds two `venue_bookings` columns and US38 (Requires Reassessment) one:
+run each story's step at the end of that file once.
 
 **Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
 The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues
@@ -376,11 +422,13 @@ python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us20_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us21_*.py" -v
 python -m unittest discover -s tests/unit/venue -p "test_us22_*.py" -v
+python -m unittest discover -s tests/unit/venue -p "test_us38_*.py" -v   # also us46, us47, us48
                         # US17 backend unit tests: validation rules + change recording, no API or database
 python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
 python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
 python -m unittest discover -s tests/integration -p "test_us21_*.py" -v
 python -m unittest discover -s tests/integration -p "test_us22_*.py" -v
+python -m unittest discover -s tests/integration -p "test_us38_*.py" -v   # also us46, us47, us48
                         # US20 integration tests: search through the real API (login, SQL, JSON columns), also run by hand
                         # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
 python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, throwaway SQLite
@@ -395,7 +443,7 @@ npm run test:us02       # US02 frontend unit tests (page access, who sees which 
 # US17/US18/US20: runs each UNIT test file on its own -> unit/<test_file>/ (htmlcov/index.html,
 # coverage_report.txt, test_output.txt) plus summary.txt, and one line per test file in
 # coverage_reports/<story>/history_by_file.csv. Integration tests are not part of this automation.
-python run_coverage.py us17      # or us18, us20, us21, us22
+python run_coverage.py us17      # or us18, us20, us21, us22, us38, us46, us47, us48
 # US01, US02, US03, US13: runs the story's whole test folder (htmlcov/index.html, coverage_report.txt,
 # test_output.txt, frontend/coverage_report.txt) and adds a line to coverage_reports/<story>/history.csv.
 python run_coverage.py us01      # or us02, us03, us13

@@ -178,8 +178,13 @@ class VenueBooking(Base):
     # US39: set while the venue is unavailable during this booking ({kind, reason, note, period_start,
     # period_end, message, flagged_at}). The booking is kept; the coordinator must arrange an alternative.
     flag = Column(JSON(none_as_null=True), nullable=True)
+# US38: set when a change to the venue's setup or turnaround time makes this booking overlap another
+    # one ({reason, message, setup_minutes, turnaround_minutes, clashes_with, flagged_at}). The booking is
+    # kept; it is "Requires Reassessment" until the clash is gone.
+    reassessment = Column(JSON(none_as_null=True), nullable=True)
     # US42: when this tentative hold lapses if not approved (UTC), and the Venue Staff member who last set it
-    # (None while it is the default set on request). See hold_expiry.py.
+    # (None while it is the default set on request). See hold_expiry.py. US48 reads it: once it has passed,
+    # the hold no longer blocks the venue and is left out of every conflict check.
     hold_expires_at = Column(DateTime(timezone=True), nullable=True)
     hold_expiry_set_by = Column(String, nullable=True)
 

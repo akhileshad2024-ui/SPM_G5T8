@@ -119,6 +119,41 @@ export interface BookingOverride {
   unmet: Array<{ label: string; severity: "block" | "warn"; reason: string }>;
 }
 
+/** Something in the way of a booking at its venue, for Venue Staff (backend `BookingConflict`; US46-US48). */
+export interface BookingConflict {
+  kind: "confirmed_booking" | "pending_request" | "unavailable_period";
+  message: string;
+  /** Stops the booking being confirmed: a confirmed booking or an unavailable period. Another pending request does not (US47). */
+  blocks_approval: boolean;
+  /** The other booking (confirmed_booking and pending_request). */
+  booking_id: number | null;
+  event_id: number | null;
+  event_name: string | null;
+  status: "pending" | "approved" | null;
+  date: string | null;
+  start: string | null;
+  end: string | null;
+  /** When the other booking occupies the venue, setup and turnaround included. */
+  occupied_start: string | null;
+  occupied_end: string | null;
+  /** The venue's unavailable period (unavailable_period). */
+  period_start: string | null;
+  period_end: string | null;
+  reason: string | null;
+  note: string | null;
+}
+
+/** US38: "Requires Reassessment". A change to the venue's setup or turnaround time made this booking overlap another. */
+export interface BookingReassessment {
+  reason: "venue_time_changed";
+  message: string;
+  setup_minutes: number;
+  turnaround_minutes: number;
+  /** The bookings it clashes with. Only Venue Staff are sent these: empty for a coordinator. */
+  clashes_with: BookingConflict[];
+  flagged_at: string;
+}
+
 /** A saved venue booking request as the backend returns it (backend `VenueBooking`). */
 export interface VenueBookingRecord {
   id: number;
@@ -148,6 +183,10 @@ export interface VenueBookingRecord {
   decision_reason: string | null;
   /** US39: set while the venue is unavailable during this booking; the coordinator must arrange an alternative. */
   flag: BookingFlag | null;
+  /** US38: set while a change to the venue's setup or turnaround time leaves this booking overlapping another. */
+  reassessment: BookingReassessment | null;
+  /** What is in the way of this booking right now. Sent to Venue Staff only (US46-US48); empty for a coordinator. */
+  conflicts: BookingConflict[];
   /** US42: when this tentative hold lapses unless approved (ISO), and the Venue Staff member who set it (null = default). */
   hold_expires_at?: string | null;
   hold_expiry_set_by?: string | null;
@@ -178,6 +217,8 @@ export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy
   last_updated_at: string;
   /** PUT /venues/{id} only (US39): the bookings an unavailability change has newly flagged. */
   flagged_bookings?: VenueBookingRecord[];
+  /** PUT /venues/{id} only (US38): the bookings a setup or turnaround change has newly marked "Requires Reassessment". */
+  reassessed_bookings?: VenueBookingRecord[];
 }
 
 /** Body for POST /venues and PUT /venues/{id}. */

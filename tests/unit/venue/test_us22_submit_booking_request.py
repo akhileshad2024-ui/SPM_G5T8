@@ -119,6 +119,29 @@ class DatabaseTestCase(unittest.TestCase):
     def bookings(self, session=None) -> list:
         return (session or self.db).query(models.VenueBooking).order_by(models.VenueBooking.id).all()
 
+    def put_booking(self, venue, name="Event", day=MON, start="10:00", end="12:00", status="pending",
+                    coordinator_id=COORDINATOR.id, **fields) -> models.VenueBooking:
+        """A booking saved straight into the database, whatever the rules would have allowed when it was made:
+        a past date, two overlapping pending requests, a hold that has expired. It has an event of its own and
+        is held from the start of the venue's setup to the end of its turnaround, as a real request is."""
+        event = self.event(name=name, date=day, start_time=time.fromisoformat(start), end_time=time.fromisoformat(end),
+                           coordinator_id=coordinator_id)
+        hold = venue_availability.occupied_window(venue_availability.event_window(day, start, end), venue)
+        values = dict(
+            event_id=event.id, event_name=name, venue_id=venue.id, venue_name=venue.name, status=status, date=day,
+            start_time=start, end_time=end, setup_minutes=venue.setupMinutes or 0, teardown_minutes=venue.turnaroundMinutes or 0,
+            hold_start=venue_availability.to_datetime(hold[0]), hold_end=venue_availability.to_datetime(hold[1]),
+            attendance=50, layout="theatre", verdict="suitable", requested_by=COORDINATOR.email,
+            requested_at=datetime.now(timezone.utc),
+        )
+        values.update(fields)
+        booking = models.VenueBooking(**values)
+        self.db.add(booking)
+        self.db.commit()
+        venue_bookings.summarise(self.db, event)  # the event's own venue and booking state, as saving a request sets them
+        self.db.commit()
+        return booking
+
     def reload(self):
         """A second session on the same database: what a page reload sees."""
         return self.sessions()
@@ -582,7 +605,7 @@ class TestDecision(DatabaseTestCase):
             self.decide(fair.id, "approved")
 
         self.assertEqual(ctx.exception.status_code, 409)
-        self.assertEqual(ctx.exception.detail, "Can't approve: clashes with Gala, already booked on 04 Jan 2027.")
+        self.assertEqual(ctx.exception.detail, "Can't approve: Clashes with Gala, already booked on 04 Jan 2027 (venue occupied 09:30–12:45 incl. 30 min setup and 45 min turnaround).")
         self.assertEqual(self.db.get(models.VenueBooking, fair.id).status, "pending")
 
     def test_approving_one_booking_leaves_the_events_other_pending_booking_pending(self):

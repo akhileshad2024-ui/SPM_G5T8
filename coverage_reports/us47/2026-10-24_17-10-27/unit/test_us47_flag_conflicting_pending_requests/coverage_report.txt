@@ -1,0 +1,13 @@
+Coverage report for test_us47_flag_conflicting_pending_requests  (unit tests)
+Generated: 2026-10-24 17:10:27
+Test file: tests/unit/venue/test_us47_flag_conflicting_pending_requests.py
+Result: 17 tests, all passed
+Measured code: venue_conflicts.py:conflicts_for, venue_bookings.py:staff_records, main.py:list_bookings
+
+Name                              Stmts  Miss  Cover  Missing
+----------------------------------------------------------------
+venue_conflicts.py:conflicts_for      2     0   100%  
+venue_bookings.py:staff_records      13     0   100%  
+main.py:list_bookings                 7     0   100%  
+----------------------------------------------------------------
+TOTAL                                22     0   100%

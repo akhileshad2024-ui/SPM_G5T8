@@ -47,3 +47,8 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expiry_set_by text;
 UPDATE venue_bookings
 SET hold_expires_at = LEAST(requested_at + interval '3 days', hold_start AT TIME ZONE 'Asia/Singapore')
 WHERE status = 'pending' AND hold_expires_at IS NULL;
+
+-- US38 (Week 7 change #1): a booking whose venue setup/turnaround change makes it overlap another is
+-- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
+-- flagged (NULL when nothing needs reassessing). Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;

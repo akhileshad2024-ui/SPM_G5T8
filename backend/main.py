@@ -10,7 +10,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
+import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -262,6 +262,8 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 # The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events
 # they are involved in (event_access.py), oldest first. The event page merges them into its events, so a
 # pending request, its hold and any override are still there after a reload.
+# Venue Staff also get what is in the way of each booking right now (US46 a confirmed booking, US47 another
+# pending request, US48 an unavailable period) and what a "Requires Reassessment" flag clashes with (US38).
 def expire_lapsed_holds(db: Session) -> None:
     """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released.
     Called before bookings or events are read; there is no background job."""
@@ -283,6 +285,8 @@ def list_bookings(db: Session = Depends(get_db), user: User = Depends(require_ro
         .order_by(models.VenueBooking.requested_at, models.VenueBooking.id)
         .all()
     )
+    if user.role == Role.venue:
+        return venue_bookings.staff_records(db, rows, datetime.now(timezone.utc))
     return [venue_bookings.to_record(row) for row in rows]
 
 # Fulfills US42-AC1: Venue Staff set or change when a pending request's tentative hold expires. It must be in
@@ -302,7 +306,9 @@ def set_hold_expiry(booking_id: int, body: schemas.BookingHoldIn, db: Session = 
 
 
 # Venue Staff approve or reject a pending booking request. Rejecting needs a reason. The event's current
-# venue follows the decision; a confirmed booking then blocks the venue for others. Rules broken -> 409.
+# venue follows the decision; a confirmed booking then blocks the venue for others. Approving is checked
+# again here against what is confirmed at this moment (US46) and the venue's unavailable periods (US48),
+# and refused, saying what is in the way, if anything is. Rules broken -> 409.
 @app.post("/bookings/{booking_id}/decision", response_model=schemas.VenueBooking)
 def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_DECIDERS))):
     expire_lapsed_holds(db)  # US42: a hold that has lapsed is saved as expired before any decision
@@ -316,7 +322,7 @@ def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session
         raise HTTPException(status_code=409, detail=refusal.message)
     db.commit()
     db.refresh(booking)
-    return venue_bookings.to_record(booking)
+    return venue_bookings.staff_records(db, [booking], datetime.now(timezone.utc))[0]
 
 
 def coordinators_event(db: Session, event_id: int, user: User) -> models.Event:
@@ -415,6 +421,10 @@ def create_venue(venue: schemas.VenueCreate, db: Session = Depends(get_db), user
 # Fulfills US17: Edit & Deactivate, and US39: record, edit or end early an unavailability period.
 # Bookings holding the venue during a period are flagged (never cancelled) and returned, so their
 # coordinators can be told; a booking whose period was ended early or removed is un-flagged.
+# US38: a new setup or turnaround time re-checks every booking at the venue that has not happened yet.
+# Those that now overlap another booking are marked "Requires Reassessment" (never cancelled) and returned
+# in reassessed_bookings, so their coordinators can be told. A booking's hold follows the venue's times,
+# so the unavailability flags are worked out again too.
 @app.put("/venues/{venue_id}", response_model=schemas.VenueUpdateResponse)
 def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session = Depends(get_db), user: User = Depends(require_roles(*VENUE_MANAGERS))):
     db_venue = db.query(models.Venue).filter(models.Venue.id == venue_id).first()
@@ -431,11 +441,12 @@ def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session =
 
     now = datetime.now(timezone.utc)
     record_change(db, db_venue, change_action(changes), user.email, changes, now)
-    flagged = venue_unavailability.flag_affected_bookings(db, db_venue, now) if "unavailability" in changes else []
+    flagged, reassessed = venue_reassessment.after_venue_change(db, db_venue, changes, now)
     db.commit()
     db.refresh(db_venue)
-    # Not a column: only read by the response model (VenueUpdateResponse.flagged_bookings).
-    db_venue.flagged_bookings = [venue_bookings.to_record(row) for row in flagged]
+    # Not columns: only read by the response model (VenueUpdateResponse).
+    db_venue.flagged_bookings = [venue_bookings.to_record(row, staff=True) for row in flagged]
+    db_venue.reassessed_bookings = [venue_bookings.to_record(row, staff=True) for row in reassessed]
     return db_venue
 
 # Fulfills US17: venues are never deleted, only deactivated, so their booking history is kept.
