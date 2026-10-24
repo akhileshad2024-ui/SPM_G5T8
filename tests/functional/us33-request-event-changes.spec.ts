@@ -8,6 +8,8 @@ const NAME = "US33 Event Change Request Test";
 const PURPOSE = "Verify a proposed change is saved without changing the event.";
 const PROPOSAL = "Increase expected attendance from 85 to 90.";
 const shared = process.env.TC_SHARED_DB === "1";
+// Match the campus date used by the backend and the manual TC, on any machine.
+test.use({ timezoneId: "Asia/Singapore" });
 
 function field(page: Page, label: string) {
   return page.locator("div.field").filter({ has: page.locator("label", { hasText: new RegExp(`^${label}$`) }) });
@@ -37,6 +39,15 @@ async function logout(page: Page) {
 
 test("[US33-TC01] persist a proposal without directly editing the event", async ({ page }, info) => {
   test.setTimeout(120_000);
+  // Capture once: every input and check in this run uses the same Singapore day.
+  const startedAt = new Date();
+  const eventDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(startedAt);
+  const expectedDate = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "short", day: "2-digit",
+  }).format(startedAt);
+  await info.attach("test-data", { body: `EVENT_DATE=${eventDate}; timezone=Asia/Singapore`, contentType: "text/plain" });
   // Steps 1–4: services are a precondition; login and capture the loaded baseline.
   await login(page);
   const views = page.getByRole("link", { name: "View", exact: true });
@@ -48,7 +59,7 @@ test("[US33-TC01] persist a proposal without directly editing the event", async 
   await page.getByPlaceholder("What is this event for, and who is it for?").fill(PURPOSE);
   await field(page, "Expected attendance").locator("input").fill("85");
   await field(page, "Event type").locator("select").selectOption({ label: "Conference" });
-  await field(page, "Proposed date").locator("input").fill("2026-11-20");
+  await field(page, "Proposed date").locator("input").fill(eventDate);
   await field(page, "Start").locator("input").fill("18:00");
   await field(page, "End").locator("input").fill("21:00");
   await action(page, "Continue").click();
@@ -95,7 +106,7 @@ test("[US33-TC01] persist a proposal without directly editing the event", async 
     await expect(page.getByRole("heading", { name: NAME, exact: true })).toBeVisible();
     await expect(page.locator(".pill").first()).toHaveText("Submitted");
     const details = page.getByRole("region", { name: "Event", exact: true });
-    for (const [label, value] of [["Expected attendance", "85"], ["Date", "20 Nov 2026"], ["Time", "18:00 – 21:00"]]) {
+    for (const [label, value] of [["Expected attendance", "85"], ["Date", expectedDate], ["Time", "18:00 – 21:00"]]) {
       await expect(details.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })
         .locator("xpath=following-sibling::dd[1]")).toHaveText(value);
     }
@@ -119,6 +130,6 @@ test("[US33-TC01] persist a proposal without directly editing the event", async 
   await expect(proposals).toContainText("Awaiting coordinator review");
   await unchanged();
   await logout(page);
-  console.log(`US33-TC01 EVENT_ID=${eventId}; ${requestLabel}`);
-  await info.attach("record-ids", { body: `EVENT_ID=${eventId}; ${requestLabel}; ${shared ? "shared acceptance" : "isolated regression"}`, contentType: "text/plain" });
+  console.log(`US33-TC01 EVENT_DATE=${eventDate}; EVENT_ID=${eventId}; ${requestLabel}`);
+  await info.attach("record-ids", { body: `EVENT_DATE=${eventDate}; EVENT_ID=${eventId}; ${requestLabel}; ${shared ? "shared acceptance" : "isolated regression"}`, contentType: "text/plain" });
 });
