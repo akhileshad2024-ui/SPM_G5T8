@@ -126,6 +126,18 @@ class EventChangeRequest(Base):
     decision = Column(JSON(none_as_null=True), nullable=True)
 
 
+class EventDetailChange(Base):
+    """US16: important detail changes, not status transitions or venue edits."""
+    __tablename__ = "event_detail_changes"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    changed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(DateTime(timezone=True), nullable=False)
+    changes = Column(JSON, nullable=False)
+    affects_arrangements = Column(Boolean, nullable=False)
+
+
 class VenueBooking(Base):
     """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
     so it survives a reload, Venue Staff can see it, and other searches see the venue as held.

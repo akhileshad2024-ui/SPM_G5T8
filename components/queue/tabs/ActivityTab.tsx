@@ -1,9 +1,11 @@
 import { StatusHistory } from "@/components/ui/StatusHistory";
 import type { EventRecord } from "@/lib/types";
+import { EventDetailHistory } from "../EventDetailHistory";
 
 export function ActivityTab({ event }: { event: EventRecord }) {
   return (
     <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <EventDetailHistory event={event} />
       <div className="card" style={{ flex: "0 1 300px", minWidth: 260, padding: "20px 22px" }}>
         <div className="section-heading" style={{ marginBottom: 12 }}>
           Status history

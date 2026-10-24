@@ -449,6 +449,51 @@ class EventRegistration(BaseModel):
     closingDate: Optional[Date] = None
 
 
+class EventDetailEquipment(BaseModel):
+    """Reuse the existing fixed equipment catalogue, never arbitrary equipment."""
+    model_config = ConfigDict(extra="forbid")
+    id: Literal["E1", "E2", "E3", "E4", "E5"]
+    qty: PositiveInt
+    technicalRequirements: Text = ""
+
+
+class EventDetailsUpdate(BaseModel):
+    """US16 partial input: omitted fields stay unchanged; no new mandatory list."""
+    model_config = ConfigDict(extra="forbid")
+    name: Optional[Text] = None
+    purpose: Optional[Text] = None
+    eventType: Optional[Text] = None
+    pax: Optional[PositiveInt] = None
+    date: Optional[Date] = None
+    start: Optional[Time] = None
+    end: Optional[Time] = None
+    venueLocation: Optional[Text] = None
+    venueCapacity: Optional[PositiveInt] = None
+    layout: Optional[Layout] = None
+    facilities: Optional[TextList] = None
+    access: Optional[TextList] = None
+    equip: Optional[List[EventDetailEquipment]] = None
+    reg: Optional[bool] = None
+    regCap: Optional[PositiveInt] = None
+    regClose: Optional[Date] = None
+
+    @model_validator(mode="after")
+    def preserve_nonnull_columns(self):
+        # Existing DB constraints, not additional customer-required fields.
+        for field in {"name", "facilities", "access", "equip", "reg"} & self.model_fields_set:
+            if getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
+
+
+class EventDetailChangeResponse(BaseModel):
+    id: int
+    changes: Dict[str, Any]
+    changedBy: str
+    changedAt: datetime
+    affectsArrangements: bool
+
+
 class EventRequestIn(BaseModel):
     """Body for creating or saving an event request (US03/US04).
 

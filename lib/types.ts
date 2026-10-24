@@ -196,6 +196,34 @@ export interface ActivityEntry {
   body: string;
 }
 
+/** US16 partial API input. Ownership, status and booking decisions are excluded. */
+export interface EventDetailsUpdate {
+  name?: string;
+  purpose?: string | null;
+  eventType?: string | null;
+  pax?: number | null;
+  date?: string | null;
+  start?: string | null;
+  end?: string | null;
+  venueLocation?: string | null;
+  venueCapacity?: number | null;
+  layout?: Layout | null;
+  facilities?: string[];
+  access?: string[];
+  equip?: EquipmentLine[];
+  reg?: boolean;
+  regCap?: number | null;
+  regClose?: string | null;
+}
+
+export interface EventDetailChange {
+  id: number;
+  changes: EventDetailsUpdate;
+  changedBy: string;
+  changedAt: string;
+  affectsArrangements: boolean;
+}
+
 export interface EventRecord {
   id: string;
   /** Database id once the request is stored by the backend (US03); absent for sample data. */

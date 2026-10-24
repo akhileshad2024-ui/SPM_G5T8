@@ -207,3 +207,17 @@ skill-creator's quick validator. Source/AC/SQL approvals and actual execution
 history remain required. This working plan holds technical decisions and links,
 not another copy of the formal TC. No app tests rerun for this documentation-only
 update. The original skill files live outside this Git repository.
+
+### PR preparation: integrate latest main
+
+Merged main ad6928f (US16 delivery) into the US33 branch before publication.
+Resolved three insertion conflicts: keep both event_changes/event_updates imports,
+both EventChangeRequest/EventDetailChange models, and all US09/US16/US33
+acceptance selectors. No story policy/schema change. Verification: CI-style
+unit289; full backend1116 plus488subtests; frontend296; type check; isolated
+US16/US33 Playwright2passed25.4s. Acceptance-selector discovery also matches
+both story files (discovery is not a shared acceptance execution). Production
+build passed. Dev-all was stopped before browser/build verification to avoid
+sharing .next. Prior shared TC evidence remains attached to193832a; no shared
+DB test was repeated for this merge. Publication/PR and their exact status are
+recorded only after the corresponding action succeeds.
