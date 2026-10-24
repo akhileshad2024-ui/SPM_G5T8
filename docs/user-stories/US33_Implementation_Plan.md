@@ -192,3 +192,18 @@ for193832a.
   remain pending, with their corresponding acceptance/boundary verification.
 - Peer review, remote CI, merge and green merge-commit CI precede final DoD.
 - Whole US33 is not Done; TC01's submitted-event workflow is verified.
+
+### Dependency check and workflow maintenance (2026-10-24 SGT)
+
+Read-only inspection found zero Confirmed events for Maya. Latest fetched main
+ad6928f still has no persistent confirmation endpoint; EventWorkspace explicitly
+disables confirmation for stored events pending US14. The confirmed UI acceptance
+path therefore depends on US14 or separately approved test-fixture preparation.
+No shared fixture was created and no event status was changed for this check.
+
+The personal requirements-first-scrum skill now retains all nine delivery gates
+with milestone test frequency and canonical record ownership; validated with
+skill-creator's quick validator. Source/AC/SQL approvals and actual execution
+history remain required. This working plan holds technical decisions and links,
+not another copy of the formal TC. No app tests rerun for this documentation-only
+update. The original skill files live outside this Git repository.
