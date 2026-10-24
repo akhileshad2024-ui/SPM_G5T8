@@ -378,7 +378,7 @@ class TestSuitabilityEndpoint(unittest.TestCase):
     def test_it_counts_saved_bookings_as_holding_their_venue(self):
         db = self.fake_db([make_venue(id=1)])
         saved = SimpleNamespace(venue_id=1, date=date.fromisoformat(MON), start_time="10:00", end_time="12:00",
-                                status="pending", event_id=9, event_name="Career Fair")
+                                status="pending", event_id=9, event_name="Career Fair", hold_expires_at=None)
         db.query.return_value.filter.return_value.all.return_value = [saved]  # the saved bookings that hold venues
 
         result = main.check_venue_suitability(needs(date=MON, start="10:00", end="12:00"), db=db, _user=COORDINATOR)

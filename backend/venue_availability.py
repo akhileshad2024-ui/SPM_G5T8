@@ -123,6 +123,30 @@ def describe_window(window: Window, venue) -> str:
 
 # ---------------------------------------------------------------- the rules
 
+def overlapping_periods(venue, occupied: Window):
+    """(period, began, ended) for each of the venue's unavailability periods that overlaps `occupied`."""
+    for period in venue.unavailability or []:
+        began, ended = parse_stamp(period.get("start")), parse_stamp(period.get("end"))
+        if began is not None and ended is not None and overlaps(occupied, (began, ended)):
+            yield period, began, ended
+
+
+def unavailability_text(venue, period: dict, began: int, ended: int) -> str:
+    """"Lecture Theatre 1 is unavailable (Maintenance: Floor repairs) from 04 Jan 2027, 08:00 to 04 Jan 2027, 20:00."."""
+    reason = UNAVAILABILITY_REASONS.get(period.get("reason"), period.get("reason"))
+    note = f": {period['note']}" if period.get("note") else ""
+    return f"{venue.name} is unavailable ({reason}{note}) from {format_stamp(began)} to {format_stamp(ended)}."
+
+
+def clash_text(venue, who: Optional[str], status: str, day: date, theirs: Window) -> str:
+    """"Clashes with Gala, already booked on 04 Jan 2027 (venue occupied 09:30–12:45 incl. 30 min setup and 45 min turnaround)."
+
+    `theirs` is the other booking's occupied window. A confirmed booking is "booked", a pending one "requested".
+    """
+    what = "booked" if status == "approved" else "requested"
+    return f"Clashes with {who or 'another booking'}, already {what} on {format_date(day)} (venue occupied {describe_window(theirs, venue)})."
+
+
 def availability_issues(venue, day: date, start: str, end: str, bookings) -> List[Issue]:
     """Everything in the way of using `venue` on `day` from `start` to `end`, setup and turnaround included.
 
@@ -152,26 +176,14 @@ def availability_issues(venue, day: date, start: str, end: str, bookings) -> Lis
                 f"Setup or turnaround ({describe_window(occupied, venue)}) runs outside operating hours ({venue.operatingHours}).",
             ))
 
-    for period in venue.unavailability or []:
-        began, ended = parse_stamp(period.get("start")), parse_stamp(period.get("end"))
-        if began is not None and ended is not None and overlaps(occupied, (began, ended)):
-            reason = UNAVAILABILITY_REASONS.get(period.get("reason"), period.get("reason"))
-            note = f": {period['note']}" if period.get("note") else ""
-            issues.append(Issue(
-                "block",
-                f"{venue.name} is unavailable ({reason}{note}) from {format_stamp(began)} to {format_stamp(ended)}.",
-            ))
+    for period, began, ended in overlapping_periods(venue, occupied):
+        issues.append(Issue("block", unavailability_text(venue, period, began, ended)))
 
     for booking in bookings:
         # The other booking is padded with this venue's setup and turnaround too.
         theirs = occupied_window(event_window(booking.date, booking.start, booking.end), venue)
         if overlaps(occupied, theirs):
-            who = booking.event_name or "another booking"
-            what = "booked" if booking.status == "approved" else "requested"
-            issues.append(Issue(
-                "block",
-                f"Clashes with {who}, already {what} on {format_date(booking.date)} (venue occupied {describe_window(theirs, venue)}).",
-            ))
+            issues.append(Issue("block", clash_text(venue, booking.event_name, booking.status, booking.date, theirs)))
     return issues
 
 

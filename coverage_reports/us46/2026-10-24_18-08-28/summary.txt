@@ -1,0 +1,4 @@
+US46 unit test and coverage summary - 2026-10-24 18:08:28
+
+type    test file                          tests  result   coverage
+unit    test_us46_prevent_overlapping_confirmed_bookings    28  passed     100.0%

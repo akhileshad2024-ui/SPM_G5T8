@@ -1,0 +1,4 @@
+US47 unit test and coverage summary - 2026-10-24 17:10:27
+
+type    test file                          tests  result   coverage
+unit    test_us47_flag_conflicting_pending_requests    17  passed     100.0%

@@ -81,6 +81,11 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
           </>
         )}
       </div>
+      {holding && booking.reassessment && (
+        <div className="callout callout-danger" role="alert" style={{ marginTop: 8 }}>
+          <strong>Requires Reassessment.</strong> {booking.reassessment.message}
+        </div>
+      )}
       {booking.status === "rejected" && booking.decision_reason && (
         <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>Reason: {booking.decision_reason}</div>
       )}

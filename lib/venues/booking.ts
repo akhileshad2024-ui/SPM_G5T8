@@ -43,6 +43,29 @@ export function buildBookingRequest(event: EventRecord, warningAcknowledged: boo
   return body;
 }
 
+/**
+ * Puts booking records the server has just saved (for instance bookings a venue change has flagged) into the
+ * events that hold them: into each event's list of bookings and into its current booking.
+ */
+export function mergeBookings(events: EventRecord[], saved: VenueBookingRecord[]): EventRecord[] {
+  const byId = new Map(saved.map((b) => [b.id, b]));
+  return events.map((e) => {
+    const bookings = e.bookings?.map((b) => byId.get(b.id) ?? b);
+    const current = e.bookingRequest ? byId.get(e.bookingRequest.id) : undefined;
+    if (!current && !bookings?.some((b, i) => b !== e.bookings![i])) return e;
+    return { ...e, ...(bookings ? { bookings } : {}), ...(current ? { bookingRequest: current } : {}) };
+  });
+}
+
+/**
+ * What an event is left with once none of its bookings holds a venue, as the server summarises it (summarise() in
+ * backend/venue_bookings.py): no venue, and "rejected" when Venue Staff rejected every booking, else no booking
+ * state (the coordinator cancelled them).
+ */
+export function releasedSummary(bookings: VenueBookingRecord[]): Pick<EventRecord, "venue" | "bookingState"> {
+  return { venue: null, bookingState: bookings.length > 0 && bookings.every((b) => b.status === "rejected") ? "rejected" : null };
+}
+
 /** Bookings that hold a venue (pending or approved), oldest first. */
 export function holdingBookings(event: Pick<EventRecord, "bookings">): VenueBookingRecord[] {
   return (event.bookings ?? []).filter((b) => b.status === "pending" || b.status === "approved");
