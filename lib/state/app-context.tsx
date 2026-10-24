@@ -35,7 +35,7 @@ import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
-import { attachBookings, bookingProblem, buildBookingRequest } from "../venues/booking";
+import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails } from "../venues/booking";
 import { VERDICT_LABEL } from "../venues/suitability";
 import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
@@ -306,7 +306,7 @@ export interface AppApi {
   resumeReview: (backendId: number) => Promise<boolean>;
   saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
   confirmEvent: (id: string) => void;
-  openModal: (kind: ModalKind, id: string) => void;
+  openModal: (kind: ModalKind, id: string, bookingId?: number) => void;
   closeModal: () => void;
   setModalText: (text: string) => void;
   confirmModal: () => void;
@@ -333,8 +333,18 @@ export interface AppApi {
    * Ask Venue Staff for a venue (US22). The backend checks the event is approved, that no pending request already holds the
    * slot, and, unless `acknowledged`, that the venue is fully suitable (US21). Resolves true once the request is pending.
    */
-  requestBooking: (eventId: string, venueId: string, acknowledged?: boolean) => Promise<boolean>;
-  approveBooking: (eventId: string) => void;
+  requestBooking: (eventId: string, venueId: string, acknowledged?: boolean, details?: BookingDetails) => Promise<boolean>;
+  /** Venue Staff approve one of the event's bookings (US41: an event may have several). */
+  approveBooking: (eventId: string, bookingId: number) => void;
+  /**
+   * US41: change one booking's attendance, layout or purpose; the event's other bookings are kept. When the venue
+   * isn't fully suitable for the new needs, resolves with `warning` until called again with `acknowledged`.
+   */
+  changeBooking: (eventId: string, bookingId: number, details: BookingDetails, acknowledged?: boolean) => Promise<{ ok: true } | { ok: false; warning?: string }>;
+  /** US41: cancel one booking, keeping the others. */
+  cancelBooking: (eventId: string, bookingId: number) => Promise<boolean>;
+  /** US41: cancel every booking of the event that still holds a venue. */
+  cancelAllBookings: (eventId: string) => Promise<boolean>;
 
   // ---- equipment ----
   reserveEquipment: (eventId: string) => void;
@@ -515,37 +525,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
         patch({ events: stored.map(eventFromApi) });
         const role = state.user?.role;
         if (role !== "coordinator" && role !== "venue") return;
-        return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) =>
-          patch((s) => ({ events: attachBookings(s.events, bookings) })),
-        );
+        return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
+          patch((s) => ({ events: attachBookings(s.events, bookings) }));
+          // US39: the coordinator is told about each booking whose venue has become unavailable.
+          if (role === "coordinator") {
+            for (const b of bookings) {
+              if (b.flag && (b.status === "pending" || b.status === "approved")) {
+                notify("coordinator", "Replacement venue required", `${b.event_name} (${b.date}): ${b.flag.message}`);
+              }
+            }
+          }
+        });
       })
       .catch(handleApiError);
 
-  /** Venue Staff approve or reject a pending booking request; the server checks the rules and saves the decision. */
-  const decideBooking = async (e: EventRecord, outcome: "approved" | "rejected", reason: string): Promise<boolean> => {
-    const bookingId = e.bookingRequest?.id;
-    if (bookingId === undefined) {
-      flash("This booking request isn't saved yet. Reload the page and try again.", "warn");
-      return false;
-    }
+  /**
+   * US41: re-read one event's venue summary and bookings from the server after a booking changed, so the
+   * page shows what was saved (an event may book several venues; the server keeps its main venue).
+   */
+  const syncEventBookings = async (e: EventRecord) => {
+    if (e.backendId === undefined) return;
+    const [stored, bookings] = await Promise.all([
+      apiFetch<StoredEvent>(`/events/${e.backendId}`),
+      apiFetch<VenueBookingRecord[]>("/bookings"),
+    ]);
+    const fresh = eventFromApi(stored);
+    patch((s) => ({
+      events: attachBookings(
+        s.events.map((x) => (x.id === e.id ? { ...x, venue: fresh.venue, bookingState: fresh.bookingState } : x)),
+        bookings.filter((b) => b.event_id === e.backendId),
+      ),
+    }));
+  };
+
+  /** Venue Staff approve or reject one pending booking request; the server checks the rules and saves the decision. */
+  const decideBooking = async (e: EventRecord, bookingId: number, outcome: "approved" | "rejected", reason: string): Promise<boolean> => {
     try {
       const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}/decision`, {
         method: "POST",
         body: JSON.stringify({ outcome, reason }),
       });
       if (outcome === "approved") {
-        patchEvent(
-          e.id,
-          { bookingState: "approved", bookingRequest: booking },
-          { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` },
-        );
+        patchEvent(e.id, {}, { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` });
         notify("coordinator", "Venue booking approved", `${booking.venue_name} confirmed for ${e.name}.`);
         flash(`${booking.venue_name} confirmed for ${e.name}.`);
       } else {
-        patchEvent(e.id, { bookingState: "rejected", venue: null, bookingRequest: booking }, { title: "Venue booking rejected", body: reason });
-        notify("coordinator", "Venue booking rejected", `${e.name}: ${reason}`);
+        patchEvent(e.id, {}, { title: "Venue booking rejected", body: `${booking.venue_name}: ${reason}` });
+        notify("coordinator", "Venue booking rejected", `${e.name} (${booking.venue_name}): ${reason}`);
         flash("Booking rejected. Coordinator notified.", "bad");
       }
+      await syncEventBookings(e);
       return true;
     } catch (err) {
       handleApiError(err);
@@ -783,7 +812,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         flash(`${e.name} confirmed.`);
       },
 
-      openModal: (kind, id) => patch({ modal: { ...MODAL_CONTENT[kind], id }, modalText: "" }),
+      openModal: (kind, id, bookingId) => patch({ modal: { ...MODAL_CONTENT[kind], id, bookingId }, modalText: "" }),
       closeModal: () => patch({ modal: null, modalText: "" }),
       setModalText: (modalText) => patch({ modalText }),
       confirmModal: () => {
@@ -820,7 +849,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             "bad",
           );
         }
-        if (m.kind === "rejectBooking") saving = decideBooking(e, "rejected", text);
+        if (m.kind === "rejectBooking" && m.bookingId !== undefined) saving = decideBooking(e, m.bookingId, "rejected", text);
         if (saving) {
           // The modal stays open (with the text) until the step is saved.
           void saving.then((done) => done && patch({ modal: null, modalText: "" }));
@@ -864,12 +893,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       saveVenue: async (id, input) => {
         try {
-          const saved = venueFromApi(
-            await apiFetch<ApiVenue>(id ? `/venues/${id}` : "/venues", {
-              method: id ? "PUT" : "POST",
-              body: JSON.stringify(input),
-            }),
-          );
+          const res = await apiFetch<ApiVenue>(id ? `/venues/${id}` : "/venues", {
+            method: id ? "PUT" : "POST",
+            body: JSON.stringify(input),
+          });
+          const saved = venueFromApi(res);
+          // US39: the server has saved the flag on these bookings; keep the events in step with it.
+          if (res.flagged_bookings?.length) {
+            const flaggedById = new Map(res.flagged_bookings.map((b) => [b.id, b]));
+            patch((s) => ({
+              events: s.events.map((e) => {
+                const updated = e.bookingRequest && flaggedById.get(e.bookingRequest.id);
+                return updated ? { ...e, bookingRequest: updated } : e;
+              }),
+            }));
+          }
           const before = state.venues;
           const after = before.some((v) => v.id === saved.id)
             ? before.map((v) => (v.id === saved.id ? saved : v))
@@ -888,7 +926,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setVfCap: (cap) => patch((s) => ({ vf: { ...s.vf, cap } })),
       setVfLayout: (layout) => patch((s) => ({ vf: { ...s.vf, layout } })),
-      requestBooking: async (eventId, venueId, acknowledged = false) => {
+      requestBooking: async (eventId, venueId, acknowledged = false, details = {}) => {
         const e = getEvent(state.events, eventId);
         const v = getVenue(state.venues, venueId);
         if (!e || !v) return false;
@@ -900,26 +938,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const res = await apiFetch<BookingRequestResponse>(`/venues/${venueId}/booking-requests`, {
             method: "POST",
-            body: JSON.stringify(buildBookingRequest(e, acknowledged)),
+            body: JSON.stringify(buildBookingRequest(e, acknowledged, details)),
           });
           const { booking } = res;
-          // Asking for a replacement keeps every other detail of the event (Week 7 change #2).
-          const previous = e.venue && e.venue !== venueId ? getVenue(state.venues, e.venue) : undefined;
-          patchEvent(
-            eventId,
-            {
-              venue: venueId,
-              bookingState: "pending",
-              bookingRequest: booking,
-              venueOverrides: booking.override ? [...(e.venueOverrides ?? []), booking.override] : e.venueOverrides,
-            },
-            {
-              title: previous ? "Replacement venue requested" : "Venue booking requested",
-              body:
-                `${v.name} requested for ${e.date}, ${e.start}–${e.end} (held from setup to teardown, ` +
-                `${booking.setup_minutes} min setup and ${booking.teardown_minutes} min teardown)${previous ? `, replacing ${previous.name}` : ""}.`,
-            }
-          );
+          // US41: an additional booking; the event's other bookings are kept.
+          const ownNeeds = booking.attendance !== e.pax || booking.layout !== e.layout;
+          patchEvent(eventId, {}, {
+            title: "Venue booking requested",
+            body:
+              `${v.name} requested for ${e.date}, ${e.start}–${e.end} (held from setup to teardown, ` +
+              `${booking.setup_minutes} min setup and ${booking.teardown_minutes} min teardown).` +
+              (booking.purpose ? ` For: ${booking.purpose}.` : "") +
+              (ownNeeds ? ` ${booking.attendance} people, ${booking.layout} layout.` : ""),
+          });
+          await syncEventBookings(e);
           if (booking.override) {
             patchEvent(
               eventId,
@@ -940,9 +972,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return false;
         }
       },
-      approveBooking: (eventId) => {
+      approveBooking: (eventId, bookingId) => {
         const e = getEvent(state.events, eventId);
-        if (e) void decideBooking(e, "approved", "");
+        if (e) void decideBooking(e, bookingId, "approved", "");
+      },
+      changeBooking: async (eventId, bookingId, details, acknowledged = false) => {
+        const e = getEvent(state.events, eventId);
+        if (!e) return { ok: false };
+        try {
+          const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ ...details, acknowledged }),
+          });
+          patchEvent(eventId, {}, {
+            title: "Venue booking changed",
+            body: `${booking.venue_name}${booking.purpose ? ` (${booking.purpose})` : ""}: ${booking.attendance} people, ${booking.layout} layout. ` +
+              "Sent to Venue Staff for approval.",
+          });
+          flash(`${booking.venue_name} booking changed.`);
+          await syncEventBookings(e);
+          return { ok: true };
+        } catch (err) {
+          // Not fully suitable for the new needs: the coordinator can acknowledge the warning and try again (US21).
+          if (err instanceof ApiError && err.status === 409 && /Acknowledge the warning/.test(err.message)) {
+            return { ok: false, warning: err.message };
+          }
+          handleApiError(err);
+          return { ok: false };
+        }
+      },
+      cancelBooking: async (eventId, bookingId) => {
+        const e = getEvent(state.events, eventId);
+        if (!e) return false;
+        try {
+          const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}/cancel`, { method: "POST" });
+          patchEvent(eventId, {}, { title: "Venue booking cancelled", body: `${booking.venue_name}${booking.purpose ? ` (${booking.purpose})` : ""}.` });
+          flash(`${booking.venue_name} booking cancelled.`);
+          await syncEventBookings(e);
+          return true;
+        } catch (err) {
+          handleApiError(err);
+          return false;
+        }
+      },
+      cancelAllBookings: async (eventId) => {
+        const e = getEvent(state.events, eventId);
+        if (!e || e.backendId === undefined) return false;
+        try {
+          const cancelled = await apiFetch<VenueBookingRecord[]>(`/events/${e.backendId}/bookings/cancel`, { method: "POST" });
+          patchEvent(eventId, {}, { title: "All venue bookings cancelled", body: cancelled.map((b) => b.venue_name).join(", ") });
+          flash(`${cancelled.length} booking${cancelled.length === 1 ? "" : "s"} cancelled.`);
+          await syncEventBookings(e);
+          return true;
+        } catch (err) {
+          handleApiError(err);
+          return false;
+        }
       },
 
       reserveEquipment: (eventId) => {

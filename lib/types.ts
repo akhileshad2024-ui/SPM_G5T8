@@ -135,7 +135,9 @@ export interface VenueBookingRecord {
   hold_end: string;
   attendance: number;
   layout: string;
-  /** pending and approved bookings hold the venue; rejected ones and ones replaced by a later request do not. */
+  /** US41: what this booking is for, e.g. "Main programme" or "Breakout session". */
+  purpose: string | null;
+  /** pending and approved bookings hold the venue; rejected and cancelled ones do not. */
   status: "pending" | "approved" | "rejected" | "cancelled";
   verdict: SuitabilityVerdict;
   requested_by: string;
@@ -144,6 +146,18 @@ export interface VenueBookingRecord {
   decided_by: string | null;
   decided_at: string | null;
   decision_reason: string | null;
+  /** US39: set while the venue is unavailable during this booking; the coordinator must arrange an alternative. */
+  flag: BookingFlag | null;
+}
+
+export interface BookingFlag {
+  kind: "venue_unavailable";
+  reason: UnavailabilityReason;
+  note: string | null;
+  period_start: string;
+  period_end: string;
+  message: string;
+  flagged_at: string;
 }
 
 export interface BookingRequestResponse {
@@ -157,6 +171,8 @@ export interface ApiVenue extends Omit<Venue, "id" | "isActive" | "lastUpdatedBy
   is_active: boolean;
   last_updated_by: string;
   last_updated_at: string;
+  /** PUT /venues/{id} only (US39): the bookings an unavailability change has newly flagged. */
+  flagged_bookings?: VenueBookingRecord[];
 }
 
 /** Body for POST /venues and PUT /venues/{id}. */
@@ -253,6 +269,8 @@ export interface EventRecord {
   draftForm?: NewRequestForm;
   /** US22: the venue booking request as the backend recorded it (pending, venue held from setup to teardown). */
   bookingRequest?: VenueBookingRecord;
+  /** US41: every venue booking of the event (it may book several venues), oldest first. */
+  bookings?: VenueBookingRecord[];
   /** US21: each time the coordinator went ahead with a venue that was not fully suitable, oldest first. */
   venueOverrides?: BookingOverride[];
   /** US08: the latest clarification / amendment request sent to the organiser. */
@@ -320,6 +338,8 @@ export type ModalKind =
 export interface ModalState {
   kind: ModalKind;
   id: string;
+  /** rejectBooking: which of the event's bookings (US41: an event may have several). */
+  bookingId?: number;
   title: string;
   body: string;
   label: string;

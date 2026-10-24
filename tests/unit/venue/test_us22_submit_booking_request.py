@@ -310,15 +310,16 @@ class TestPendingAndHeld(DatabaseTestCase):
         self.assertEqual(for_other.results[0].verdict, "unsuitable")
         self.assertEqual(for_holder.results[0].verdict, "suitable")
 
-    def test_asking_for_another_venue_replaces_the_earlier_pending_request(self):
+    def test_asking_for_another_venue_adds_a_booking_and_keeps_the_first(self):
+        # US41: an event may book several venues, so the earlier request is no longer replaced.
         first, second, event = self.venue(name="First Hall"), self.venue(name="Second Hall"), self.event()
         earlier = self.request(event, first).booking
 
         later = self.request(event, second).booking
 
-        self.assertEqual([(b.id, b.status) for b in self.bookings()], [(earlier.id, "cancelled"), (later.id, "pending")])
-        self.assertEqual([h.venue_id for h in venue_bookings.held_periods(self.db)], [second.id])
-        self.assertEqual(self.db.get(models.Event, event.id).venue_id, second.id)
+        self.assertEqual([(b.id, b.status) for b in self.bookings()], [(earlier.id, "pending"), (later.id, "pending")])
+        self.assertEqual(sorted(h.venue_id for h in venue_bookings.held_periods(self.db)), sorted([first.id, second.id]))
+        self.assertEqual(self.db.get(models.Event, event.id).venue_id, first.id)
 
 
 # ---------------------------------------------------------------- AC4: Venue Staff are told
@@ -489,13 +490,22 @@ class TestOverride(DatabaseTestCase):
 
         self.assertEqual(self.request(self.event(name="Fair"), second).booking.verdict, "suitable")
 
-    def test_an_events_own_approved_booking_does_not_make_the_venue_unsuitable_for_it(self):
-        venue, event = self.venue(), self.event()
-        first = self.request(event, venue).booking
-        self.decide(first.id, "approved")
+    def test_an_events_own_approved_booking_does_not_make_another_venue_unsuitable_for_it(self):
+        first, second, event = self.venue(name="First Hall"), self.venue(name="Second Hall"), self.event()
+        self.decide(self.request(event, first).booking.id, "approved")
 
-        # Asking for the same venue again: only a duplicate pending request would stop it, and there is none.
-        self.assertEqual(self.request(event, venue).booking.verdict, "suitable")
+        # US41: a second venue at the same time is suitable; the event's own booking isn't in its way.
+        self.assertEqual(self.request(event, second).booking.verdict, "suitable")
+
+    def test_the_same_event_cannot_book_the_same_venue_twice(self):
+        # US41: several venues, each for a different venue.
+        venue, event = self.venue(), self.event()
+        self.decide(self.request(event, venue).booking.id, "approved")
+
+        refusal = self.refused(event, venue)
+
+        self.assertEqual(refusal.status_code, 409)
+        self.assertIn("already has a booking for Lecture Theatre 1", refusal.detail)
 
 
 # ---------------------------------------------------------------- what Venue Staff then do
@@ -549,16 +559,17 @@ class TestDecision(DatabaseTestCase):
         self.assertEqual((stored.venue_id, stored.booking_state), (old.id, "approved"))
         self.assertEqual(self.db.get(models.VenueBooking, first.id).status, "approved")
 
-    def test_approving_a_replacement_releases_the_events_earlier_booking(self):
+    def test_approving_a_second_venue_keeps_the_events_first_booking(self):
+        # US41: both venues are booked; nothing is released.
         old, new, event = self.venue(name="Old Hall"), self.venue(name="New Hall"), self.event()
         first = self.request(event, old).booking
         self.decide(first.id, "approved")
-        replacement = self.request(event, new).booking
+        second = self.request(event, new).booking
 
-        self.decide(replacement.id, "approved")
+        self.decide(second.id, "approved")
 
-        self.assertEqual([(b.venue_id, b.status) for b in self.bookings()], [(old.id, "cancelled"), (new.id, "approved")])
-        self.assertEqual([h.venue_id for h in venue_bookings.held_periods(self.db)], [new.id])
+        self.assertEqual([(b.venue_id, b.status) for b in self.bookings()], [(old.id, "approved"), (new.id, "approved")])
+        self.assertEqual(sorted(h.venue_id for h in venue_bookings.held_periods(self.db)), sorted([old.id, new.id]))
 
     def test_a_booking_that_clashes_with_an_approved_one_cannot_be_approved(self):
         venue = self.venue()
@@ -574,16 +585,17 @@ class TestDecision(DatabaseTestCase):
         self.assertEqual(ctx.exception.detail, "Can't approve: clashes with Gala, already booked on 04 Jan 2027.")
         self.assertEqual(self.db.get(models.VenueBooking, fair.id).status, "pending")
 
-    def test_an_event_asking_again_for_its_own_approved_venue_is_not_a_clash_with_itself(self):
-        venue, event = self.venue(), self.event()
-        first = self.request(event, venue).booking
-        self.decide(first.id, "approved")
-        again = self.request(event, venue).booking  # overlaps the event's own approved booking
+    def test_approving_one_booking_leaves_the_events_other_pending_booking_pending(self):
+        # US41: each booking is decided on its own.
+        hall, studio, event = self.venue(name="Hall"), self.venue(name="Studio"), self.event()
+        main_room = self.request(event, hall).booking
+        breakout = self.request(event, studio).booking
 
-        approved = self.decide(again.id, "approved")
+        self.decide(main_room.id, "approved")
 
-        self.assertEqual(approved["status"], "approved")
-        self.assertEqual([(b.id, b.status) for b in self.bookings()], [(first.id, "cancelled"), (again.id, "approved")])
+        self.assertEqual([(b.id, b.status) for b in self.bookings()], [(main_room.id, "approved"), (breakout.id, "pending")])
+        stored = self.db.get(models.Event, event.id)
+        self.assertEqual((stored.venue_id, stored.booking_state), (hall.id, "pending"))
 
     def test_a_deactivated_venue_cannot_be_approved(self):
         venue, _, booking = self.requested()
@@ -692,9 +704,12 @@ class TestPageMatchesBackend(unittest.TestCase):
                 self.assertIn(route, context)
 
     def test_the_page_keeps_the_saved_booking_and_override_against_the_event(self):
-        for key in ("bookingRequest", "venueOverrides"):
+        # The page puts the saved bookings onto their events with attachBookings (lib/venues/booking.ts).
+        page = self.source("lib/state/app-context.tsx") + self.source("lib/venues/booking.ts")
+        self.assertIn("attachBookings(", self.source("lib/state/app-context.tsx"))
+        for key in ("bookingRequest", "venueOverrides", "bookings"):
             with self.subTest(key=key):
-                self.assertIn(key, self.source("lib/state/app-context.tsx"))
+                self.assertIn(key, page)
                 self.assertIn(key, self.source("lib/types.ts"))
 
 

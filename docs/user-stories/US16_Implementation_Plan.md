@@ -170,3 +170,20 @@ in the team's normal migration workflow before another environment is deployed.
 - Local CI-equivalent unit discovery: 251 tests passed with database/auth
   variables unset. Full backend regression: 1051 tests + 462 subtests passed
   in 48.90 seconds, including ORM-backed API permission/persistence coverage.
+
+## Merge main into US16 (2026-10-24 SGT)
+
+- Base integrated: origin/main `305f0fd`; destination: spring3-us16-yuetong.
+  No merge into main and no changes to the separate US33 branch.
+- Resolve the single textual conflict in backend/main.py imports by preserving
+  both event_updates (US16) and venue_unavailability (US39). Keep main's US39,
+  US41 and functional-test updates; do not choose an entire file from one side.
+- Inspect US16 state updates: spreading the existing event preserves its
+  bookings collection; eventFromApi does not replace that field. No additional
+  booking logic change was needed for this conflict resolution.
+- Post-merge checks: unit discovery 284 passed; full backend 1104 tests and
+  474 subtests passed; frontend 296 passed; TypeScript and production build passed.
+  No unresolved conflict paths or whitespace errors. Browser functional suite
+  was not rerun locally for this merge; remote CI must verify the new merge SHA.
+- This does not implement AC3 notifications or TC02. PR approval, remote checks,
+  merge into main and final DoD remain separate pending actions.

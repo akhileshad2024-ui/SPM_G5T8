@@ -19,7 +19,7 @@ export function Sidebar() {
 
   const badges: Record<string, number> = {
     "/queue": events.filter(needsCoordinatorAction).length,
-    "/bookings": events.filter((e) => e.bookingState === "pending").length,
+    "/bookings": events.flatMap((e) => e.bookings ?? []).filter((b) => b.status === "pending").length,
     "/equipment": events.filter(
       (e) => e.equipState === "requested" && (e.status === "approved" || e.status === "confirmed")
     ).length,

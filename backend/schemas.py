@@ -327,6 +327,18 @@ class BookingRequestCreate(BaseModel):
     """
     event_id: int
     acknowledged: bool = False  # the coordinator accepted the warning about an unsuitable venue
+    # US41: this booking's own needs; left out, the event's attendance and layout are used.
+    attendance: Optional[int] = Field(None, gt=0)
+    layout: OptionalLayout = None
+    purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+
+
+class BookingChange(BaseModel):
+    """US41: the coordinator changes one booking's attendance, layout or purpose (only the fields sent)."""
+    attendance: Optional[int] = Field(None, gt=0)
+    layout: OptionalLayout = None
+    purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+    acknowledged: bool = False
 
 
 class VenueBooking(BaseModel):
@@ -345,6 +357,7 @@ class VenueBooking(BaseModel):
     hold_end: datetime  # ... to the end of the teardown
     attendance: int
     layout: str
+    purpose: Optional[str] = None
     status: Literal["pending", "approved", "rejected", "cancelled"]
     verdict: Verdict
     requested_by: str
@@ -353,6 +366,26 @@ class VenueBooking(BaseModel):
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
     decision_reason: Optional[str] = None
+    flag: Optional["BookingFlag"] = None
+
+
+class BookingFlag(BaseModel):
+    """US39: the booking's venue is unavailable during it; the coordinator must arrange an alternative."""
+    kind: Literal["venue_unavailable"]
+    reason: str
+    note: Optional[str] = None
+    period_start: str
+    period_end: str
+    message: str
+    flagged_at: datetime
+
+
+VenueBooking.model_rebuild()
+
+
+class VenueUpdateResponse(VenueResponse):
+    """PUT /venues/{id}: the saved venue, plus the bookings its unavailability change has newly flagged (US39)."""
+    flagged_bookings: List[VenueBooking] = []
 
 
 class BookingDecisionIn(BaseModel):

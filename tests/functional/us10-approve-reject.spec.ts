@@ -28,6 +28,8 @@ async function reviewing(page: Page, baseURL: string, label: string): Promise<st
 
 /** Signs out and opens My Events as Maya. */
 async function asOrganiser(page: Page) {
+  // Leave the coordinator's page first: a request still in flight would renew her session cookie after it was cleared.
+  await page.goto("about:blank");
   await page.context().clearCookies();
   await signIn(page, MAYA, /\/my-events/);
 }

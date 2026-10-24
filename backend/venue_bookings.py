@@ -3,9 +3,10 @@ Saved venue bookings (US22 request, and Venue Staff's approve or reject): readin
 hold venues, saving a new request, and deciding one. Works on a database session; the rules
 themselves are in booking_request.py and venue_availability.py.
 
-An event has one current venue (events.venue_id with events.booking_state), kept in step with its
-bookings here: asking for a venue makes it pending, approving makes it approved, rejecting hands the
-event back to its previous approved venue or, if it had none, to no venue.
+US41: an event may book several venues at once, each at a different venue with its own attendance,
+layout and purpose; one can be changed or cancelled without touching the others. The event keeps a
+summary of them for the rest of the app (events.venue_id with events.booking_state, see summarise()):
+its main venue is the first approved booking, else the first pending one.
 """
 
 from datetime import timezone
@@ -49,28 +50,76 @@ def to_record(row: models.VenueBooking) -> dict:
         "date": row.date, "start": row.start_time, "end": row.end_time,
         "setup_minutes": row.setup_minutes, "teardown_minutes": row.teardown_minutes,
         "hold_start": row.hold_start, "hold_end": row.hold_end,
-        "attendance": row.attendance, "layout": row.layout,
+        "attendance": row.attendance, "layout": row.layout, "purpose": row.purpose,
         "status": row.status, "verdict": row.verdict,
         "requested_by": row.requested_by, "requested_at": _utc(row.requested_at),
         "override": row.override,
         "decided_by": row.decided_by, "decided_at": _utc(row.decided_at), "decision_reason": row.decision_reason,
+        "flag": row.flag,
     }
 
 
+def event_bookings(db, event_id: int) -> List[models.VenueBooking]:
+    """Every booking of the event, oldest first."""
+    return db.query(models.VenueBooking).filter(models.VenueBooking.event_id == event_id).order_by(models.VenueBooking.id).all()
+
+
+def summarise(db, event: models.Event) -> None:
+    """Keep the event's venue and booking state in step with its bookings (US41).
+
+    venue: the first approved booking, else the first pending one, else none.
+    booking_state: approved when every booking holding a venue is approved, pending while any is
+    pending; with none holding a venue, rejected if Venue Staff rejected every one, else none (the
+    coordinator cancelled them).
+    """
+    db.flush()
+    rows = event_bookings(db, event.id)
+    holding = [r for r in rows if r.status in HOLDING]
+    if holding:
+        main = next((r for r in holding if r.status == "approved"), holding[0])
+        event.venue_id = main.venue_id
+        event.booking_state = "approved" if all(r.status == "approved" for r in holding) else "pending"
+    else:
+        event.venue_id = None
+        event.booking_state = "rejected" if rows and all(r.status == "rejected" for r in rows) else None
+
+
 def save_request(db, event: models.Event, values: dict) -> models.VenueBooking:
-    """Save the pending booking and make it the event's current venue. The event's earlier pending
-    request (for another venue) is replaced by it, so it no longer holds that venue."""
-    for earlier in db.query(models.VenueBooking).filter(
-        models.VenueBooking.event_id == event.id, models.VenueBooking.status == "pending"
-    ).all():
-        earlier.status = "cancelled"
+    """Save the pending booking. The event's other bookings are kept (US41)."""
     row = models.VenueBooking(**values)
     db.add(row)
-    event.venue_id = values["venue_id"]
-    event.booking_state = "pending"
+    summarise(db, event)
     db.commit()
     db.refresh(row)
     return row
+
+
+def require_holding(booking: models.VenueBooking) -> None:
+    if booking.status not in HOLDING:
+        raise BookingRefused(f"This booking is {booking.status}, so it can't be changed or cancelled.")
+
+
+def change(db, booking: models.VenueBooking, values: dict) -> None:
+    """US41: change one booking's attendance, layout, purpose or override. Does not commit.
+
+    An approved booking goes back to pending, since Venue Staff approved different needs.
+    """
+    require_holding(booking)
+    for field, value in values.items():
+        setattr(booking, field, value)
+    if booking.status == "approved":
+        booking.status = "pending"
+        booking.decided_by = booking.decided_at = booking.decision_reason = None
+    summarise(db, db.get(models.Event, booking.event_id))
+
+
+def cancel(db, bookings: List[models.VenueBooking]) -> None:
+    """US41: cancel these bookings of one event; its other bookings are kept. Does not commit."""
+    for booking in bookings:
+        require_holding(booking)
+        booking.status = "cancelled"
+    if bookings:
+        summarise(db, db.get(models.Event, bookings[0].event_id))
 
 
 def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_by: str, now) -> None:
@@ -88,13 +137,6 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
         if not reason:
             raise BookingRefused("Give a reason for rejecting the request.")
         booking.status = "rejected"
-        previous = (
-            db.query(models.VenueBooking)
-            .filter(models.VenueBooking.event_id == booking.event_id, models.VenueBooking.status == "approved")
-            .order_by(models.VenueBooking.id.desc())
-            .first()
-        )
-        event.venue_id, event.booking_state = (previous.venue_id, "approved") if previous else (None, "rejected")
     else:
         venue = db.get(models.Venue, booking.venue_id)
         if not venue.is_active:
@@ -112,14 +154,7 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
         )
         if clash:
             raise BookingRefused(f"Can't approve: clashes with {clash.event_name}, already booked on {format_date(clash.date)}.")
-        booking.status = "approved"
-        # The event now has its venue: any earlier booking of it (the one this replaces) is released.
-        for other in db.query(models.VenueBooking).filter(
-            models.VenueBooking.event_id == booking.event_id,
-            models.VenueBooking.id != booking.id,
-            models.VenueBooking.status.in_(HOLDING),
-        ).all():
-            other.status = "cancelled"
-        event.venue_id, event.booking_state = booking.venue_id, "approved"
+        booking.status = "approved"  # the event's other bookings are kept (US41)
 
     booking.decided_by, booking.decided_at, booking.decision_reason = decided_by, now, reason or None
+    summarise(db, event)

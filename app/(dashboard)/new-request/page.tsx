@@ -17,7 +17,7 @@ export default function NewRequestPage() {
 
       {outstanding.length > 0 && (
         <div className="card" role="alert" style={{ padding: "14px 18px", marginBottom: 14, borderColor: "var(--bad)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Outstanding mandatory fields</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>Fix before submitting</div>
           <ul style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13 }}>
             {outstanding.map(([field, message]) => <li key={field}>{message}</li>)}
           </ul>
