@@ -7,6 +7,7 @@ import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout, RequirementCheck, VenueBookingRecord, VenueSuitability } from "@/lib/types";
 import { LAYOUT_OPTIONS } from "@/lib/data/options";
 import { bookingProblem, holdingBookings } from "@/lib/venues/booking";
+import { holdExpiryLabel } from "@/lib/venues/hold-expiry";
 import { VERDICT_COLOURS, VERDICT_LABEL, buildSuitabilityRequest, unmetChecks } from "@/lib/venues/suitability";
 import { bookingProblems, venueHas } from "@/lib/venues/rules";
 import styles from "./VenueTab.module.css";
@@ -26,6 +27,7 @@ const BOOKING_STATUS: Record<VenueBookingRecord["status"], { label: string; bg: 
   approved: { label: "Approved", bg: "var(--ok-bg)", fg: "var(--ok-fg)" },
   rejected: { label: "Rejected", bg: "var(--bad-bg)", fg: "var(--bad-fg)" },
   cancelled: { label: "Cancelled", bg: "var(--neutral-bg)", fg: "var(--text-faint)" },
+  expired: { label: "Expired", bg: "var(--neutral-bg)", fg: "var(--text-faint)" }, // US42: hold lapsed unapproved
 };
 const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -81,6 +83,13 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
           </>
         )}
       </div>
+{holdExpiryLabel(booking) && (
+        // US42: when the tentative hold lapses (or lapsed) unless Venue Staff approve it.
+        <div style={{ fontSize: 12.5, color: booking.hold_notice ? "var(--warn-fg)" : "var(--text-muted)", marginTop: 4 }}>
+          {holdExpiryLabel(booking)}
+          {booking.status === "expired" && " — the venue has been released. Request it again if it is still needed."}
+        </div>
+      )}
       {holding && booking.reassessment && (
         <div className="callout callout-danger" role="alert" style={{ marginTop: 8 }}>
           <strong>Requires Reassessment.</strong> {booking.reassessment.message}

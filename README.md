@@ -333,7 +333,8 @@ backend/
   venue_reassessment.py  Venue setup/turnaround change (US38): re-check future bookings, "Requires Reassessment" flags
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
-  schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17, US38, US48 columns)
+  schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns, US38 reassessment, US42 hold expiry)
+
   seed_venues.py   Script: add five demo venues to the catalogue
   login/           Authentication + RBAC (see above)
 ```
@@ -365,8 +366,9 @@ Start the backend with `uvicorn main:app --reload` (from `backend/`).
 **Database changes** — the backend never alters existing tables. If your database
 predates US17, run the steps in `backend/schema_changes.sql` once in the Supabase
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
-column) must wait until every branch uses the new venue model. US38 and US48 add two columns to
-`venue_bookings` (section 2d); run them before using the booking-conflict features.
+column) must wait until every branch uses the new venue model. US38 adds one
+`venue_bookings` column (section 2d), and US42 (tentative holds expire) adds two:
+run both steps in that file once.
 
 **Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
 The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues
@@ -433,6 +435,7 @@ python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, 
 python -m pytest tests/us02_rbac             # US02 backend
 python -m pytest tests/us03_us04_event_request   # US03/US04 backend
 python -m pytest tests/us13_event_status     # US13 backend
+python -m pytest tests/us42_hold_expiry      # US42 backend: hold expiry rules + API (docs/user-stories/US42_hold_expiry.md)
 npm run test:us01       # US01 frontend unit tests (idle sign-out)
 npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
 

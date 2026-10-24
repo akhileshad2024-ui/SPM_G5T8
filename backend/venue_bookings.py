@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import List, Optional
 
+import hold_expiry
 import models
 import schemas
 import venue_reassessment
@@ -24,7 +25,12 @@ def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Op
                  now: Optional[datetime] = None) -> List[schemas.BookedPeriod]:
     """The bookings that currently hold venues, as the availability rules read them.
 
-    A pending hold whose expiry time has passed holds nothing, so it is left out (US48).
+def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Optional[int] = None,
+                 now: Optional[datetime] = None) -> List[schemas.BookedPeriod]:
+    """The bookings that currently hold venues, as the availability rules read them.
+
+    US42: a tentative hold whose expiry has passed no longer holds its venue, even before "expired"
+    has been saved on it.
     """
     now = now or datetime.now(timezone.utc)
     query = db.query(models.VenueBooking).filter(models.VenueBooking.status.in_(HOLDING))
@@ -38,16 +44,17 @@ def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Op
             status=row.status, event_id=str(row.event_id), event_name=row.event_name,
         )
         for row in query.all()
-        if holds_venue(row.status, _utc(row.hold_expires_at), now)
+        if not hold_expiry.is_lapsed(row, now)
     ]
 
 
-def to_record(row: models.VenueBooking, staff: bool = False) -> dict:
+def to_record(row: models.VenueBooking, staff: bool = False, now: Optional[datetime] = None) -> dict:
     """A saved booking as the API shows it (schemas.VenueBooking).
 
     `staff` (Venue Staff) also gets the bookings a "Requires Reassessment" flag clashes with. A coordinator
     does not: those are other coordinators' events (US02).
     """
+    now = now or datetime.now(timezone.utc)
     return {
         "id": row.id, "event_id": row.event_id, "event_name": row.event_name,
         "venue_id": row.venue_id, "venue_name": row.venue_name,
@@ -61,6 +68,9 @@ def to_record(row: models.VenueBooking, staff: bool = False) -> dict:
         "decided_by": row.decided_by, "decided_at": _utc(row.decided_at), "decision_reason": row.decision_reason,
         "flag": row.flag,
         "reassessment": _reassessment(row, staff),
+        # US42: when the tentative hold lapses, who set that, and what the coordinator should be told.
+        "hold_expires_at": _utc(row.hold_expires_at), "hold_expiry_set_by": row.hold_expiry_set_by,
+        "hold_notice": hold_expiry.hold_notice(row, now),
     }
 
 
@@ -117,8 +127,13 @@ def summarise(db, event: models.Event) -> None:
 
 
 def save_request(db, event: models.Event, values: dict) -> models.VenueBooking:
-    """Save the pending booking. The event's other bookings are kept (US41)."""
+    """Save the pending booking. The event's other bookings are kept (US41).
+
+    US42: the new tentative hold gets its default expiry; Venue Staff can change it later.
+    """
     row = models.VenueBooking(**values)
+    if row.hold_expires_at is None:
+        row.hold_expires_at = hold_expiry.default_expiry(row, row.requested_at)
     db.add(row)
     summarise(db, event)
     db.commit()
@@ -179,6 +194,9 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
     confirmed is in the way (require_unobstructed). Approving takes a lock on the venue, so two Venue Staff
     confirming overlapping bookings at the same moment are checked one after the other, not both let through.
     """
+    # US42-AC4: a hold whose expiry has passed is expired, never a confirmed booking (even if not saved yet).
+    if hold_expiry.is_lapsed(booking, now):
+        booking.status = "expired"
     if booking.status != "pending":
         raise BookingRefused(f"This request is no longer pending (it is {booking.status}).")
     reason = (reason or "").strip()
