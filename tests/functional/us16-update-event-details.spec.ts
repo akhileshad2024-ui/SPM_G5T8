@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { action, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
+import { singaporeTestDate } from "./support/dates";
+
+test.use({ timezoneId: "Asia/Singapore" });
 
 /** US16-TC01: numbered UI steps match the shared Sheet. No API fixture/reset.
  * Covers approved AC1/2/4, not the US36-dependent notification AC3.
@@ -46,6 +49,8 @@ async function queueEvent(page: Page, eventId: string) {
 
 test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change history", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
+  const eventDate = singaporeTestDate(new Date());
+  await testInfo.attach("test-date", { body: `EVENT_DATE=${eventDate.iso}; timezone=Asia/Singapore`, contentType: "text/plain" });
   // Steps 1–3: services started by executor/config; exact Maya login and baseline.
   await signIn(page, MAYA.email, /\/my-events/);
   const views = page.getByRole("link", { name: "View", exact: true });
@@ -57,7 +62,7 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   await page.getByPlaceholder("What is this event for, and who is it for?").fill(PURPOSE);
   await field(page, "Expected attendance").locator("input").fill("85");
   await field(page, "Event type").locator("select").selectOption({ label: "Conference" });
-  await field(page, "Proposed date").locator("input").fill("2026-11-20");
+  await field(page, "Proposed date").locator("input").fill(eventDate.iso);
   await field(page, "Start").locator("input").fill("18:00");
   await field(page, "End").locator("input").fill("21:00");
   await action(page, "Continue").click();
@@ -105,7 +110,7 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   const editor = page.getByRole("region", { name: "Edit event details", exact: true });
   await expect(editor.getByLabel("Purpose and description")).toHaveValue(PURPOSE);
   await expect(editor.getByLabel("Expected attendance")).toHaveValue("85");
-  await expect(editor.getByLabel("Proposed date")).toHaveValue("2026-11-20");
+  await expect(editor.getByLabel("Proposed date")).toHaveValue(eventDate.iso);
   await expect(editor.getByLabel("Start", { exact: true })).toHaveValue(/18:00/);
   await expect(editor.getByLabel("End", { exact: true })).toHaveValue(/21:00/);
   await expect(page.getByText("Not booked", { exact: true })).toBeVisible();
@@ -121,7 +126,7 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   await expect(workspaceStatus(page)).toHaveText("Under Review");
   await action(page, "Details").click();
   const savedDetails = page.getByRole("region", { name: "Event", exact: true });
-  for (const [label, value] of [["Expected attendance", "85"], ["Date", "20 Nov 2026"], ["Time", "18:00 – 21:00"]]) {
+  for (const [label, value] of [["Expected attendance", "85"], ["Date", eventDate.label], ["Time", "18:00 – 21:00"]]) {
     await expect(savedDetails.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })
       .locator("xpath=following-sibling::dd[1]")).toHaveText(value);
   }
@@ -130,7 +135,7 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   // Steps 16–17: attendance is arrangement-sensitive; saving does not rebook.
   await action(page, "Edit event details").click();
   await expect(editor.getByLabel("Expected attendance")).toHaveValue("85");
-  await expect(editor.getByLabel("Proposed date")).toHaveValue("2026-11-20");
+  await expect(editor.getByLabel("Proposed date")).toHaveValue(eventDate.iso);
   await expect(editor.getByLabel("Start", { exact: true })).toHaveValue(/18:00/);
   await expect(editor.getByLabel("End", { exact: true })).toHaveValue(/21:00/);
   await editor.getByLabel("Expected attendance").fill("90");
@@ -160,7 +165,7 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   await page.locator(`a[href="${href}"]`).click();
   await expect(page.getByText(REVISED, { exact: true })).toBeVisible();
   const details = page.getByRole("region", { name: "Event", exact: true });
-  for (const [label, value] of [["Expected attendance", "90"], ["Date", "20 Nov 2026"], ["Time", "18:00 – 21:00"]]) {
+  for (const [label, value] of [["Expected attendance", "90"], ["Date", eventDate.label], ["Time", "18:00 – 21:00"]]) {
     await expect(details.locator("dt").filter({ hasText: new RegExp(`^${label}$`) })
       .locator("xpath=following-sibling::dd[1]")).toHaveText(value);
   }
