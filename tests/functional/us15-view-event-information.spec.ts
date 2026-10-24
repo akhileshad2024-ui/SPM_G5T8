@@ -82,7 +82,8 @@ test.describe("US15 - View Event Information", () => {
     await expect(page.getByText(/^Last updated /).first()).toBeVisible();
     await page.getByRole("button", { name: "Details", exact: true }).click();
     const details = page.locator("body");
-    await expect(details.locator("section[aria-label]").first()).toBeVisible();
+    // Wait for the actual details, not US34's already-visible arrangements panel.
+    await expect(details.getByTestId("event-details")).toBeVisible();
     expect(await sectionTitles(details)).toEqual(ALL_SECTIONS);
     await checkValues(details, [["People", "Coordinator", PRIYA.name], ["Equipment", "Requested", "2 × Projector (HDMI to lectern)"],
       ["Review", "Decision", "Approved: Programme and venue confirmed."]]);
