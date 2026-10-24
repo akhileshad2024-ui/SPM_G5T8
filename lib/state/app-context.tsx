@@ -37,6 +37,7 @@ import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
 import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails } from "../venues/booking";
 import { fromExpiryInput, holdNotices } from "../venues/hold-expiry";
+import { decisionNotices } from "../venues/booking-decisions";
 import { VERDICT_LABEL } from "../venues/suitability";
 import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
@@ -540,6 +541,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (role === "venue") patch({ expiredHolds: bookings.filter((b) => b.status === "expired") });
           // US42-AC3: the coordinator is warned about holds about to expire, and told when they have.
           if (role === "coordinator") holdNotices(bookings).forEach((n) => notify(n.to, n.title, n.body));
+          // US23-AC5: the coordinator is told what Venue Staff decided about their requests.
+          if (role === "coordinator") decisionNotices(bookings).forEach((n) => notify(n.to, n.title, n.body));
           // US39: the coordinator is told about each booking whose venue has become unavailable.
           if (role === "coordinator") {
             for (const b of bookings) {
@@ -578,19 +581,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
         method: "POST",
         body: JSON.stringify({ outcome, reason }),
       });
+      // Show the saved decision straight away: after a rejection the event no longer holds a venue, so Venue
+      // Staff can't re-read the event itself (syncEventBookings is best-effort below).
+      patch((s) => ({
+        events: s.events.map((x) =>
+          x.backendId === booking.event_id ? { ...x, bookings: (x.bookings ?? []).map((b) => (b.id === booking.id ? booking : b)) } : x,
+        ),
+      }));
+      // US23-AC4: approving confirms the hold; rejecting releases the venue. The coordinator is told
+      // when their page loads (US23-AC5, decisionNotices), since this runs in Venue Staff's browser.
       if (outcome === "approved") {
         patchEvent(e.id, {}, { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` });
-        notify("coordinator", "Venue booking approved", `${booking.venue_name} confirmed for ${e.name}.`);
-        flash(`${booking.venue_name} confirmed for ${e.name}.`);
+        flash(`${booking.venue_name} confirmed for ${e.name}. The coordinator will be notified.`);
       } else {
         patchEvent(e.id, {}, { title: "Venue booking rejected", body: `${booking.venue_name}: ${reason}` });
-        notify("coordinator", "Venue booking rejected", `${e.name} (${booking.venue_name}): ${reason}`);
-        flash("Booking rejected. Coordinator notified.", "bad");
+        flash(`Booking rejected. ${booking.venue_name} has been released; the coordinator will be notified.`, "bad");
       }
-      await syncEventBookings(e);
+      await syncEventBookings(e).catch(() => {});
       return true;
     } catch (err) {
-      handleApiError(err);
+      if (err instanceof ApiError && err.status === 409) {
+        // e.g. the hold expired (US23-AC7) or a clash: show why, and refresh so the card is current.
+        flash(err.message, "warn");
+        await syncEventBookings(e).catch(() => {});
+      } else {
+        handleApiError(err);
+      }
       return false;
     }
   };

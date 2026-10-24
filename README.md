@@ -387,6 +387,7 @@ python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, 
 python -m pytest tests/us02_rbac             # US02 backend
 python -m pytest tests/us03_us04_event_request   # US03/US04 backend
 python -m pytest tests/us13_event_status     # US13 backend
+python -m pytest tests/us23_booking_approval # US23 backend: approve/reject rules + API (docs/user-stories/US23_booking_approval.md)
 python -m pytest tests/us42_hold_expiry      # US42 backend: hold expiry rules + API (docs/user-stories/US42_hold_expiry.md)
 npm run test:us01       # US01 frontend unit tests (idle sign-out)
 npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
