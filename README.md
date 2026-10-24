@@ -259,8 +259,8 @@ bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
   confirming overlapping bookings together are checked one after the other. The refusal names the booking in the way.
 - **Expired holds are left out (US48).** A pending booking whose `hold_expires_at` has passed holds nothing:
   conflict checks, venue search, suitability and the re-check after a venue time change all ignore it. Approved
-  bookings never expire. Nothing sets `hold_expires_at` yet: that is US42 (tentative hold expiry), which will also
-  have to release the event's venue, since the page's availability calendar is built from the events.
+  bookings never expire. US42 sets `hold_expires_at` (a default on request, changeable by Venue Staff) and saves
+  "expired" on a lapsed hold, which releases the event's venue.
 - **Pending requests that conflict (US47).** A second pending request for the same time is refused when it is made
   (US22), so two pending requests only conflict after a venue's setup or turnaround time changes (below), or when
   two are made at the same moment. Both are flagged for manual resolution; nothing is approved or rejected
@@ -274,9 +274,9 @@ bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
   the saved flag (the page builds the notification when it loads; stored notifications come with US36) and is
   not told which other event it clashes with. Venue Staff are.
 - `GET /bookings` gives Venue Staff each booking with its `conflicts`. Coordinators get their bookings without them.
-- **Database:** `venue_bookings` gains two columns (`reassessment`, `hold_expires_at`). The backend does not alter
-  existing tables, so run section 2d of `backend/schema_changes.sql` once in the Supabase SQL Editor before using
-  these features; until then, reading bookings fails on the missing columns.
+- **Database:** `venue_bookings` gains the `reassessment` column (and uses US42's `hold_expires_at`). The backend does
+  not alter existing tables, so run the US38 step of `backend/schema_changes.sql` once in the Supabase SQL Editor
+  before using these features; until then, reading bookings fails on the missing column.
 
 ## Project structure
 
@@ -366,9 +366,9 @@ Start the backend with `uvicorn main:app --reload` (from `backend/`).
 **Database changes** — the backend never alters existing tables. If your database
 predates US17, run the steps in `backend/schema_changes.sql` once in the Supabase
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
-column) must wait until every branch uses the new venue model. US38 adds one
-`venue_bookings` column (section 2d), and US42 (tentative holds expire) adds two:
-run both steps in that file once.
+column) must wait until every branch uses the new venue model. US42 (tentative
+holds expire) adds two `venue_bookings` columns and US38 (Requires Reassessment) one:
+run each story's step at the end of that file once.
 
 **Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
 The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues

@@ -25,10 +25,6 @@ def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Op
                  now: Optional[datetime] = None) -> List[schemas.BookedPeriod]:
     """The bookings that currently hold venues, as the availability rules read them.
 
-def held_periods(db, venue_ids: Optional[List[int]] = None, exclude_event_id: Optional[int] = None,
-                 now: Optional[datetime] = None) -> List[schemas.BookedPeriod]:
-    """The bookings that currently hold venues, as the availability rules read them.
-
     US42: a tentative hold whose expiry has passed no longer holds its venue, even before "expired"
     has been saved on it.
     """
@@ -93,7 +89,7 @@ def staff_records(db, rows: List[models.VenueBooking], now: datetime) -> List[di
 
     records = []
     for row in rows:
-        record = to_record(row, staff=True)
+        record = to_record(row, staff=True, now=now)
         holding = row.status in HOLDING and holds_venue(row.status, _utc(row.hold_expires_at), now)
         # A booking that holds nothing (rejected, cancelled, or a hold that has expired) has nothing in its way.
         record["conflicts"] = conflicts_for(slot_of(row), venues[row.venue_id], holding_at[row.venue_id], now) if holding else []

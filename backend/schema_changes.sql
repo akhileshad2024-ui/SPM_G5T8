@@ -33,12 +33,6 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS flag json;
 -- 2c. US41: each booking of an event has its own purpose (e.g. "Breakout session"). Safe to run more than once.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS purpose varchar;
 
--- 2d. US38: a booking whose venue setup/turnaround change makes it overlap another is marked "Requires Reassessment".
---     US48: a pending hold can have an expiry time; once it has passed it no longer blocks the venue.
---     Safe to run more than once.
-ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;
-ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expires_at timestamp with time zone;
-
 -- 3. LATER, once every teammate's branch uses the new venue model (staging/main merged and pulled).
 --    Branches that still read "unavailableDates" break without it. This cannot be undone.
 -- ALTER TABLE venues DROP COLUMN "unavailableDates";
@@ -53,3 +47,8 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expiry_set_by text;
 UPDATE venue_bookings
 SET hold_expires_at = LEAST(requested_at + interval '3 days', hold_start AT TIME ZONE 'Asia/Singapore')
 WHERE status = 'pending' AND hold_expires_at IS NULL;
+
+-- US38 (Week 7 change #1): a booking whose venue setup/turnaround change makes it overlap another is
+-- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
+-- flagged (NULL when nothing needs reassessing). Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;
