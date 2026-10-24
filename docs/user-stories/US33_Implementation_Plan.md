@@ -221,3 +221,10 @@ build passed. Dev-all was stopped before browser/build verification to avoid
 sharing .next. Prior shared TC evidence remains attached to193832a; no shared
 DB test was repeated for this merge. Publication/PR and their exact status are
 recorded only after the corresponding action succeeds.
+
+Publication attempt for merge commit9102276 failed because CLI Git could not
+obtain a GitHub username/credential. Desktop automation also could not open the
+app surface. No branch was pushed and no PR was created. User handoff: publish
+spring3-us33-yuetong through their authenticated GitHub Desktop, then create the
+scoped US33 PR with pending boundaries above. Do not mark delivery or DoD complete.
+US34 AC2/AC3 approval requested separately before requirements/code changes.
