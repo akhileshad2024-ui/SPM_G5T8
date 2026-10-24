@@ -130,6 +130,14 @@ def user_from_request(request: Request, db: Session) -> models.User | None:
 
 # ---------------------------------------------------------------- dependencies
 
+def get_current_user_without_renewal(request: Request, db: Session = Depends(get_db)) -> models.User:
+    """Authenticate background polling without treating it as user activity."""
+    user = user_from_request(request, db)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not signed in")
+    return user
+
+
 def get_current_user(request: Request, response: Response, db: Session = Depends(get_db)) -> models.User:
     session = _session_from_request(request, db)
     if session is None:

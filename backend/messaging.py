@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from login.models import User
-from login.security import get_current_user
+from login.security import get_current_user, get_current_user_without_renewal
 import models
 
 router = APIRouter()
@@ -31,7 +31,7 @@ def registration_confirmation(db, event, attendee, registration):
 
 
 @router.get("/notifications")
-def list_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def list_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user_without_renewal)):
     rows = db.query(models.Notification).filter_by(recipient_id=user.id).order_by(models.Notification.id.desc()).limit(200).all()
     return [{"id": row.id, "title": row.title, "body": row.body,
              "createdAt": row.created_at.replace(tzinfo=timezone.utc).isoformat(), "read": row.read_at is not None} for row in rows]

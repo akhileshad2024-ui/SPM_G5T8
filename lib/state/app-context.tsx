@@ -651,9 +651,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useIdleSignOut(
     state.authed,
-    () => {
-      // Only this browser: being idle here shouldn't sign the user out on their other devices.
-      apiFetch("/auth/logout?all_sessions=false", { method: "POST" }).catch(() => {});
+    async () => {
+      // Wait for cookie removal before exposing the signed-out page.
+      // Only this browser: preserve sessions on the user's other devices.
+      await apiFetch("/auth/logout?all_sessions=false", { method: "POST" }).catch(() => {});
       endSession(`You were signed out after ${IDLE_TIMEOUT_MS / 60000} minutes of inactivity.`);
       router.push("/login");
     },
