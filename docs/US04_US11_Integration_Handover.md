@@ -73,18 +73,32 @@ No queue table or submission notification is needed for this handover.
 
 The US11/auth owners must record these actual implemented values here:
 
-- Lead role identifier: UNRESOLVED (not yet implemented).
-- Lead queue FastAPI path and response shape: UNRESOLVED.
-- Lead UI URL, navigation labels and refresh behaviour: UNRESOLVED.
-- Dedicated Lead test email/password or authorised credential reference:
-  UNRESOLVED. Do not invent credentials or use Priya's coordinator account as a
-  Lead account without an approved role change.
-- Integration test file and command: UNRESOLVED until the real consumer exists.
+Resolved by US43/US11 (Zhenhan, 24 Oct 2026, SGT):
+
+- Lead role identifier: `lead` (backend `Role.lead`, frontend `Role` "lead"),
+  shown as "Event Coordinator Lead".
+- Lead queue FastAPI path and response shape: `GET /lead/queue` (Next.js proxy
+  `GET /api/lead/queue`), Lead only (401 signed out, 403 other roles). Returns a
+  list of event views (the same shape as `GET /events`): live events with no
+  coordinator, oldest submission first. Assigning is `POST /events/{id}/assign`
+  `{"coordinatorId": <id>}`, Lead only; who assigned and when are recorded
+  (`event_assignments`, shown as `assignedBy` / `assignedAt`).
+- Lead UI URL, navigation labels and refresh behaviour: `/assignments`,
+  navigation label "Assignments" (the Lead's landing page). "Unassigned requests"
+  lists each request's ID (EVT-n), basic information and a Details toggle, with
+  a coordinator list and Assign; "Coordinators" lists each coordinator's active
+  events. It reloads from the server on sign-in and page refresh.
+- Dedicated Lead test account: Grace Ong, grace.ong@connectsphere.edu (approved by
+  the Product Owner, 24 Oct 2026). Isolated tests use the functional-test password;
+  shared-DB runs read `TC_GRACE_PASSWORD`.
+- Integration test file and command:
+  `tests/integration/test_us04_us11_lead_queue_integration.py` (INT01-INT04),
+  `python -m pytest tests/integration/test_us04_us11_lead_queue_integration.py -v`.
 
 These are execution blockers, not assumed endpoints. The producer contract
 above can be consumed without waiting for all assignment actions to exist.
 
-## Automated cross-story integration design (NOT executed)
+## Automated cross-story integration design (executed 24 Oct 2026: 4 passed)
 
 Use the real FastAPI application, SQLAlchemy and an isolated test database.
 Sign in with real session tokens; do not mock queue responses or bypass role

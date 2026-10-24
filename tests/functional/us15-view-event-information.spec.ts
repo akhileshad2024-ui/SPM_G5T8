@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { MAYA, PRIYA, SAM, WEI, apiAs, createRequest, myEventsRow, openInQueue, signIn, toast, unique } from "./support/app";
+import { GRACE, MAYA, PRIYA, SAM, WEI, apiAs, assignTo, createRequest, myEventsRow, openInQueue, signIn, toast, unique } from "./support/app";
 import { DANIEL, observed } from "./support/venues";
 import { scenarioNames, seedScenario, type Scenario } from "./support/scenario";
 
@@ -24,13 +24,15 @@ const ALL_SECTIONS = ["Event", "People", "Venue", "Equipment", "Registration", "
 // Fields each role gets, as backend/event_fields.py defines them.
 const BASICS = ["id", "status", "name", "purpose", "eventType", "date", "start", "end", "organiserId", "organiser", "updatedAt"];
 const FIELDS: Record<string, string[]> = {
-  organiser: [...BASICS, "coordinatorId", "coordinator", "pax", "venueLocation", "venueCapacity", "layout", "facilities", "access",
-    "venue", "venueName", "bookingState", "equip", "equipState", "reg", "regCap", "regClose", "registered", "withdrawalClose",
-    "clarification", "decision", "submittedAt", "createdAt", "draftForm"],
+  organiser: [...BASICS, "coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax", "venueLocation", "venueCapacity", "layout",
+    "facilities", "access", "venue", "venueName", "bookingState", "equip", "equipState", "reg", "regCap", "regClose", "registered",
+    "withdrawalClose", "clarification", "decision", "submittedAt", "createdAt", "draftForm"],
   tech: [...BASICS, "coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"],
   attendee: [...BASICS, "access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"],
 };
 FIELDS.coordinator = FIELDS.organiser.filter((f) => f !== "draftForm");
+// US43: the coordinator's fields without the review notes between organiser and coordinator.
+FIELDS.lead = FIELDS.coordinator.filter((f) => f !== "clarification" && f !== "decision");
 FIELDS.venue = [...BASICS, "coordinatorId", "coordinator", "pax", "venueLocation", "venueCapacity", "layout", "facilities", "access",
   "venue", "venueName", "bookingState"];
 
@@ -118,7 +120,7 @@ test.describe("US15 - View Event Information", () => {
 
   test("[TC-056] [US15-AC2] fields a role may not see are left out of the event data, not sent as empty", async ({ baseURL }, info) => {
     const counts: string[] = [];
-    for (const [role, who] of [["organiser", MAYA], ["coordinator", PRIYA], ["venue", DANIEL], ["tech", WEI], ["attendee", SAM]] as const) {
+    for (const [role, who] of [["organiser", MAYA], ["coordinator", PRIYA], ["lead", GRACE], ["venue", DANIEL], ["tech", WEI], ["attendee", SAM]] as const) {
       const event = await (await (await apiAs(baseURL!, who)).get(`/api/events/${s.symposium}`)).json();
       expect(Object.keys(event).sort(), role).toEqual([...FIELDS[role]].sort());
       counts.push(`${role} ${Object.keys(event).length}`);
@@ -129,10 +131,10 @@ test.describe("US15 - View Event Information", () => {
   });
 
   test("[TC-057] [US15-AC2] a permitted field with no value yet is shown as not set, not hidden", async ({ page }, info) => {
-    await signIn(page, PRIYA, /\/queue/);
-    await openInQueue(page, names.bare);
-    await page.getByRole("button", { name: "Details", exact: true }).click();
-    const details = page.locator("body");
+    // The request has no coordinator yet, so it is the Lead who sees it (US43).
+    await signIn(page, GRACE, /\/assignments/);
+    const details = page.locator(`[aria-label="Unassigned request: ${names.bare}"]`);
+    await details.getByRole("button", { name: "Details", exact: true }).click();
     await expect(details.locator("section[aria-label]").first()).toBeVisible();
     await checkValues(details, [
       ["Event", "Expected attendance", "Not set"], ["People", "Coordinator", "Not yet assigned"], ["Venue", "Venue", "Not booked yet"],
@@ -197,6 +199,7 @@ test.describe("US15 - View Event Information", () => {
     const name = unique("Robotics Club Showcase");
     const maya = await apiAs(baseURL!, MAYA);
     const id = await createRequest(maya, name, { attendance: 85, venueCapacity: 100 });
+    await assignTo(await apiAs(baseURL!, GRACE), id, PRIYA);  // the Lead assigns Priya (US43)
     const organiser = await (await maya.get(`/api/events/${id}`)).json();
 
     await signIn(page, PRIYA, /\/queue/);
@@ -204,7 +207,7 @@ test.describe("US15 - View Event Information", () => {
     await page.getByRole("button", { name: "Details", exact: true }).click();
     const details = page.locator("body");
     await checkValues(details, [["Event", "Expected attendance", "85"], ["Venue", "Preferred location", "Central campus"], ["Venue", "Required capacity", "100"]]);
-    expect(await page.locator("section[aria-label]").first().locator("xpath=preceding-sibling::div[1]//time").getAttribute("datetime")).toBe(organiser.updatedAt);
+    expect(await page.locator('section[aria-label="Event"]').locator("xpath=preceding-sibling::div[1]//time").getAttribute("datetime")).toBe(organiser.updatedAt);
     observed(info, `Right after Maya submitted "${name}", Priya's Details showed 85 expected, Central campus and capacity 100, with the same last-updated time as the organiser's copy (${organiser.updatedAt}).`);
   });
 

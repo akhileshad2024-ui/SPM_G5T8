@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, apiAs, MAYA, PRIYA, PASSWORD } from "./support/app";
+import { action, apiAs, GRACE, MAYA, PRIYA, PASSWORD } from "./support/app";
 import { singaporeTestDate } from "./support/dates";
 import { seedScenario } from "./support/scenario";
 
@@ -15,7 +15,9 @@ function field(page: Page, label: string) {
 }
 
 async function login(page: Page, person: typeof MAYA, landing: RegExp) {
-  const password = shared ? process.env[person.email === MAYA.email ? "TC_MAYA_PASSWORD" : "TC_PRIYA_PASSWORD"] : PASSWORD;
+  const password = shared
+    ? process.env[person.email === MAYA.email ? "TC_MAYA_PASSWORD" : person.email === GRACE.email ? "TC_GRACE_PASSWORD" : "TC_PRIYA_PASSWORD"]
+    : PASSWORD;
   if (!password) throw new Error("Missing authorised TC password.");
   await page.goto("/login");
   await page.getByPlaceholder("you@connectsphere.edu").fill(person.email);
@@ -105,13 +107,16 @@ for (const [id, outcome, decisionButton] of [
     await expect(proposals).toContainText("Awaiting coordinator review");
     const requestLabel = (await proposals.getByRole("listitem").innerText()).match(/Request #(\d+)/)![0];
 
-    // Steps 11–14: coordinator UI assignment and comparison, not event approval.
+    // Steps 11–14: the Lead's assignment (US43/US11), then the coordinator's comparison, not event approval.
+    await logout(page);
+    await login(page, GRACE, /\/assignments/);
+    const request = page.locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId}` });
+    await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
+    await request.getByRole("button", { name: "Assign", exact: true }).click();
+    await expect(request).toHaveCount(0);
     await logout(page);
     await login(page, PRIYA, /\/queue/);
     await queueEvent(page, eventId);
-    await page.getByLabel("Coordinator to assign").selectOption({ label: "Priya Tan (me)" });
-    await action(page, "Assign").click();
-    await expect(page.getByLabel("Coordinator to assign")).toHaveCount(0);
     const arrangements = page.getByRole("region", { name: "Existing arrangements", exact: true });
     await expect(arrangements).toContainText(`Event: ${date.label}, 18:00–21:00; expected attendance 85.`);
     for (const text of ["No venue bookings recorded.", "Equipment: None.", "Registration: Disabled."]) {

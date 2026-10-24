@@ -27,10 +27,10 @@ def expected(event, user):
     if event.status == S.draft:
         return False  # drafts are only ever visible to their organiser
     if user.role == Role.coordinator:
-        assigned_to_me = event.coordinator_id == user.id
-        # nobody assigned yet and still live (not rejected / cancelled): any coordinator may pick it up
-        needs_a_coordinator = event.coordinator_id is None and event.status not in (S.rejected, S.cancelled)
-        return assigned_to_me or needs_a_coordinator
+        return event.coordinator_id == user.id  # US43: only their own events
+    if user.role == Role.lead:
+        # US43: every live event (not rejected / cancelled), assigned or not
+        return event.status not in (S.rejected, S.cancelled)
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:

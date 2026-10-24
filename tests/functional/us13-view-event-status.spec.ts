@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
-import { MAYA, PRIYA, SAM, WEI, apiAs, myEventsRow, openInQueue, signIn, toast, unique } from "./support/app";
+import { GRACE, MAYA, PRIYA, SAM, WEI, apiAs, myEventsRow, openInQueue, signIn, toast, unique } from "./support/app";
 import { DANIEL, futureDate, observed } from "./support/venues";
 import { scenarioNames, seedScenario, type Scenario } from "./support/scenario";
 
@@ -70,22 +70,24 @@ test.describe("US13 - View Event Status", () => {
     observed(info, `My events showed ${names.symposium} Confirmed, ${names.pitch} Approved, ${names.mixer} Rejected and ${names.bare} Submitted; the Drafts, Awaiting decision, Approved and Confirmed counters matched the statuses listed.`);
   });
 
-  test("[TC-039] [US13-AC1] the coordinator can view the status of assigned events and of requests awaiting pickup", async ({ page }, info) => {
+  test("[TC-039] [US13-AC1] the coordinator sees the status of their events; the Lead sees requests awaiting a coordinator", async ({ page }, info) => {
+    // US43: requests nobody coordinates yet are the Lead's to see and assign, not every coordinator's.
     await signIn(page, PRIYA, /\/queue/);
-    await page.getByRole("button", { name: "Needs action", exact: true }).click();
+    await page.getByRole("button", { name: "All", exact: true }).click();
     await page.getByPlaceholder(/search events/i).fill(s.suffix);
     const row = (name: string) => page.getByRole("button", { name: new RegExp(name) });
-    await expect(row(names.bare).locator(".pill")).toHaveText("Submitted");
-    await expect(row(names.bare)).toContainText("Unassigned");
-
-    await page.getByRole("button", { name: "All", exact: true }).click();
-    for (const [name, status] of [[names.symposium, "Confirmed"], [names.pitch, "Approved"], [names.mixer, "Rejected"], [names.bare, "Submitted"]]) {
+    for (const [name, status] of [[names.symposium, "Confirmed"], [names.pitch, "Approved"], [names.mixer, "Rejected"]]) {
       await expect(row(name).locator(".pill"), name).toHaveText(status);
     }
+    await expect(row(names.bare)).toHaveCount(0);
     await openInQueue(page, names.pitch);
     await page.getByRole("button", { name: "Activity", exact: true }).click();
     await expect(currentStatus(page.locator("body"))).toHaveText("Approved");
-    observed(info, `Needs action listed ${names.bare} as Submitted and Unassigned. All listed the symposium Confirmed, the pitch night Approved, the mixer Rejected and ${names.bare} Submitted. The pitch night's Activity tab showed Current status Approved.`);
+
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await signIn(page, GRACE, /\/assignments/);
+    await expect(page.locator(`[aria-label="Unassigned request: ${names.bare}"] .pill`)).toHaveText("Submitted");
+    observed(info, `Priya's queue (All) listed the symposium Confirmed, the pitch night Approved and the mixer Rejected, but not the unassigned ${names.bare}; the pitch night's Activity tab showed Current status Approved. The Lead's Assignments page listed ${names.bare} as Submitted.`);
   });
 
   test("[TC-040] [US13-AC1] venue staff can view the status of an event with a venue booking", async ({ page }, info) => {

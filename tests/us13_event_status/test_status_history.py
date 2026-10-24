@@ -237,10 +237,12 @@ def test_a_coordinator_cannot_see_events_assigned_to_someone_else(signed_in, db)
     assert history(other, event_id)[-1]["toStatus"] == "under_review"
 
 
-def test_coordinators_see_submitted_events_nobody_has_picked_up(signed_in):
+def test_the_lead_sees_submitted_events_nobody_coordinates_yet_and_coordinators_do_not(signed_in):
+    # US43: unassigned requests are the Lead's to assign.
     event_id = create(signed_in(Role.organiser))
 
-    assert [e["id"] for e in signed_in(Role.coordinator).get("/events").json()] == [event_id]
+    assert [e["id"] for e in signed_in(Role.lead).get("/events").json()] == [event_id]
+    assert signed_in(Role.coordinator).get("/events").json() == []
 
 
 def test_drafts_are_visible_only_to_their_organiser(signed_in):

@@ -16,6 +16,7 @@ BASICS = {"id", "status", "name", "purpose", "eventType", "date", "start", "end"
           "organiserId", "organiser", "updatedAt"}
 # Staff working on the event: who coordinates it and how many people to plan for.
 STAFF = {"coordinatorId", "coordinator", "pax"}
+ASSIGNMENT = {"assignedBy", "assignedAt"}  # US11: who assigned the coordinator, and when
 VENUE_NEEDS = {"venueLocation", "venueCapacity", "layout", "facilities"}
 ACCESSIBILITY = {"access"}
 BOOKING = {"venue", "venueName", "bookingState"}
@@ -26,10 +27,14 @@ REVIEW = {"clarification", "decision", "submittedAt", "createdAt"}  # between or
 DRAFT = {"draftForm"}  # the organiser's unfinished form values
 
 VISIBLE_FIELDS: dict[Role, frozenset[str]] = {
-    Role.organiser: frozenset(BASICS | STAFF | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
+    Role.organiser: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
                               | REGISTRATION | REVIEW | DRAFT),
-    Role.coordinator: frozenset(BASICS | STAFF | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
+    Role.coordinator: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
                                 | REGISTRATION | REVIEW),
+    # US43: the Lead oversees the coordinators' events, so sees what a coordinator sees, except the review
+    # notes, which stay between organiser and coordinator (US15).
+    Role.lead: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
+                         | REGISTRATION | (REVIEW - {"clarification", "decision"})),
     Role.venue: frozenset(BASICS | STAFF | VENUE_NEEDS | ACCESSIBILITY | BOOKING),
     Role.tech: frozenset(BASICS | STAFF | VENUE_NAME | EQUIPMENT),
     Role.attendee: frozenset(BASICS | ACCESSIBILITY | VENUE_NAME | REGISTRATION),

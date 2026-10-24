@@ -1,0 +1,23 @@
+test_a_closed_request_cant_be_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_a_closed_request_cant_be_assigned) ... ok
+test_a_draft_cant_be_assigned_the_lead_cant_see_it (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_a_draft_cant_be_assigned_the_lead_cant_see_it) ... ok
+test_an_assigned_request_cant_be_assigned_again (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_an_assigned_request_cant_be_assigned_again) ... ok
+test_any_live_request_can_be_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_any_live_request_can_be_assigned) ... ok
+test_assigning_a_missing_event_is_not_found (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_assigning_a_missing_event_is_not_found) ... ok
+test_the_lead_assigns_a_coordinator_to_a_submitted_request (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssign.test_the_lead_assigns_a_coordinator_to_a_submitted_request) ... ok
+test_another_coordinator_still_cant (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignedCoordinatorGetsAccess.test_another_coordinator_still_cant) ... ok
+test_the_coordinator_can_see_the_event_only_after_being_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignedCoordinatorGetsAccess.test_the_coordinator_can_see_the_event_only_after_being_assigned) ... ok
+test_a_refused_assignment_records_nothing (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignmentRecorded.test_a_refused_assignment_records_nothing) ... ok
+test_an_event_with_no_recorded_assignment_shows_none (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignmentRecorded.test_an_event_with_no_recorded_assignment_shows_none) ... ok
+test_records_the_assigning_user_and_the_time (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignmentRecorded.test_records_the_assigning_user_and_the_time) ... ok
+test_shows_the_assignment_of_the_current_coordinator (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignmentRecorded.test_shows_the_assignment_of_the_current_coordinator) ... ok
+test_the_event_shows_who_assigned_it_and_when (tests.unit.lead_assignment.test_us11_assign_coordinator.TestAssignmentRecorded.test_the_event_shows_who_assigned_it_and_when) ... ok
+test_leaves_out_the_lead_and_every_other_role (tests.unit.lead_assignment.test_us11_assign_coordinator.TestCoordinatorList.test_leaves_out_the_lead_and_every_other_role) ... ok
+test_lists_only_active_coordinator_accounts_by_name (tests.unit.lead_assignment.test_us11_assign_coordinator.TestCoordinatorList.test_lists_only_active_coordinator_accounts_by_name) ... ok
+test_a_deactivated_coordinator_cant_be_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestOnlyCoordinators.test_a_deactivated_coordinator_cant_be_assigned) ... ok
+test_an_unknown_account_cant_be_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestOnlyCoordinators.test_an_unknown_account_cant_be_assigned) ... ok
+test_someone_who_isnt_a_coordinator_cant_be_assigned (tests.unit.lead_assignment.test_us11_assign_coordinator.TestOnlyCoordinators.test_someone_who_isnt_a_coordinator_cant_be_assigned) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.933s
+
+OK

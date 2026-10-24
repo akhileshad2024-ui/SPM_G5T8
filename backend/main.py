@@ -48,8 +48,10 @@ BOOKING_DECIDERS = (Role.venue,)
 EVENT_REQUESTERS = (Role.organiser,)
 # Who may register for events (US29-US31).
 REGISTRANTS = (Role.attendee,)
-# Who may review event requests and assign coordinators (US07, US08, US10, US11).
+# Who may review event requests (US07, US08, US10): the coordinator each event is assigned to.
 EVENT_REVIEWERS = (Role.coordinator,)
+# Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
+COORDINATOR_ASSIGNERS = (Role.lead,)
 
 EVENT_DRAFT_WRITERS = (Role.organiser,)
 
@@ -482,6 +484,14 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
     organiser = db.get(User, event.organiser_id)
     coordinator = db.get(User, event.coordinator_id) if event.coordinator_id else None
     venue = db.get(models.Venue, event.venue_id) if event.venue_id else None
+    # US11: the assignment that gave the event its current coordinator.
+    assignment = (
+        db.query(models.EventAssignment)
+        .filter(models.EventAssignment.event_id == event.id, models.EventAssignment.coordinator_id == event.coordinator_id)
+        .order_by(models.EventAssignment.id.desc())
+        .first()
+    ) if event.coordinator_id else None
+    assigner = db.get(User, assignment.assigned_by_id) if assignment else None
     return schemas.EventResponse(
         id=event.id,
         status=event.status.value,
@@ -490,6 +500,8 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
         organiser=organiser.name if organiser else "",
         coordinatorId=event.coordinator_id,
         coordinator=coordinator.name if coordinator else None,
+        assignedBy=assigner.name if assigner else None,
+        assignedAt=utc(assignment.assigned_at) if assignment else None,
         purpose=event.purpose or "",
         eventType=event.event_type or "",
         pax=event.expected_attendance,
@@ -655,10 +667,24 @@ def get_event_history(event_id: int, db: Session = Depends(get_db), user: User =
 # The rules are in event_review.py (the same as lib/events/review/ on the page); each endpoint
 # returns the saved event as the coordinator sees it, so the page shows what was stored.
 
-# Fulfills US11: the Event Coordinator accounts an event can be assigned to.
+# Fulfills US11/US43: the Event Coordinator accounts an event can be assigned to. The Lead sees each
+# one's active events through GET /events.
 @app.get("/coordinators", response_model=List[schemas.CoordinatorResponse])
-def list_coordinators(db: Session = Depends(get_db), _user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+def list_coordinators(db: Session = Depends(get_db), _user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
     return [schemas.CoordinatorResponse(id=u.id, name=u.name) for u in event_review.active_coordinators(db)]
+
+
+# Fulfills US43 AC1/AC3 and US11 AC1: the Lead's queue of live requests nobody coordinates yet, oldest
+# submission first, with each one's basic information (the US04 handover's receiving end).
+@app.get("/lead/queue", response_model=List[schemas.EventView], response_model_exclude_unset=True)
+def lead_queue(db: Session = Depends(get_db), user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
+    rows = (
+        involved_events(db.query(models.Event), user)
+        .filter(models.Event.coordinator_id.is_(None))
+        .order_by(models.Event.submitted_at, models.Event.id)
+        .all()
+    )
+    return [event_view(db, event, user) for event in rows]
 
 
 def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventView:
@@ -678,11 +704,12 @@ def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventVi
     return event_view(db, event, user)
 
 
-# Fulfills US11: assign an Event Coordinator to an unassigned event.
+# Fulfills US11: the Lead assigns an Event Coordinator to an unassigned event; who assigned it and
+# when is recorded, and the coordinator can then see and manage the event (US43).
 @app.post("/events/{event_id}/assign", response_model=schemas.EventView, response_model_exclude_unset=True)
 def assign_coordinator(event_id: int, body: schemas.AssignCoordinatorIn, db: Session = Depends(get_db),
-                       user: User = Depends(require_roles(*EVENT_REVIEWERS))):
-    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId))
+                       user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
+    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId, now))
 
 
 # Fulfills US07: start reviewing a submitted request.

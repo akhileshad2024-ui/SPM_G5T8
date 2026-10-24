@@ -4,7 +4,8 @@ Event review and clarification responses, saved (US07–US11).
 Same rules and messages as the frontend's lib/events/review/*.ts, so the page can check
 a step straight away and the server still refuses it if the page is bypassed:
 
-    assign      (US11)  an unassigned, live event gets a coordinator from the coordinator accounts
+    assign      (US11)  the Event Coordinator Lead gives an unassigned, live event a coordinator from the
+                    coordinator accounts; who assigned it and when is recorded (models.EventAssignment)
     start       (US07)  Submitted -> Under Review
     clarify     (US08)  the assigned coordinator asks the organiser to clarify or amend:
                         Under Review -> Pending Clarification
@@ -97,8 +98,9 @@ def active_coordinators(db: Session) -> list[User]:
     )
 
 
-def assign(db: Session, event: models.Event, user: User, coordinator_id: int) -> None:
-    """US11. Changing an existing coordinator is reassignment (US12), not done here."""
+def assign(db: Session, event: models.Event, user: User, coordinator_id: int, now: datetime) -> None:
+    """US11: the Lead assigns a coordinator; who assigned it and when is recorded.
+    Changing an existing coordinator is reassignment (US12), not done here."""
     coordinator = db.get(User, coordinator_id)
     if coordinator is None or coordinator.role != Role.coordinator or not coordinator.is_active:
         raise ReviewError(422, f"{coordinator.name if coordinator else 'That person'} is not an Event Coordinator.")
@@ -107,6 +109,7 @@ def assign(db: Session, event: models.Event, user: User, coordinator_id: int) ->
     if event.coordinator_id is not None:
         raise not_allowed(f"{coordinator_name(db, event)} is already coordinating this event.")
     event.coordinator_id = coordinator.id
+    db.add(models.EventAssignment(event_id=event.id, coordinator_id=coordinator.id, assigned_by_id=user.id, assigned_at=now))
 
 
 def start_review(db: Session, event: models.Event, user: User, now: datetime) -> None:

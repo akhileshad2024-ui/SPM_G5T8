@@ -1,3 +1,4 @@
+import { waitingSubtitle } from "../events/review/lead";
 import { needsCoordinatorAction } from "../events/review/review";
 import type { EventRecord, Venue } from "../types";
 
@@ -22,6 +23,8 @@ export function getPageMeta(pathname: string, events: EventRecord[], venues: Ven
       return { title: "Venues", subtitle: "Search and filter venues, and see the details of each" };
     case pathname.startsWith("/catalogue"):
       return { title: "Venue catalogue", subtitle: `${venues.filter((v) => v.isActive).length} active venues, with layouts, facilities, accessibility and setup times` };
+    case pathname.startsWith("/assignments"):
+      return { title: "Assignments", subtitle: waitingSubtitle(events) };
     case pathname.startsWith("/equipment"):
       return { title: "Equipment", subtitle: "Availability is calculated against overlapping reservations" };
     case pathname.startsWith("/browse"):

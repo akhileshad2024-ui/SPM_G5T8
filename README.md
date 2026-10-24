@@ -443,7 +443,7 @@ npm run test:us02       # US02 frontend unit tests (page access, who sees which 
 # US17/US18/US20: runs each UNIT test file on its own -> unit/<test_file>/ (htmlcov/index.html,
 # coverage_report.txt, test_output.txt) plus summary.txt, and one line per test file in
 # coverage_reports/<story>/history_by_file.csv. Integration tests are not part of this automation.
-python run_coverage.py us17      # or us18, us20, us21, us22, us38, us46, us47, us48
+python run_coverage.py us17      # or us18, us20, us21, us22, us38, us46, us47, us48, us11, us43 (us11/us43 also write frontend/)
 # US01, US02, US03, US13: runs the story's whole test folder (htmlcov/index.html, coverage_report.txt,
 # test_output.txt, frontend/coverage_report.txt) and adds a line to coverage_reports/<story>/history.csv.
 python run_coverage.py us01      # or us02, us03, us13

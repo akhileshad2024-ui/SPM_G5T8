@@ -78,6 +78,7 @@ class BookingApiTestCase(unittest.TestCase):
         self.staff = self.client(Role.venue)
         self.coordinator = self.client(Role.coordinator)
         self.organiser = self.client(Role.organiser)
+        self.lead = self.client(Role.lead)  # US43: only the Event Coordinator Lead assigns coordinators
         self.venue = self.staff.post("/venues", json=THEATRE).json()
 
     def tearDown(self):
@@ -113,7 +114,7 @@ class BookingApiTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 201, res.text)
         event_id = res.json()["id"]
         assignee = self.db.query(User).filter(User.email == COORDINATOR_EMAIL).first()
-        self.assertTrue(self.coordinator.post(f"/events/{event_id}/assign", json={"coordinatorId": assignee.id}).is_success)
+        self.assertTrue(self.lead.post(f"/events/{event_id}/assign", json={"coordinatorId": assignee.id}).is_success)
         self.assertTrue(self.coordinator.post(f"/events/{event_id}/review", json={}).is_success)
         if approve:
             self.assertTrue(self.coordinator.post(f"/events/{event_id}/decision", json={"outcome": "approved", "reason": ""}).is_success)

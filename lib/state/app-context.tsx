@@ -31,6 +31,7 @@ import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
+import { assignmentNotices } from "../events/review/lead";
 import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
@@ -137,7 +138,7 @@ interface AppState {
   role: Role;
   events: EventRecord[];
   registrations: RegistrationRecord[];
-  /** US11: the Event Coordinator accounts an event can be assigned to (loaded for coordinators). */
+  /** US11: the Event Coordinator accounts an event can be assigned to (loaded for the Lead). */
   coordinators: Coordinator[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
@@ -537,6 +538,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .then((stored) => {
         patch({ events: stored.map(eventFromApi) });
         const role = state.user?.role;
+        // US11: a coordinator is told about each request the Lead assigned them that they haven't started on.
+        if (role === "coordinator") {
+          for (const n of assignmentNotices(stored)) notify("coordinator", n.title, n.body);
+        }
         if (role !== "coordinator" && role !== "venue") return;
         return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
           patch((s) => ({ events: attachBookings(s.events, bookings) }));
@@ -641,9 +646,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   );
 
-  // US11: coordinators assign events to coordinator accounts, so load them.
+  // US11/US43: the Lead assigns events to coordinator accounts, so load them.
   useEffect(() => {
-    if (!state.authed || state.role !== "coordinator") return;
+    if (!state.authed || state.role !== "lead") return;
     apiFetch<Coordinator[]>("/coordinators").then((coordinators) => patch({ coordinators }), () => patch({ coordinators: [] }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);

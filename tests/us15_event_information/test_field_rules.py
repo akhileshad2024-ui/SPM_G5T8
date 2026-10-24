@@ -22,6 +22,8 @@ EVERYONE = {"id", "status", "name", "purpose", "eventType", "date", "start", "en
 EXPECTED = {
     Role.organiser: ALL_FIELDS,
     Role.coordinator: ALL_FIELDS - {"draftForm"},
+    # US43: what a coordinator sees, except the review notes between organiser and coordinator.
+    Role.lead: ALL_FIELDS - {"draftForm", "clarification", "decision"},
     Role.venue: EVERYONE | {"coordinatorId", "coordinator", "pax",
                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
                             "venue", "venueName", "bookingState"},
@@ -68,8 +70,16 @@ def test_only_the_organiser_sees_their_unfinished_draft_form():
 
 
 def test_review_notes_stay_between_organiser_and_coordinator():
-    for field in ("clarification", "decision", "submittedAt", "createdAt"):
+    for field in ("clarification", "decision"):
         assert {r for r in Role if field in visible_fields(user(r))} == {Role.organiser, Role.coordinator}, field
+    # The Lead also sees when a request was submitted and created, to oversee the queue (US43).
+    for field in ("submittedAt", "createdAt"):
+        assert {r for r in Role if field in visible_fields(user(r))} == {Role.organiser, Role.coordinator, Role.lead}, field
+
+
+def test_assignment_details_are_seen_by_those_working_on_the_request():
+    for field in ("assignedBy", "assignedAt"):
+        assert {r for r in Role if field in visible_fields(user(r))} == {Role.organiser, Role.coordinator, Role.lead}, field
 
 
 def test_tech_and_attendees_see_where_the_event_is_but_not_the_booking():

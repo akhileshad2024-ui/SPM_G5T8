@@ -21,16 +21,22 @@ S = models.EventStatus
 EVERYONE = {"id", "status", "name", "purpose", "eventType", "date", "start", "end",
             "organiserId", "organiser", "updatedAt"}
 EXPECTED = {
-    Role.organiser: EVERYONE | {"coordinatorId", "coordinator", "pax",
+    Role.organiser: EVERYONE | {"coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax",
                                 "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                 "venue", "venueName", "bookingState", "equip", "equipState",
                                 "reg", "regCap", "regClose", "registered", "withdrawalClose",
                                 "clarification", "decision", "submittedAt", "createdAt", "draftForm"},
-    Role.coordinator: EVERYONE | {"coordinatorId", "coordinator", "pax",
+    Role.coordinator: EVERYONE | {"coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax",
                                   "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                   "venue", "venueName", "bookingState", "equip", "equipState",
                                   "reg", "regCap", "regClose", "registered", "withdrawalClose",
                                   "clarification", "decision", "submittedAt", "createdAt"},
+    # US43: the coordinator's fields without the review notes (clarification, decision).
+    Role.lead: EVERYONE | {"coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax",
+                           "venueLocation", "venueCapacity", "layout", "facilities", "access",
+                           "venue", "venueName", "bookingState", "equip", "equipState",
+                           "reg", "regCap", "regClose", "registered", "withdrawalClose",
+                           "submittedAt", "createdAt"},
     Role.venue: EVERYONE | {"coordinatorId", "coordinator", "pax",
                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
                             "venue", "venueName", "bookingState"},
@@ -174,14 +180,15 @@ def test_venue_staff_see_the_venue_needs_but_not_equipment_or_registration(signe
 
 
 def test_a_permitted_field_with_no_value_is_sent_empty_not_left_out(signed_in, new_request):
-    event = get_event(signed_in(Role.coordinator), new_request)
+    # A request nobody coordinates yet is the Lead's to see (US43).
+    event = get_event(signed_in(Role.lead), new_request)
 
     assert event["coordinator"] is None
+    assert event["assignedBy"] is None
     assert event["venueName"] is None
     assert event["bookingState"] is None
     assert event["equip"] == []
-    assert event["decision"] is None
-    assert set(event) == EXPECTED[Role.coordinator]
+    assert set(event) == EXPECTED[Role.lead]
 
 
 def test_only_the_organiser_gets_their_draft_form(signed_in, db):
@@ -241,7 +248,7 @@ def test_every_role_sees_the_same_values_for_the_fields_they_share(signed_in, co
         assert {name: full[name] for name in event} == event, role
 
 
-def test_after_a_submit_organiser_and_coordinator_see_the_same_saved_request(signed_in):
+def test_after_a_submit_organiser_and_the_lead_see_the_same_saved_request(signed_in):
     organiser = signed_in(Role.organiser)
     event_id = organiser.post("/events", json={"submit": False, "name": "Draft name"}).json()["id"]
     soon = date.today() + timedelta(days=60)
@@ -255,7 +262,7 @@ def test_after_a_submit_organiser_and_coordinator_see_the_same_saved_request(sig
     assert submitted.status_code == 200, submitted.text
 
     mine = get_event(organiser, event_id)
-    theirs = get_event(signed_in(Role.coordinator), event_id)
+    theirs = get_event(signed_in(Role.lead), event_id)  # unassigned: the Lead's to see (US43)
 
     assert theirs["name"] == mine["name"] == "Robotics Showcase"
     assert theirs["status"] == mine["status"] == "submitted"
@@ -293,7 +300,7 @@ def test_a_draft_is_refused_to_everyone_but_its_organiser(signed_in):
     draft = organiser.post("/events", json={"submit": False, "name": "Secret plan"}).json()["id"]
 
     assert organiser.get(f"/events/{draft}").status_code == 200
-    for role in (Role.coordinator, Role.venue, Role.tech, Role.attendee):
+    for role in (Role.coordinator, Role.lead, Role.venue, Role.tech, Role.attendee):
         assert signed_in(role).get(f"/events/{draft}").status_code == 403, role
 
 

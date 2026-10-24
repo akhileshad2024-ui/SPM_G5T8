@@ -5,6 +5,8 @@ export const NOW = new Date("2030-05-10T08:30:00.000Z");
 export const COORDINATOR: Actor = { name: "Priya Tan", role: "coordinator" };
 export const OTHER_COORDINATOR: Actor = { name: "Marcus Lee", role: "coordinator" };
 export const ORGANISER: Actor = { name: "Maya Rahman", role: "organiser" };
+/** US43: only the Event Coordinator Lead assigns coordinators. */
+export const LEAD: Actor = { name: "Grace Ong", role: "lead" };
 export const ROSTER = ["Priya Tan", "Marcus Lee", "Aisha Noor"] as const;
 
 /**

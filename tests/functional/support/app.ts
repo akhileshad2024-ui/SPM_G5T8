@@ -16,6 +16,7 @@ export const PRIYA ={ email: "priya.tan@connectsphere.edu", name: "Priya Tan" };
 export const MARCUS = { email: "marcus.lee@connectsphere.edu", name: "Marcus Lee" }; // Event Coordinator
 export const WEI = { email: "wei.lim@connectsphere.edu", name: "Wei Lim" }; // Technical Support
 export const SAM = { email: "sam.adeyemi@student.connectsphere.edu", name: "Sam Adeyemi" }; // Attendee
+export const GRACE = { email: "grace.ong@connectsphere.edu", name: "Grace Ong" }; // Event Coordinator Lead (US43)
 
 type Account = typeof MAYA;
 
@@ -55,12 +56,12 @@ export async function createRequest(organiser: APIRequestContext, name: string, 
   return (await res.json()).id;
 }
 
-/** Given: the event is assigned to `who` (US11), through the API. */
-export async function assignTo(coordinatorApi: APIRequestContext, eventId: number, who: Account): Promise<void> {
-  const coordinators: Array<{ id: number; name: string }> = await (await coordinatorApi.get("/api/coordinators")).json();
+/** Given: the Event Coordinator Lead has assigned the event to `who` (US11, US43), through the API. */
+export async function assignTo(leadApi: APIRequestContext, eventId: number, who: Account): Promise<void> {
+  const coordinators: Array<{ id: number; name: string }> = await (await leadApi.get("/api/coordinators")).json();
   const account = coordinators.find((c) => c.name === who.name);
   expect(account, `${who.name} should be a coordinator account`).toBeTruthy();
-  const res = await coordinatorApi.post(`/api/events/${eventId}/assign`, { data: { coordinatorId: account!.id } });
+  const res = await leadApi.post(`/api/events/${eventId}/assign`, { data: { coordinatorId: account!.id } });
   expect(res.ok(), await res.text()).toBeTruthy();
 }
 
@@ -76,7 +77,8 @@ export async function signIn(page: Page, who: Account, landing: RegExp): Promise
   await page.getByPlaceholder("you@connectsphere.edu").fill(who.email);
   await page.locator('input[type="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).toHaveURL(landing);
+  // The dev server compiles a page on its first visit, which can take longer than the default wait.
+  await expect(page).toHaveURL(landing, { timeout: 30_000 });
 }
 
 /** On the review queue: show every event, search for `name`, and open it. */
