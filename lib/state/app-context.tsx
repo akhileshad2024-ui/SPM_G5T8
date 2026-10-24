@@ -321,10 +321,10 @@ export interface AppApi {
   /**
    * Loads one stored event's latest saved details (GET /events/{id}), as the backend sends
    * them: only the fields the signed-in role may see. Throws ApiError (403 not involved,
-   * 404 not found). It does not replace the event in the list, because review, booking and
-   * equipment actions are still kept in the browser until their stories save them.
+   * 404 not found). Detail readers load independently from list state.
    */
   loadEvent: (backendId: number) => Promise<StoredEvent>;
+  reloadEvents: () => Promise<void>;
 
   // ---- venue catalogue (US17) ----
   reloadVenues: () => Promise<void>;
@@ -353,10 +353,6 @@ export interface AppApi {
   cancelBooking: (eventId: string, bookingId: number) => Promise<boolean>;
   /** US41: cancel every booking of the event that still holds a venue. */
   cancelAllBookings: (eventId: string) => Promise<boolean>;
-
-  // ---- equipment ----
-  reserveEquipment: (eventId: string) => void;
-  releaseEquipment: (eventId: string) => void;
 
   // ---- attendee registration (US29-US32), saved on the server ----
   registerForEvent: (eventId: string) => void;
@@ -633,11 +629,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);
 
+  // Durable, recipient-scoped notices are refreshed within US36's one-minute window.
+  useEffect(() => {
+    if (!state.authed || !state.user) return;
+    let active = true;
+    const role = state.user.role;
+    const refresh = () => apiFetch<Array<{ id: number; title: string; body: string; createdAt: string; read: boolean }>>("/notifications")
+      .then((rows) => {
+        if (!active) return;
+        patch((current) => ({ notifs: [
+          ...rows.map((row) => ({ id: -row.id, to: role, title: row.title, body: row.body,
+            when: new Date(row.createdAt).toLocaleString(), read: row.read })),
+          ...current.notifs.filter((row) => row.id > 0),
+        ] }));
+      }).catch(() => {});
+    void refresh();
+    const timer = setInterval(() => void refresh(), 15000);
+    return () => { active = false; clearInterval(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
+
   useIdleSignOut(
     state.authed,
-    () => {
-      // Only this browser: being idle here shouldn't sign the user out on their other devices.
-      apiFetch("/auth/logout?all_sessions=false", { method: "POST" }).catch(() => {});
+    async () => {
+      // Wait for cookie removal before exposing the signed-out page.
+      // Only this browser: preserve sessions on the user's other devices.
+      await apiFetch("/auth/logout?all_sessions=false", { method: "POST" }).catch(() => {});
       endSession(`You were signed out after ${IDLE_TIMEOUT_MS / 60000} minutes of inactivity.`);
       router.push("/login");
     },
@@ -808,11 +825,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         router.push("/login");
       },
       handleApiError,
+      reloadEvents: loadEvents,
 
       flash,
       toggleNotifs: () => patch((s) => ({ notifsOpen: !s.notifsOpen })),
-      markAllRead: () =>
-        patch((s) => ({ notifs: s.notifs.map((n) => (n.to === s.role ? { ...n, read: true } : n)) })),
+      markAllRead: async () => {
+        try {
+          await apiFetch("/notifications/read", { method: "POST" });
+          patch((s) => ({ notifs: s.notifs.map((n) => (n.to === s.role ? { ...n, read: true } : n)) }));
+        } catch (error) { handleApiError(error); }
+      },
 
       select: (id, tab = "request") => patch({ selectedId: id, tab }),
       selectAndGoToQueue: (id) => {
@@ -1098,27 +1120,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      reserveEquipment: (eventId) => {
-        const e = getEvent(state.events, eventId);
-        if (!e) return;
-        const short = (e.equip || []).filter((it) => it.qty > freeQty(state.events, it.id, eventId));
-        if (short.length) {
-          flash(`Not enough ${equipName(short[0].id).toLowerCase()} free at that date and time.`, "warn");
-          return;
-        }
-        patchEvent(
-          eventId,
-          { equipState: "reserved" },
-          { title: "Equipment reserved", body: `${(e.equip || []).map((it) => `${it.qty} × ${equipName(it.id)}`).join(", ")} reserved for this event.` }
-        );
-        notify("coordinator", "Equipment reserved", `All requested equipment for ${e.name} is now reserved.`);
-        flash(`Equipment reserved for ${e.name}.`);
-      },
-      releaseEquipment: (eventId) => {
-        patchEvent(eventId, { equipState: "requested" }, { title: "Reservation released", body: "Equipment returned to the pool." });
-        flash("Reservation released.", "warn");
-      },
-
       // The browser checks the rules for an instant answer; the server decides (capacity, waitlist)
       // and saves. Afterwards the events and registrations are reloaded so counts are the saved ones.
       registerForEvent: async (eventId) => {
@@ -1143,11 +1144,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return;
         }
         await Promise.all([loadEvents(), loadMyRegistrations()]);
-        notify(
-          "attendee",
-          saved.status === "registered" ? "Registration confirmed" : "Added to waitlist",
-          `${e.name} on ${e.date}. Confirmation email queued for ${me.email}.`,
-        );
         flash(
           saved.status === "registered"
             ? `Registered for ${e.name}. Confirmation email queued.`

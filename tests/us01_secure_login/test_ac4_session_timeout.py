@@ -124,3 +124,15 @@ def test_frontend_idle_timeout_matches_backend():
     text = (project_root / "lib" / "auth" / "idle-timeout.ts").read_text(encoding="utf-8")
 
     assert f"IDLE_TIMEOUT_MS = {security.SESSION_IDLE_MINUTES} * 60 * 1000" in text
+
+
+def test_notification_polling_does_not_renew_idle_session(db, clock, monkeypatch):
+    token = issue_session(db, Role.attendee, clock, issued_ago=timedelta(minutes=29))
+    monkeypatch.setattr(jwt.api_jwt, "datetime", security.datetime)
+    session = client_with_token(token)
+    response = session.get("/notifications")
+    assert response.status_code == 200
+    assert "set-cookie" not in response.headers
+    clock.set(clock.now + timedelta(minutes=2))
+    assert session.get("/notifications").status_code == 401
+    assert session.get("/auth/me").status_code == 401

@@ -118,6 +118,11 @@ test.describe("US01 - Secure Login", () => {
   });
 
   test("[TC-009] [US01-AC4] the session ends automatically after 30 minutes of inactivity", async ({ page }, info) => {
+    // A slow logout must still clear the cookie before the login page appears.
+    await page.route("**/api/auth/logout?all_sessions=false", async route => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await route.continue();
+    });
     await page.clock.install();
     await signIn(page, MAYA, /\/my-events/);
     await page.clock.fastForward("30:00");

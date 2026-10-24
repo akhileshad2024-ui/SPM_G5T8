@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import or_
@@ -9,6 +9,7 @@ from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
+import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
 import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
@@ -32,6 +33,10 @@ app.add_middleware(
 app.middleware("http")(enforce_https)
 
 app.include_router(auth.router)
+app.include_router(equipment.router)
+app.include_router(messaging.router)
+with Session(engine) as equipment_db:
+    equipment.seed_catalogue(equipment_db)
 
 # RBAC: who may manage the venue catalogue (US17).
 VENUE_MANAGERS = (Role.venue,)
@@ -768,6 +773,9 @@ def update_event_details(event_id: int, body: schemas.EventDetailsUpdate,
     except event_updates.UpdateError as err:
         db.rollback()
         raise HTTPException(err.status_code, str(err))
+    if changes and set(changes) & {"equip", "date", "start", "end"}:
+        if any(line.get("status") in {"reserved", "fulfilled"} for line in event.equipment or []):
+            raise HTTPException(409, "Release equipment reservations before changing equipment or the event period; fulfilled items cannot be amended.")
     if changes:
         now = datetime.now(timezone.utc)
         for key, value in changes.items():
@@ -822,12 +830,14 @@ def update_event(event_id: int, request: schemas.EventRequestIn, db: Session = D
 # Fulfills US29: register for an event open to the attendee, or join its waitlist when full.
 # Rules, capacity and the waitlist: registrations.py.
 @app.post("/events/{event_id}/registrations", response_model=schemas.RegistrationResponse, status_code=201)
-def register_for_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*REGISTRANTS))):
+def register_for_event(event_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(require_roles(*REGISTRANTS))):
     event = registrations.locked_event(db, event_id)
     if not is_involved(event, user):  # attendees only see confirmed events open for registration
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
     registration = registrations.register(db, event, user, datetime.now(timezone.utc))
+    messaging.registration_confirmation(db, event, user, registration)
     db.commit()
+    background_tasks.add_task(mail_worker.deliver_pending)
     return registrations.response(registration, event, user)
 
 

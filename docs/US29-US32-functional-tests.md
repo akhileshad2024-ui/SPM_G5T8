@@ -4,7 +4,7 @@ These cases cover the Sprint 2 attendee registration workflow. Record the deploy
 
 | ID | Story | Preconditions | Steps | Expected result |
 |---|---|---|---|---|
-| FT-US29-01 | US29 | Attendee signed in; event is in Planning or Confirmed; registration is open; capacity remains | Open Browse events and select Register | Registration is stored as Registered, count increases once, on-screen confirmation appears, and an email confirmation notification is queued |
+| FT-US29-01 | US29 | Attendee signed in; event is Confirmed; registration is open; capacity remains | Open Browse events and select Register | Registration is stored as Registered, count increases once, on-screen confirmation appears, and an email confirmation notification is queued |
 | FT-US29-02 | US29 | Attendee already has an active registration | Select Register again | No duplicate record is created and a reason is shown |
 | FT-US29-03 | US29 | Event capacity is full | Select Join waitlist | A Waitlisted record is created and the confirmed registration count does not increase |
 | FT-US29-04 | US29 | Registration closing date has passed | Attempt to register | Registration is rejected and the closing reason is shown |
@@ -22,4 +22,4 @@ These cases cover the Sprint 2 attendee registration workflow. Record the deploy
 
 Registrations are saved in the database (`registrations` table) and survive reloads; every user sees the same records and places-taken count. The server (`backend/registrations.py`) checks the rules, counts places while the event is locked so two attendees can't take the last place, and moves the longest-waiting attendee up when a registered attendee withdraws. Withdrawal closes 7 days before registration closes (or on the event date when there is no closing date).
 
-Remaining limitation: "email queued" is still an in-app notification; delivery through a real email provider is not implemented.
+Successful registration now stores a durable recipient-scoped notice and SMTP outbox entry in the same transaction. Delivery and retries are implemented in `backend/mail_worker.py`; see [deployment and evidence](US25-US32-delivery.md). A real SMTP provider must be configured and actual mailbox receipt verified before signing off the email acceptance criterion.

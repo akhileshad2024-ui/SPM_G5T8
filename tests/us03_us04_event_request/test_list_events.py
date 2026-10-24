@@ -60,15 +60,20 @@ def test_organisers_see_only_their_own_requests(signed_in, db):
     assert ids(lin) == [lin_event]
 
 
-def test_drafts_stay_private_to_their_organiser(signed_in):
+def test_drafts_stay_private_to_their_organiser(signed_in, db):
     organiser = signed_in(Role.organiser)
     draft = create(organiser, submit=False)  # requests equipment too, like the submitted one
     submitted = create(organiser, submit=True)
 
+    # Even an explicitly assigned technician must never see an organiser draft.
+    tech_id = get_user(db, Role.tech).id
+    db.add_all([models.EquipmentAssignment(event_id=eid, tech_id=tech_id) for eid in (draft, submitted)])
+    db.commit()
+
     # Staff see only events they are involved in (US13); a draft is never one of them.
     assert ids(signed_in(Role.lead)) == [submitted]  # submitted and not yet assigned (US43)
     assert ids(signed_in(Role.coordinator)) == []  # assigned to nobody yet (US43)
-    assert ids(signed_in(Role.tech)) == [submitted]  # requests equipment
+    assert ids(signed_in(Role.tech)) == [submitted]  # assigned submitted equipment request
     assert ids(signed_in(Role.venue)) == []  # no venue booking yet
     for role in (Role.lead, Role.coordinator, Role.venue, Role.tech):
         assert draft not in ids(signed_in(role)), role

@@ -64,6 +64,17 @@ describe("idle sign-out", () => {
     expect(t.onIdle).toHaveBeenCalled();
   });
 
+  it("does not restart activity or repeat logout while sign-out is pending", () => {
+    const t = setup();
+    vi.advanceTimersByTime(IDLE_TIMEOUT_MS);
+    t.act();
+    t.doc.dispatchEvent(new Event("visibilitychange"));
+    vi.advanceTimersByTime(KEEPALIVE_MS);
+    expect(t.onIdle).toHaveBeenCalledTimes(1);
+    expect(t.ping).not.toHaveBeenCalled();
+    t.stop();
+  });
+
   it("restarts the 30 minutes on every activity", () => {
     const t = setup();
     vi.advanceTimersByTime(20 * MINUTE);

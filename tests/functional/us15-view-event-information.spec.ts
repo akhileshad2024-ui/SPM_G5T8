@@ -45,6 +45,9 @@ const rows = (scope: Locator, section: string) => scope.locator(`section[aria-la
 
 /** The card (Booking requests, Equipment, Browse events) for the event called `name`, with its details opened. */
 async function openCardDetails(page: Page, name: string): Promise<Locator> {
+  if (page.url().includes("/equipment")) {
+    await page.getByLabel("Assigned event", { exact: true }).selectOption({ label: name });
+  }
   const card = page.locator(".card").filter({ has: page.getByText(name, { exact: true }) }).filter({ has: page.getByRole("button", { name: "Details" }) });
   await card.getByRole("button", { name: "Details" }).click();
   await expect(card.getByText(/^Last updated /)).toBeVisible();

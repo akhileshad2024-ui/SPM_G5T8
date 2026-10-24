@@ -15,6 +15,9 @@ import { defineConfig, devices } from "@playwright/test";
 const BACKEND_PORT = 8100;
 const FRONTEND_PORT = 3100;
 const python = process.env.PYTHON ?? "python";
+// Quote only the shell command; execFile-based helpers still use the raw PYTHON path.
+const pythonCommand = process.platform === "win32" ? `"${python.replaceAll('"', '""')}"`
+  : "'" + python.replaceAll("'", "'\\''") + "'";
 const database = path.join(os.tmpdir(), "connectsphere-functional", "functional.db").replace(/\\/g, "/");
 
 export default defineConfig({
@@ -36,13 +39,15 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      command: `${python} ../tests/functional/support/seed_users.py && ${python} -m uvicorn main:app --port ${BACKEND_PORT}`,
+      command: `${pythonCommand} ../tests/functional/support/seed_users.py && ${pythonCommand} -m uvicorn main:app --port ${BACKEND_PORT}`,
       cwd: "backend",
       url: `http://127.0.0.1:${BACKEND_PORT}/docs`,
       env: {
         DATABASE_URL: `sqlite:///${database}`,
         JWT_SECRET: "functional-tests-only-secret-0123456789abcdef",
         APP_ENV: "development",
+        SMTP_HOST: "",
+        SMTP_FROM: "",
       },
       reuseExistingServer: false,
       timeout: 120_000,

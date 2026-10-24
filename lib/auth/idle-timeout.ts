@@ -77,6 +77,7 @@ export function startIdleTracker({
   let lastActivity = Date.now();
   let lastShared = lastActivity;
   let lastPing = lastActivity;
+  let idleTriggered = false;
   writeShared(store, lastActivity);
 
   // Pinging only after fresh activity keeps the server session alive at least
@@ -89,6 +90,7 @@ export function startIdleTracker({
   };
 
   const onActivity = () => {
+    if (idleTriggered) return;
     lastActivity = Date.now();
     if (lastActivity - lastShared >= 1000) {
       writeShared(store, lastActivity);
@@ -100,8 +102,10 @@ export function startIdleTracker({
   };
 
   const check = () => {
+    if (idleTriggered) return;
     const now = Date.now();
     if (now - Math.max(lastActivity, readShared(store)) >= IDLE_TIMEOUT_MS) {
+      idleTriggered = true;
       onIdle();
       return;
     }

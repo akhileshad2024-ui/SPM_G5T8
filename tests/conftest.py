@@ -28,3 +28,7 @@ def _remove_test_database():
     if database is not None:
         database.engine.dispose()  # release the file so Windows lets us delete it
     shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+# Tests never deliver to an SMTP server from a developer configuration.
+os.environ["SMTP_HOST"] = ""
+os.environ["SMTP_FROM"] = ""
