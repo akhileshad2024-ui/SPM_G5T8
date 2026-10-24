@@ -11,8 +11,11 @@ import { expect, request, type APIRequestContext, type Page } from "@playwright/
 // Keep in sync with tests/functional/support/seed_users.py.
 export const PASSWORD = "Functional-Test-1";
 export const MAYA = { email: "maya.rahman@connectsphere.edu", name: "Maya Rahman" }; // Event Organiser
-export const PRIYA = { email: "priya.tan@connectsphere.edu", name: "Priya Tan" }; // Event Coordinator
+export const ALEX = { email: "alex.chen@connectsphere.edu", name: "Alex Chen" }; // Event Organiser
+export const PRIYA ={ email: "priya.tan@connectsphere.edu", name: "Priya Tan" }; // Event Coordinator
 export const MARCUS = { email: "marcus.lee@connectsphere.edu", name: "Marcus Lee" }; // Event Coordinator
+export const WEI = { email: "wei.lim@connectsphere.edu", name: "Wei Lim" }; // Technical Support
+export const SAM = { email: "sam.adeyemi@student.connectsphere.edu", name: "Sam Adeyemi" }; // Attendee
 
 type Account = typeof MAYA;
 

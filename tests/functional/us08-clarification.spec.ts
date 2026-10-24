@@ -86,7 +86,9 @@ test.describe("US08 - Request Clarification or Amendments", () => {
     await submitDialog(page, QUESTION, "Send request");
     await expect(workspaceStatus(page)).toHaveText("Pending Clarification");
 
-    // When: Maya opens My Events.
+    // When: Maya opens My Events. (Leave the coordinator's page first: a request still in flight
+    // would renew her session cookie after it was cleared.)
+    await page.goto("about:blank");
     await page.context().clearCookies();
     await signIn(page, MAYA, /\/my-events/);
 
