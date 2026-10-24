@@ -1,9 +1,10 @@
 """
-Who is involved in an event, and so may see it and its status (US02 AC1, US13 AC1/AC4).
+Who is involved in an event, and so may see it and its status (US02 AC1, US13 AC1/AC4, US43).
 
     organiser          the events they created (drafts included)
-    coordinator        events assigned to them, plus live events nobody is assigned to yet
-                       (someone has to see those to review them or assign one, US07/US11)
+    coordinator        only the events assigned to them (US43)
+    lead               every live event, assigned or not: they oversee the coordinators and
+                       assign the unassigned ones (US43, US11)
     venue staff        events with a venue booking
     technical support  events that request equipment (once submitted)
     attendee           confirmed events open for registration
@@ -13,7 +14,6 @@ registrations are saved by other stories (US11, US22, US29); until they are, the
 use what the events table already records.
 """
 
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 
 import models
@@ -21,8 +21,8 @@ from login.models import Role, User
 
 S = models.EventStatus
 
-# Live (submitted and not closed): an unassigned event in one of these still needs a coordinator.
-UNASSIGNED_VISIBLE = (S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed)
+# Live: submitted and not closed. The Lead oversees these, and an unassigned one still needs a coordinator.
+LIVE = (S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed)
 
 
 def involved_events(query: Query, user: User) -> Query:
@@ -31,10 +31,9 @@ def involved_events(query: Query, user: User) -> Query:
     if user.role == Role.organiser:
         return query.filter(E.organiser_id == user.id)
     if user.role == Role.coordinator:
-        return query.filter(or_(
-            and_(E.coordinator_id == user.id, E.status != S.draft),
-            and_(E.coordinator_id.is_(None), E.status.in_(UNASSIGNED_VISIBLE)),
-        ))
+        return query.filter(E.coordinator_id == user.id, E.status != S.draft)
+    if user.role == Role.lead:
+        return query.filter(E.status.in_(LIVE))
     if user.role == Role.venue:
         return query.filter(E.status != S.draft, E.venue_id.is_not(None))
     if user.role == Role.tech:
@@ -51,7 +50,9 @@ def is_involved(event: models.Event, user: User) -> bool:
     if event.status == S.draft:
         return False
     if user.role == Role.coordinator:
-        return event.coordinator_id == user.id or (event.coordinator_id is None and event.status in UNASSIGNED_VISIBLE)
+        return event.coordinator_id == user.id
+    if user.role == Role.lead:
+        return event.status in LIVE
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:

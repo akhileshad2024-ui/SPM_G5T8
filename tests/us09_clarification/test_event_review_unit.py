@@ -112,7 +112,7 @@ def test_shared_assignment_guard_rejects_closed_events():
     db = Mock()
     db.get.return_value = SimpleNamespace(id=2, name="Priya", role=Role.coordinator, is_active=True)
     with pytest.raises(rules.ReviewError, match="can't be assigned"):
-        rules.assign(db, pending(status=rules.S.cancelled), organiser(id=2, role=Role.coordinator), 2)
+        rules.assign(db, pending(status=rules.S.cancelled), organiser(id=7, role=Role.lead), 2, datetime.now(timezone.utc))
 
 
 def test_shared_review_guard_rejects_a_different_assigned_coordinator():

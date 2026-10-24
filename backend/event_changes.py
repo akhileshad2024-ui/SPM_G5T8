@@ -1,4 +1,4 @@
-"""Organiser change-request rules (US33), independent of HTTP and the database."""
+"""Change-request rules (US33/US34), independent of HTTP and the database."""
 
 
 class ChangeRequestError(ValueError):
@@ -19,3 +19,17 @@ def prepare_request(event, user, proposed_changes):
     if not text:
         raise ChangeRequestError(422, "Describe the proposed change.")
     return {"proposed_changes": text, "status": "pending"}
+
+
+def prepare_decision(event, request, user, outcome, reason, now):
+    """US34: record a decision, not an automatic event edit or rebooking."""
+    if user.role != "coordinator" or event.coordinator_id != user.id:
+        raise ChangeRequestError(403, "Only the assigned Event Coordinator can review this request.")
+    if request.status != "pending":
+        raise ChangeRequestError(409, "This change request has already been reviewed.")
+    if outcome not in {"accepted", "rejected"}:
+        raise ChangeRequestError(422, "Accept or reject the change request.")
+    return {"status": outcome, "decision": {
+        "outcome": outcome, "reason": reason.strip(),
+        "by": user.name, "by_id": user.id, "at": now.isoformat(),
+    }}

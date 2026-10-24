@@ -1,0 +1,14 @@
+Coverage report for test_us46_prevent_overlapping_confirmed_bookings  (unit tests)
+Generated: 2026-10-24 18:08:28
+Test file: tests/unit/venue/test_us46_prevent_overlapping_confirmed_bookings.py
+Result: 28 tests, all passed
+Measured code: venue_conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking, venue_availability.py:clash_text, venue_bookings.py:require_unobstructed, schemas.py:BookingConflict
+
+Name                                                                            Stmts  Miss  Cover  Missing
+--------------------------------------------------------------------------------------------------------------
+venue_conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking     28     0   100%  
+venue_availability.py:clash_text                                                    3     0   100%  
+venue_bookings.py:require_unobstructed                                              5     0   100%  
+schemas.py:BookingConflict                                                         17     0   100%  
+--------------------------------------------------------------------------------------------------------------
+TOTAL                                                                              53     0   100%

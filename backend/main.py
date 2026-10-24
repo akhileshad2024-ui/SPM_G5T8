@@ -10,7 +10,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability
+import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -48,8 +48,10 @@ BOOKING_DECIDERS = (Role.venue,)
 EVENT_REQUESTERS = (Role.organiser,)
 # Who may register for events (US29-US31).
 REGISTRANTS = (Role.attendee,)
-# Who may review event requests and assign coordinators (US07, US08, US10, US11).
+# Who may review event requests (US07, US08, US10): the coordinator each event is assigned to.
 EVENT_REVIEWERS = (Role.coordinator,)
+# Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
+COORDINATOR_ASSIGNERS = (Role.lead,)
 
 EVENT_DRAFT_WRITERS = (Role.organiser,)
 
@@ -262,6 +264,8 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 # The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events
 # they are involved in (event_access.py), oldest first. The event page merges them into its events, so a
 # pending request, its hold and any override are still there after a reload.
+# Venue Staff also get what is in the way of each booking right now (US46 a confirmed booking, US47 another
+# pending request, US48 an unavailable period) and what a "Requires Reassessment" flag clashes with (US38).
 def expire_lapsed_holds(db: Session) -> None:
     """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released.
     Called before bookings or events are read; there is no background job."""
@@ -283,6 +287,8 @@ def list_bookings(db: Session = Depends(get_db), user: User = Depends(require_ro
         .order_by(models.VenueBooking.requested_at, models.VenueBooking.id)
         .all()
     )
+    if user.role == Role.venue:
+        return venue_bookings.staff_records(db, rows, datetime.now(timezone.utc))
     return [venue_bookings.to_record(row) for row in rows]
 
 # Fulfills US42-AC1: Venue Staff set or change when a pending request's tentative hold expires. It must be in
@@ -302,7 +308,9 @@ def set_hold_expiry(booking_id: int, body: schemas.BookingHoldIn, db: Session = 
 
 
 # Venue Staff approve or reject a pending booking request. Rejecting needs a reason. The event's current
-# venue follows the decision; a confirmed booking then blocks the venue for others. Rules broken -> 409.
+# venue follows the decision; a confirmed booking then blocks the venue for others. Approving is checked
+# again here against what is confirmed at this moment (US46) and the venue's unavailable periods (US48),
+# and refused, saying what is in the way, if anything is. Rules broken -> 409.
 @app.post("/bookings/{booking_id}/decision", response_model=schemas.VenueBooking)
 def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session = Depends(get_db), user: User = Depends(require_roles(*BOOKING_DECIDERS))):
     expire_lapsed_holds(db)  # US42: a hold that has lapsed is saved as expired before any decision
@@ -316,7 +324,7 @@ def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session
         raise HTTPException(status_code=409, detail=refusal.message)
     db.commit()
     db.refresh(booking)
-    return venue_bookings.to_record(booking)
+    return venue_bookings.staff_records(db, [booking], datetime.now(timezone.utc))[0]
 
 
 def coordinators_event(db: Session, event_id: int, user: User) -> models.Event:
@@ -415,6 +423,10 @@ def create_venue(venue: schemas.VenueCreate, db: Session = Depends(get_db), user
 # Fulfills US17: Edit & Deactivate, and US39: record, edit or end early an unavailability period.
 # Bookings holding the venue during a period are flagged (never cancelled) and returned, so their
 # coordinators can be told; a booking whose period was ended early or removed is un-flagged.
+# US38: a new setup or turnaround time re-checks every booking at the venue that has not happened yet.
+# Those that now overlap another booking are marked "Requires Reassessment" (never cancelled) and returned
+# in reassessed_bookings, so their coordinators can be told. A booking's hold follows the venue's times,
+# so the unavailability flags are worked out again too.
 @app.put("/venues/{venue_id}", response_model=schemas.VenueUpdateResponse)
 def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session = Depends(get_db), user: User = Depends(require_roles(*VENUE_MANAGERS))):
     db_venue = db.query(models.Venue).filter(models.Venue.id == venue_id).first()
@@ -431,11 +443,12 @@ def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session =
 
     now = datetime.now(timezone.utc)
     record_change(db, db_venue, change_action(changes), user.email, changes, now)
-    flagged = venue_unavailability.flag_affected_bookings(db, db_venue, now) if "unavailability" in changes else []
+    flagged, reassessed = venue_reassessment.after_venue_change(db, db_venue, changes, now)
     db.commit()
     db.refresh(db_venue)
-    # Not a column: only read by the response model (VenueUpdateResponse.flagged_bookings).
-    db_venue.flagged_bookings = [venue_bookings.to_record(row) for row in flagged]
+    # Not columns: only read by the response model (VenueUpdateResponse).
+    db_venue.flagged_bookings = [venue_bookings.to_record(row, staff=True) for row in flagged]
+    db_venue.reassessed_bookings = [venue_bookings.to_record(row, staff=True) for row in reassessed]
     return db_venue
 
 # Fulfills US17: venues are never deleted, only deactivated, so their booking history is kept.
@@ -471,6 +484,14 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
     organiser = db.get(User, event.organiser_id)
     coordinator = db.get(User, event.coordinator_id) if event.coordinator_id else None
     venue = db.get(models.Venue, event.venue_id) if event.venue_id else None
+    # US11: the assignment that gave the event its current coordinator.
+    assignment = (
+        db.query(models.EventAssignment)
+        .filter(models.EventAssignment.event_id == event.id, models.EventAssignment.coordinator_id == event.coordinator_id)
+        .order_by(models.EventAssignment.id.desc())
+        .first()
+    ) if event.coordinator_id else None
+    assigner = db.get(User, assignment.assigned_by_id) if assignment else None
     return schemas.EventResponse(
         id=event.id,
         status=event.status.value,
@@ -479,6 +500,8 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
         organiser=organiser.name if organiser else "",
         coordinatorId=event.coordinator_id,
         coordinator=coordinator.name if coordinator else None,
+        assignedBy=assigner.name if assigner else None,
+        assignedAt=utc(assignment.assigned_at) if assignment else None,
         purpose=event.purpose or "",
         eventType=event.event_type or "",
         pax=event.expected_attendance,
@@ -587,6 +610,31 @@ def list_event_change_requests(event_id: int, db: Session = Depends(get_db),
         models.EventChangeRequest.requested_at, models.EventChangeRequest.id).all()
 
 
+@app.post("/events/{event_id}/change-requests/{request_id}/decision", response_model=schemas.EventChangeRequestResponse)
+def review_event_change(event_id: int, request_id: int, body: schemas.EventChangeDecisionIn,
+                        db: Session = Depends(get_db),
+                        user: User = Depends(require_roles(Role.coordinator))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    # Serialize competing reviews of this request on Postgres. No event edits occur.
+    saved = db.query(models.EventChangeRequest).filter_by(
+        id=request_id, event_id=event_id).with_for_update().first()
+    if saved is None:
+        raise HTTPException(404, "Change request not found")
+    try:
+        prepared = event_changes.prepare_decision(event, saved, user, body.outcome,
+                                                  body.reason, datetime.now(timezone.utc))
+    except event_changes.ChangeRequestError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+    saved.status = prepared["status"]
+    saved.decision = prepared["decision"]
+    db.commit()
+    db.refresh(saved)
+    # US36 notification delivery is a separate, still-pending integration.
+    return saved
+
+
 # Fulfills US13: an event's timestamped status history, oldest first — only for users involved in it.
 @app.get("/events/{event_id}/history", response_model=List[schemas.StatusChangeResponse])
 def get_event_history(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -619,10 +667,24 @@ def get_event_history(event_id: int, db: Session = Depends(get_db), user: User =
 # The rules are in event_review.py (the same as lib/events/review/ on the page); each endpoint
 # returns the saved event as the coordinator sees it, so the page shows what was stored.
 
-# Fulfills US11: the Event Coordinator accounts an event can be assigned to.
+# Fulfills US11/US43: the Event Coordinator accounts an event can be assigned to. The Lead sees each
+# one's active events through GET /events.
 @app.get("/coordinators", response_model=List[schemas.CoordinatorResponse])
-def list_coordinators(db: Session = Depends(get_db), _user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+def list_coordinators(db: Session = Depends(get_db), _user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
     return [schemas.CoordinatorResponse(id=u.id, name=u.name) for u in event_review.active_coordinators(db)]
+
+
+# Fulfills US43 AC1/AC3 and US11 AC1: the Lead's queue of live requests nobody coordinates yet, oldest
+# submission first, with each one's basic information (the US04 handover's receiving end).
+@app.get("/lead/queue", response_model=List[schemas.EventView], response_model_exclude_unset=True)
+def lead_queue(db: Session = Depends(get_db), user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
+    rows = (
+        involved_events(db.query(models.Event), user)
+        .filter(models.Event.coordinator_id.is_(None))
+        .order_by(models.Event.submitted_at, models.Event.id)
+        .all()
+    )
+    return [event_view(db, event, user) for event in rows]
 
 
 def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventView:
@@ -642,11 +704,12 @@ def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventVi
     return event_view(db, event, user)
 
 
-# Fulfills US11: assign an Event Coordinator to an unassigned event.
+# Fulfills US11: the Lead assigns an Event Coordinator to an unassigned event; who assigned it and
+# when is recorded, and the coordinator can then see and manage the event (US43).
 @app.post("/events/{event_id}/assign", response_model=schemas.EventView, response_model_exclude_unset=True)
 def assign_coordinator(event_id: int, body: schemas.AssignCoordinatorIn, db: Session = Depends(get_db),
-                       user: User = Depends(require_roles(*EVENT_REVIEWERS))):
-    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId))
+                       user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
+    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId, now))
 
 
 # Fulfills US07: start reviewing a submitted request.

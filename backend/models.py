@@ -114,7 +114,7 @@ class Event(Base):
 
 
 class EventChangeRequest(Base):
-    """US33 proposals; US34 may later record a decision without losing the request."""
+    """US33 proposals and US34 decisions, separate from current event details."""
     __tablename__ = "event_change_requests"
 
     id = Column(Integer, primary_key=True)
@@ -178,10 +178,26 @@ class VenueBooking(Base):
     # US39: set while the venue is unavailable during this booking ({kind, reason, note, period_start,
     # period_end, message, flagged_at}). The booking is kept; the coordinator must arrange an alternative.
     flag = Column(JSON(none_as_null=True), nullable=True)
+# US38: set when a change to the venue's setup or turnaround time makes this booking overlap another
+    # one ({reason, message, setup_minutes, turnaround_minutes, clashes_with, flagged_at}). The booking is
+    # kept; it is "Requires Reassessment" until the clash is gone.
+    reassessment = Column(JSON(none_as_null=True), nullable=True)
     # US42: when this tentative hold lapses if not approved (UTC), and the Venue Staff member who last set it
-    # (None while it is the default set on request). See hold_expiry.py.
+    # (None while it is the default set on request). See hold_expiry.py. US48 reads it: once it has passed,
+    # the hold no longer blocks the venue and is left out of every conflict check.
     hold_expires_at = Column(DateTime(timezone=True), nullable=True)
     hold_expiry_set_by = Column(String, nullable=True)
+
+
+class EventAssignment(Base):
+    """US11: one row per coordinator assignment of an event, with who assigned it and when."""
+    __tablename__ = "event_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    coordinator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_at = Column(DateTime(timezone=True), nullable=False)
 
 
 class EventStatusChange(Base):

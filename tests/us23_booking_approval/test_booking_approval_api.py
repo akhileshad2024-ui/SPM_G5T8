@@ -75,7 +75,14 @@ def venues(staff):
 
 
 @pytest.fixture
-def approved_event(organiser, coordinator, db):
+def lead(signed_in):
+    return signed_in(Role.lead)
+
+
+@pytest.fixture
+def approved_event(organiser, coordinator, lead, db):
+    """make() -> an event submitted, assigned to Priya by the Lead (US11), reviewed and approved, ready to book."""
+
     def make(name="Design Keynote", start="10:00", end="12:00"):
         res = organiser.post("/events", json={
             "submit": True, "name": name, "description": "US23 test.", "eventType": "Conference",
@@ -86,7 +93,8 @@ def approved_event(organiser, coordinator, db):
         assert res.status_code == 201, res.text
         event_id = res.json()["id"]
         priya = get_user(db, Role.coordinator)
-        for step, body in (("assign", {"coordinatorId": priya.id}), ("review", {}), ("decision", {"outcome": "approved", "reason": ""})):
+        assert lead.post(f"/events/{event_id}/assign", json={"coordinatorId": priya.id}).is_success  # US11: the Lead assigns
+        for step, body in (("review", {}), ("decision", {"outcome": "approved", "reason": ""})):
             assert coordinator.post(f"/events/{event_id}/{step}", json=body).is_success
         return event_id
 
@@ -219,7 +227,7 @@ def test_US23_AC4_approving_confirms_the_hold_so_a_clashing_request_cannot_be_ap
     res = decide(staff, second.json()["booking"], "approved")
 
     assert res.status_code == 409
-    assert res.json()["detail"].startswith("Can't approve: clashes with Alumni Dinner")
+    assert res.json()["detail"].startswith("Can't approve: Clashes with Alumni Dinner")
 
 
 def test_US23_AC4_a_venue_deactivated_since_the_request_cannot_be_approved(staff, venues, approved_event, request_venue):

@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useApp } from "@/lib/state/app-context";
-import { canAssignCoordinator } from "@/lib/events/review/assignment";
+import { assignmentNote } from "@/lib/events/review/lead";
 import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
 import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { EventDetailsEditor } from "../EventDetailsEditor";
+import { ChangeRequests } from "@/components/my-events/ChangeRequests";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -18,41 +19,14 @@ function formatTimestamp(iso: string): string {
     : d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-/** US11: give an unassigned event a coordinator from the Event Coordinator accounts. */
+/** US11/US43: the event's coordinator and who assigned them. Only the Lead assigns (Assignments page). */
 function CoordinatorCard({ event }: { event: EventRecord }) {
-  const app = useApp();
-  const me = app.me.person;
-  const coordinators = app.state.coordinators.map((c) => c.name);
-  const [choice, setChoice] = useState(me);
-  const assignable = canAssignCoordinator(event);
-
+  const assigned = assignmentNote(event, formatTimestamp);
   return (
     <div className={`card ${styles.sideCard}`}>
       <div className={`eyebrow ${styles.sideHeading}`}>Coordinator</div>
       <div className={styles.coordinatorName}>{event.coordinator || "Unassigned"}</div>
-      {event.coordinator ? null : assignable ? (
-        <>
-          <select
-            className={`select-input ${styles.assignSelect}`}
-            value={choice}
-            onChange={(e) => setChoice(e.target.value)}
-            aria-label="Coordinator to assign"
-          >
-            {coordinators.map((c) => (
-              <option key={c} value={c}>
-                {c === me ? `${c} (me)` : c}
-              </option>
-            ))}
-          </select>
-          <button className={`btn btn-ghost ${styles.assignButton}`} onClick={() => app.assignCoordinator(event.id, choice)}>
-            Assign
-          </button>
-        </>
-      ) : (
-        <div className={styles.hint}>
-          {event.status === "draft" ? "Drafts can't be assigned until submitted." : "This event is closed."}
-        </div>
-      )}
+      {assigned && <div className={styles.hint}>{assigned}</div>}
     </div>
   );
 }
@@ -105,6 +79,23 @@ export function RequestTab({ event }: { event: EventRecord }) {
     <div className={styles.layout}>
       <div className={styles.main}>
         <EventDetailsEditor key={event.id} event={event} />
+        {event.backendId !== undefined && event.coordinator === app.me.person && app.state.role === "coordinator" && (
+          <div className={`card ${styles.card}`}>
+            <section aria-label="Existing arrangements">
+              <h3>Existing arrangements</h3>
+              <p>Review these alongside the proposal. Recording a decision does not change event details or arrangements.</p>
+              <p>Event: {event.date}, {event.start}–{event.end}; expected attendance {event.pax}.</p>
+              {event.bookings?.length ? <ul>{event.bookings.map(booking => <li key={booking.id}>
+                {booking.venue_name}: {booking.status}; {booking.date}, {booking.start}–{booking.end};
+                {" "}attendance {booking.attendance}; layout {booking.layout}.
+              </li>)}</ul> : <p>No venue bookings recorded.</p>}
+              <p>Equipment: {event.equipState || "None"}. {event.equip.map(item => `${app.equipName(item.id)} × ${item.qty}`).join(", ")}</p>
+              <p>Registration: {event.reg ? `${event.registered} registered / capacity ${event.regCap}` : "Disabled"}.</p>
+              <p>Use Venue, Equipment and Registration tabs for the available arrangement details.</p>
+            </section>
+            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview />
+          </div>
+        )}
         {decision && (
           <div
             className={`card ${styles.card} ${decision.outcome === "approved" ? styles.decisionApproved : styles.decisionRejected}`}

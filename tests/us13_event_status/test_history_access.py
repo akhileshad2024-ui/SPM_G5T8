@@ -78,11 +78,13 @@ def test_a_coordinator_cannot_see_an_event_assigned_to_another_coordinator(signe
     assert event_id not in [e["id"] for e in coordinator.get("/events").json()]
 
 
-def test_a_coordinator_sees_an_unassigned_event_under_review_so_it_can_still_be_assigned(signed_in, db):
+def test_an_unassigned_event_is_seen_by_the_lead_and_not_by_coordinators(signed_in, db):
+    # US43: the Lead oversees unassigned requests (to assign them); coordinators only see their own.
     event_id = create(signed_in(Role.organiser))
     move(db, event_id, S.under_review)
 
-    assert [e["toStatus"] for e in history(signed_in(Role.coordinator), event_id)] == ["submitted", "under_review"]
+    assert [e["toStatus"] for e in history(signed_in(Role.lead), event_id)] == ["submitted", "under_review"]
+    assert refused(signed_in(Role.coordinator), event_id)
 
 
 def test_a_coordinator_sees_the_history_once_the_event_is_assigned_to_them(signed_in, db):

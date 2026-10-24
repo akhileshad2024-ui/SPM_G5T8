@@ -18,6 +18,7 @@ Run by hand from the repo root (not part of the automated unit-test run):
 import os
 import sys
 import unittest
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 # Must be set before the backend is imported: database.py and security.py read these at import time.
@@ -31,12 +32,23 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import models
+import venue_bookings
 from database import Base, get_db
 from login.models import Role, User
 from login.security import COOKIE_NAME, create_session_token
 from main import app
+from venue_availability import event_window, occupied_window, to_datetime
+
+
+def a_monday_ahead(days=60) -> date:
+    day = date.today() + timedelta(days=days)
+    return day + timedelta(days=(7 - day.weekday()) % 7)
+
 
 MON = "2027-01-04"  # a Monday
+# A Monday far enough ahead to still be in the future whenever the tests are run (used where that matters).
+DAY = a_monday_ahead()
 COORDINATOR_EMAIL = "coordinator@connectsphere.edu"
 
 THEATRE = {
@@ -66,6 +78,7 @@ class BookingApiTestCase(unittest.TestCase):
         self.staff = self.client(Role.venue)
         self.coordinator = self.client(Role.coordinator)
         self.organiser = self.client(Role.organiser)
+        self.lead = self.client(Role.lead)  # US43: only the Event Coordinator Lead assigns coordinators
         self.venue = self.staff.post("/venues", json=THEATRE).json()
 
     def tearDown(self):
@@ -101,7 +114,7 @@ class BookingApiTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 201, res.text)
         event_id = res.json()["id"]
         assignee = self.db.query(User).filter(User.email == COORDINATOR_EMAIL).first()
-        self.assertTrue(self.coordinator.post(f"/events/{event_id}/assign", json={"coordinatorId": assignee.id}).is_success)
+        self.assertTrue(self.lead.post(f"/events/{event_id}/assign", json={"coordinatorId": assignee.id}).is_success)
         self.assertTrue(self.coordinator.post(f"/events/{event_id}/review", json={}).is_success)
         if approve:
             self.assertTrue(self.coordinator.post(f"/events/{event_id}/decision", json={"outcome": "approved", "reason": ""}).is_success)
@@ -118,6 +131,44 @@ class BookingApiTestCase(unittest.TestCase):
         res = client.get(f"/events/{event_id}")
         self.assertEqual(res.status_code, 200, res.text)
         return res.json()
+
+    def flat_venue(self, name="Flat Hall", **fields) -> int:
+        """A venue like the theatre but with no setup or turnaround time (unless given). Returns its id."""
+        res = self.staff.post("/venues", json={**THEATRE, "name": name, "setupMinutes": 0, "turnaroundMinutes": 0, **fields})
+        self.assertEqual(res.status_code, 200, res.text)
+        return res.json()["id"]
+
+    def requested(self, name, start, end, venue_id=None, acknowledged=False, day=DAY) -> dict:
+        """An approved event on `day` from `start` to `end` and its booking request. Returns the booking."""
+        event_id = self.make_event(name, preferredDate=day.isoformat(), startTime=start, endTime=end)
+        res = self.submit(event_id, venue_id=venue_id, acknowledged=acknowledged)
+        self.assertEqual(res.status_code, 200, res.text)
+        return res.json()["booking"]
+
+    def staff_view(self) -> dict:
+        """What Venue Staff are sent: every booking they can see, by event name."""
+        return {b["event_name"]: b for b in self.staff.get("/bookings").json()}
+
+    def put_booking(self, event_id, venue_id, status="pending", **fields) -> models.VenueBooking:
+        """A booking saved straight into the database for an event made through the API, whatever the rules would have
+        allowed when it was made: a second pending request for the same time (two coordinators asking at the same
+        moment), a hold that has expired, a booking that is already over."""
+        event, venue = self.db.get(models.Event, event_id), self.db.get(models.Venue, venue_id)
+        start, end = event.start_time.strftime("%H:%M"), event.end_time.strftime("%H:%M")
+        hold = occupied_window(event_window(event.date, start, end), venue)
+        values = dict(
+            event_id=event.id, event_name=event.name, venue_id=venue.id, venue_name=venue.name, status=status, date=event.date,
+            start_time=start, end_time=end, setup_minutes=venue.setupMinutes or 0, teardown_minutes=venue.turnaroundMinutes or 0,
+            hold_start=to_datetime(hold[0]), hold_end=to_datetime(hold[1]), attendance=event.expected_attendance, layout=event.layout,
+            verdict="suitable", requested_by=COORDINATOR_EMAIL, requested_at=datetime.now(timezone.utc),
+        )
+        values.update(fields)
+        row = models.VenueBooking(**values)
+        self.db.add(row)
+        self.db.commit()
+        venue_bookings.summarise(self.db, event)
+        self.db.commit()
+        return row
 
 
 class TestSubmitThroughTheApi(BookingApiTestCase):
@@ -252,7 +303,7 @@ class TestVenueStaffDecision(BookingApiTestCase):
         res = self.decide(second["id"], "approved")
 
         self.assertEqual(res.status_code, 409)
-        self.assertEqual(res.json()["detail"], "Can't approve: clashes with Gala, already booked on 04 Jan 2027.")
+        self.assertEqual(res.json()["detail"], "Can't approve: Clashes with Gala, already booked on 04 Jan 2027 (venue occupied 09:30–12:45 incl. 30 min setup and 45 min turnaround).")
 
     def test_only_venue_staff_can_decide_and_an_unknown_request_is_a_404(self):
         _, booking = self.requested()

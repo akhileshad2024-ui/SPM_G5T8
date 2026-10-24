@@ -1,0 +1,14 @@
+Coverage report for test_us38_flag_bookings_affected_by_venue_time_changes  (unit tests)
+Generated: 2026-10-24 17:10:20
+Test file: tests/unit/venue/test_us38_flag_bookings_affected_by_venue_time_changes.py
+Result: 46 tests, all passed
+Measured code: venue_reassessment.py, venue_conflicts.py:as_json, venue_bookings.py:_reassessment, schemas.py:BookingReassessment
+
+Name                             Stmts  Miss  Cover  Missing
+---------------------------------------------------------------
+venue_reassessment.py               68     0   100%  
+venue_conflicts.py:as_json           2     0   100%  
+venue_bookings.py:_reassessment      4     0   100%  
+schemas.py:BookingReassessment       7     0   100%  
+---------------------------------------------------------------
+TOTAL                               81     0   100%

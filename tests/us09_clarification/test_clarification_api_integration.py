@@ -16,7 +16,9 @@ def conversation(signed_in):
     assert created.status_code == 201, created.text
     event_id = created.json()["id"]
     url = f"/events/{event_id}"
-    assert priya.post(url + "/assign", json={"coordinatorId": priya.get("/auth/me").json()["id"]}).status_code == 200
+    # US43: the Event Coordinator Lead assigns Priya.
+    lead = signed_in(Role.lead)
+    assert lead.post(url + "/assign", json={"coordinatorId": priya.get("/auth/me").json()["id"]}).status_code == 200
     assert priya.post(url + "/review").status_code == 200
     assert priya.post(url + "/clarification", json={"kind": "clarification", "message": "Includes speakers?"}).status_code == 200
     return maya, priya, url, event_id

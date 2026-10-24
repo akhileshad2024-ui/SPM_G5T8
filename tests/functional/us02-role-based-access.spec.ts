@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ALEX, MAYA, PRIYA, SAM, WEI, apiAs, createRequest, signIn, toast, unique } from "./support/app";
+import { ALEX, GRACE, MAYA, PRIYA, SAM, WEI, apiAs, assignTo, createRequest, signIn, toast, unique } from "./support/app";
 import { DANIEL, catalogueCard, createVenue, observed } from "./support/venues";
 import { scenarioNames, seedScenario, sql } from "./support/scenario";
 
@@ -52,7 +52,7 @@ test.describe("US02 - Role-Based Access Control", () => {
     const draft = unique("Postgrad Mixer Draft");
     const submitted = unique("Submitted Request");
     await createRequest(maya, draft, { submit: false });
-    await createRequest(maya, submitted);
+    await assignTo(await apiAs(baseURL!, GRACE), await createRequest(maya, submitted), PRIYA);  // the Lead assigns Priya (US43)
 
     await signIn(page, PRIYA, /\/queue/);
     expect(await queueLists(page, submitted)).toBe(true);
@@ -67,6 +67,7 @@ test.describe("US02 - Role-Based Access Control", () => {
       [DANIEL, /\/bookings/, ["Booking requests", "Venue catalogue"]],
       [WEI, /\/equipment/, ["Equipment"]],
       [SAM, /\/browse/, ["Browse events"]],
+      [GRACE, /\/assignments/, ["Assignments"]],
     ] as const;
     const seen: string[] = [];
     for (const [who, landing, links] of expected) {

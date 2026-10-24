@@ -9,7 +9,8 @@ function booking(overrides: Partial<VenueBookingRecord> = {}): VenueBookingRecor
     hold_start: "2027-01-04T09:30:00", hold_end: "2027-01-04T12:45:00", attendance: 100, layout: "theatre",
     purpose: null, status: "approved", verdict: "suitable", requested_by: "priya.tan@connectsphere.edu",
     requested_at: "2027-01-01T01:00:00Z", override: null, decided_by: "daniel.ortiz@connectsphere.edu",
-    decided_at: "2027-01-02T01:00:00Z", decision_reason: null, flag: null, decision_notice: "approved",
+    decided_at: "2027-01-02T01:00:00Z", decision_reason: null, flag: null, reassessment: null, conflicts: [],
+    decision_notice: "approved",
     ...overrides,
   };
 }

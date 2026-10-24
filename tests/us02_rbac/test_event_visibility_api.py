@@ -6,7 +6,8 @@ backend/event_access.py. One fixed set of events is seeded below, and each role'
 list is written out by hand from the rule:
 
     organiser          their own events, drafts included
-    coordinator        events assigned to them + submitted events nobody has picked up yet
+    coordinator        only the events assigned to them (US43)
+    lead               every live event, assigned or not (US43)
     venue staff        events with a venue booking
     technical support  events that request equipment
     attendee           confirmed events open for registration
@@ -40,8 +41,9 @@ EVENTS = {
 
 VISIBLE_TO = {
     Role.organiser:   {"draft_mine", "submitted_mine", "review_other_coord", "approved_booked"},
-    Role.coordinator: {"submitted_mine", "submitted_other", "review_priya", "review_unassigned", "approved_booked",
-                       "confirmed_open"},
+    Role.coordinator: {"review_priya", "approved_booked", "confirmed_open"},
+    Role.lead:        {"submitted_mine", "submitted_other", "review_priya", "review_other_coord", "review_unassigned",
+                       "approved_booked", "confirmed_open", "confirmed_closed"},
     Role.venue:       {"approved_booked", "confirmed_open", "confirmed_closed", "cancelled_booked"},
     Role.tech:        {"submitted_mine", "review_unassigned", "approved_booked", "cancelled_booked"},
     Role.attendee:    {"confirmed_open"},
@@ -120,12 +122,19 @@ def test_a_coordinator_does_not_see_events_assigned_to_another_coordinator(signe
     assert "confirmed_closed" not in visible
 
 
-def test_a_coordinator_sees_unassigned_events_while_they_are_live(signed_in, seeded):
+def test_a_coordinator_does_not_see_unassigned_events(signed_in, seeded):
+    # US43: only the Lead sees requests nobody coordinates yet; coordinators see their own.
     visible = visible_names(signed_in(Role.coordinator), seeded)
 
-    # nobody is assigned yet, so any coordinator must be able to review it or assign one (US07/US11)
-    assert {"submitted_mine", "submitted_other", "review_unassigned"} <= visible
-    assert "cancelled_booked" not in visible    # closed: needs no coordinator
+    assert visible.isdisjoint({"submitted_mine", "submitted_other", "review_unassigned"})
+
+
+def test_the_lead_sees_every_live_event_assigned_or_not(signed_in, seeded):
+    visible = visible_names(signed_in(Role.lead), seeded)
+
+    assert {"submitted_other", "review_unassigned", "review_priya", "review_other_coord"} <= visible
+    assert "cancelled_booked" not in visible    # closed: needs no oversight
+    assert "draft_mine" not in visible
 
 
 def test_attendees_see_only_confirmed_events_with_registration_open(signed_in, seeded):
