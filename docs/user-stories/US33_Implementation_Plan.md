@@ -61,7 +61,7 @@ for this project's integer users/custom FastAPI authentication.
   wrapping. No successful visual review is claimed.
 - No production code, test code or database schema changed. No US33 tests run.
 
-## Remaining work
+## Database verification and original next step (historical)
 
 ### Shared database prerequisite verified (2026-10-24 SGT)
 
@@ -134,10 +134,61 @@ Verification:
 - Shared acceptance config supports `TC_STORY=US33`, one worker/no retries,
   TC_SHARED_DB=1 and locally supplied TC_MAYA_PASSWORD. It does not seed/reset.
 
-Next milestone: reconcile the draft blue TC setup/control descriptions with
+At that milestone, the next step was to reconcile the draft blue TC setup/control descriptions with
 this implementation, execute it against the existing app/Supabase and append
 only an actual matching run to yellow. Current yellow fields remain blank.
 Confirmed-event API coverage is present; the remaining confirmed UI path,
 US34 decision UI integration and US36 notification integration still need their
 appropriate matching TC/Playwright and boundary verification. No whole-story
 Done, shared TC Pass, remote CI, peer approval or merge is claimed.
+
+## Shared acceptance milestone (2026-10-24 SGT)
+
+Before execution, the canonical blue US33-TC01 was reconciled with implemented
+controls and the existing Playwright sequence. Removed DRAFT/planned wording;
+setup now states the table is already created/verified, no further SQL is
+required, and documents the exact opt-in command. Exact accounts, inputs and
+sixteen UI steps remain unchanged. The backend OpenAPI included the US33 route.
+Read-only DB baseline: 21 Maya events, zero change requests; account active and
+unlocked. No credentials were added to repository files.
+
+| Execution | SGT end time | Actual result | Evidence |
+| --- | --- | --- | --- |
+| Run 1 | 10:31:42 | Blocked at login; Playwright failed after 120 seconds waiting for the email input. Blank page; trace shows Next JavaScript/CSS404. No credentials entered or records created; read-only counts remained21/0. | `coverage/us33/acceptance-run1/report/index.html`, results trace/screenshot |
+| Run 2 | 10:34:53 | Pass, about1.3min; EVENT_ID=35, CHANGE_REQUEST_ID=1. Same request after refresh/new login, event Submitted/attendance85 unchanged, date/time/name/purpose unchanged; signed out. | `coverage/us33/acceptance-run2/report/index.html`, result attachment |
+
+Diagnosed the missing development assets after earlier build/test runs shared
+the active development server's `.next` directory. Restarted only this project's
+identified `dev-all` process; no cache deletion, source change or SQL mutation.
+Verified login/main JavaScript returned200 before the controlled second run.
+No automatic retries, seed, reset or cleanup. Existing services were left
+running for Wen. This was environment restoration, not a US33 business-rule fix.
+
+Read-only post-run Supabase verification: event35 is submitted, attendance85,
+2026-11-20 18:00–21:00; exactly one pending proposal with the specified text,
+requester equals event organiser and decision is null. Maya events21→22.
+Only the UI execution created the new event/request; Codex ran no SQL writes.
+
+Both yellow groups are retained in the shared TC Sheet (Run1 Blocked, Run2
+Pass). The first run's timestamp was refined to its actual trace end rather
+than the later recording time. Run2 uses the runner's `.last-run.json` finish
+timestamp. Change Log row59 records reconciliation, the blocker/restoration and
+actual results. Sprint3 DoD Pending updated; no DoD boxes checked. TC/Sheet
+content and formatting verified via API; native visual fit is not newly claimed.
+
+Future local verification: do not run production Build or a second Next dev
+instance against the same `.next` directory as an active dev server. Complete
+the isolated verification first, then restore/check the intended acceptance
+server and its assets before a shared run. Do not treat HTTP200 HTML alone as
+proof the client application is ready. No unchanged full suites were rerun for
+this record-only milestone; implementation/regression evidence above remains
+for193832a.
+
+### Current remaining scope
+
+- Confirmed-event UI path still needs matching TC/Playwright and execution;
+  confirmed permission is already covered by backend integration tests.
+- US34 decision/outcome UI and US36 significant-change notification integration
+  remain pending, with their corresponding acceptance/boundary verification.
+- Peer review, remote CI, merge and green merge-commit CI precede final DoD.
+- Whole US33 is not Done; TC01's submitted-event workflow is verified.
