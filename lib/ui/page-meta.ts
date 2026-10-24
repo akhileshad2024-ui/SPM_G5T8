@@ -4,7 +4,8 @@ import type { EventRecord, Venue } from "../types";
 /** Title + subtitle shown in the top bar, per route. Some subtitles are data-dependent. */
 export function getPageMeta(pathname: string, events: EventRecord[], venues: Venue[] = []): { title: string; subtitle: string } {
   const actionable = events.filter(needsCoordinatorAction).length;
-  const pendingBookings = events.filter((e) => e.bookingState === "pending").length;
+  // US41: an event may be waiting on several venues, so count the bookings.
+  const pendingBookings = events.flatMap((e) => e.bookings ?? []).filter((b) => b.status === "pending").length;
 
   switch (true) {
     case pathname.startsWith("/queue"):

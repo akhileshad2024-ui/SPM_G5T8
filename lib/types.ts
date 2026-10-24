@@ -135,7 +135,9 @@ export interface VenueBookingRecord {
   hold_end: string;
   attendance: number;
   layout: string;
-  /** pending and approved bookings hold the venue; rejected ones and ones replaced by a later request do not. */
+  /** US41: what this booking is for, e.g. "Main programme" or "Breakout session". */
+  purpose: string | null;
+  /** pending and approved bookings hold the venue; rejected and cancelled ones do not. */
   status: "pending" | "approved" | "rejected" | "cancelled";
   verdict: SuitabilityVerdict;
   requested_by: string;
@@ -239,6 +241,8 @@ export interface EventRecord {
   draftForm?: NewRequestForm;
   /** US22: the venue booking request as the backend recorded it (pending, venue held from setup to teardown). */
   bookingRequest?: VenueBookingRecord;
+  /** US41: every venue booking of the event (it may book several venues), oldest first. */
+  bookings?: VenueBookingRecord[];
   /** US21: each time the coordinator went ahead with a venue that was not fully suitable, oldest first. */
   venueOverrides?: BookingOverride[];
   /** US08: the latest clarification / amendment request sent to the organiser. */
@@ -306,6 +310,8 @@ export type ModalKind =
 export interface ModalState {
   kind: ModalKind;
   id: string;
+  /** rejectBooking: which of the event's bookings (US41: an event may have several). */
+  bookingId?: number;
   title: string;
   body: string;
   label: string;

@@ -327,6 +327,18 @@ class BookingRequestCreate(BaseModel):
     """
     event_id: int
     acknowledged: bool = False  # the coordinator accepted the warning about an unsuitable venue
+    # US41: this booking's own needs; left out, the event's attendance and layout are used.
+    attendance: Optional[int] = Field(None, gt=0)
+    layout: OptionalLayout = None
+    purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+
+
+class BookingChange(BaseModel):
+    """US41: the coordinator changes one booking's attendance, layout or purpose (only the fields sent)."""
+    attendance: Optional[int] = Field(None, gt=0)
+    layout: OptionalLayout = None
+    purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+    acknowledged: bool = False
 
 
 class VenueBooking(BaseModel):
@@ -345,6 +357,7 @@ class VenueBooking(BaseModel):
     hold_end: datetime  # ... to the end of the teardown
     attendance: int
     layout: str
+    purpose: Optional[str] = None
     status: Literal["pending", "approved", "rejected", "cancelled"]
     verdict: Verdict
     requested_by: str

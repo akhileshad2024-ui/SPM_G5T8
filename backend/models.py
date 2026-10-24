@@ -117,7 +117,8 @@ class VenueBooking(Base):
     """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
     so it survives a reload, Venue Staff can see it, and other searches see the venue as held.
 
-    status: pending (the venue is held) | approved | rejected | cancelled (replaced by a later request).
+    status: pending (the venue is held) | approved | rejected | cancelled (by the coordinator, US41).
+    An event may have several bookings at once, each at a different venue (US41).
     The venue is held from hold_start (start of setup) to hold_end (end of teardown), in the same
     local wall-clock time as the event; those two are stored without a time zone on purpose.
     """
@@ -136,8 +137,10 @@ class VenueBooking(Base):
     teardown_minutes = Column(Integer, nullable=False)
     hold_start = Column(DateTime, nullable=False)
     hold_end = Column(DateTime, nullable=False)
+    # US41: an event can book several venues, each with its own attendance, layout and purpose.
     attendance = Column(Integer, nullable=False)
     layout = Column(String, nullable=False)
+    purpose = Column(String, nullable=True)  # e.g. "Main programme", "Breakout session"
     verdict = Column(String, nullable=False)  # suitable | partially_suitable | unsuitable, when it was requested
     requested_by = Column(String, nullable=False)
     requested_at = Column(DateTime(timezone=True), nullable=False)
