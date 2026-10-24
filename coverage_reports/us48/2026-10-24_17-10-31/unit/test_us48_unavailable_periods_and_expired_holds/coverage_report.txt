@@ -1,0 +1,13 @@
+Coverage report for test_us48_unavailable_periods_and_expired_holds  (unit tests)
+Generated: 2026-10-24 17:10:31
+Test file: tests/unit/venue/test_us48_unavailable_periods_and_expired_holds.py
+Result: 21 tests, all passed
+Measured code: venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts, venue_availability.py:overlapping_periods,unavailability_text, venue_bookings.py:held_periods
+
+Name                                                           Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------------
+venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts     10     0   100%  
+venue_availability.py:overlapping_periods,unavailability_text      9     0   100%  
+venue_bookings.py:held_periods                                     8     0   100%  
+---------------------------------------------------------------------------------------------
+TOTAL                                                             27     0   100%

@@ -66,7 +66,7 @@ export function MyEventsTable({ events }: { events: EventRecord[] }) {
               >
                 View reason
               </button>
-            ) : (
+            ) : e.status !== "cancelled" && (
               <button className="btn btn-ghost btn-sm" onClick={() => app.openModal("change", e.id)}>
                 Request change
               </button>

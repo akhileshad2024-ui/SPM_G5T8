@@ -42,3 +42,19 @@ ALTER TABLE users ADD CONSTRAINT user_role
 -- 3. LATER, once every teammate's branch uses the new venue model (staging/main merged and pulled).
 --    Branches that still read "unavailableDates" break without it. This cannot be undone.
 -- ALTER TABLE venues DROP COLUMN "unavailableDates";
+
+-- US42 (Week 7 change CR-W7-4): tentative venue holds expire. Safe to run more than once.
+-- hold_expires_at is when an unapproved (pending) request stops holding its venue; hold_expiry_set_by
+-- is the Venue Staff member who last set it (NULL while it is the default given on request).
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expires_at timestamptz;
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS hold_expiry_set_by text;
+-- Give requests already pending the default expiry: 3 days after they were requested, but no later than
+-- the start of setup (hold_start is Singapore wall-clock time). Rows that already have one are left alone.
+UPDATE venue_bookings
+SET hold_expires_at = LEAST(requested_at + interval '3 days', hold_start AT TIME ZONE 'Asia/Singapore')
+WHERE status = 'pending' AND hold_expires_at IS NULL;
+
+-- US38 (Week 7 change #1): a booking whose venue setup/turnaround change makes it overlap another is
+-- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
+-- flagged (NULL when nothing needs reassessing). Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;

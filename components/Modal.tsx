@@ -50,6 +50,7 @@ export function Modal() {
             rows={4}
             value={app.state.modalText}
             onChange={(e) => app.setModalText(e.target.value)}
+            disabled={modal.kind === "change" && app.changeRequestPending}
             placeholder={modal.placeholder}
           />
         </div>
@@ -57,7 +58,8 @@ export function Modal() {
           <button className="btn btn-ghost" style={{ height: 38, padding: "0 16px" }} onClick={app.closeModal}>
             Cancel
           </button>
-          <button className="btn btn-primary" style={{ height: 38, padding: "0 18px" }} onClick={app.confirmModal}>
+          <button className="btn btn-primary" style={{ height: 38, padding: "0 18px" }} onClick={app.confirmModal}
+            disabled={modal.kind === "change" && app.changeRequestPending}>
             {modal.confirm}
           </button>
         </div>

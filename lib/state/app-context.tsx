@@ -36,7 +36,8 @@ import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
-import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails } from "../venues/booking";
+import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails, mergeBookings, releasedSummary } from "../venues/booking";
+import { fromExpiryInput, holdNotices } from "../venues/hold-expiry";
 import { VERDICT_LABEL } from "../venues/suitability";
 import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
@@ -141,6 +142,8 @@ interface AppState {
   coordinators: Coordinator[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
+  /** US42: tentative holds that lapsed, for Venue Staff (their events no longer hold a venue, so aren't listed). */
+  expiredHolds: VenueBookingRecord[];
   notifs: NotificationRecord[];
   selectedId: string;
   tab: EventTab;
@@ -214,6 +217,7 @@ function initialState(): AppState {
     events: [],
     registrations: [],
     coordinators: [],
+    expiredHolds: [],
     venues: [],
     notifs: [],
     ...sessionUiState(),
@@ -311,6 +315,7 @@ export interface AppApi {
   closeModal: () => void;
   setModalText: (text: string) => void;
   confirmModal: () => void;
+  changeRequestPending: boolean;
 
   // ---- event information (US15) ----
   /**
@@ -337,6 +342,8 @@ export interface AppApi {
   requestBooking: (eventId: string, venueId: string, acknowledged?: boolean, details?: BookingDetails) => Promise<boolean>;
   /** Venue Staff approve one of the event's bookings (US41: an event may have several). */
   approveBooking: (eventId: string, bookingId: number) => void;
+  /** US42: Venue Staff set when a pending request's tentative hold expires (`local` = datetime-local value, campus time). */
+  setHoldExpiry: (eventId: string, bookingId: number, local: string) => Promise<boolean>;
   /**
    * US41: change one booking's attendance, layout or purpose; the event's other bookings are kept. When the venue
    * isn't fully suitable for the new needs, resolves with `warning` until called again with `acknowledged`.
@@ -380,6 +387,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const draftSaveGuard = useRef(createPendingRequestGuard());
+  const changeRequestLock = useRef(false);
+  const [changeRequestPending, setChangeRequestPending] = useState(false);
   // Ignores repeat clicks while an event request is being saved, so one click = one row.
   const savingRequest = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -475,7 +484,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const endSession = (signInNotice: string | null = null) =>
     // Events and notifications belong to the user who was signed in, so they go too.
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], coordinators: [], notifs: [], signInNotice });
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], coordinators: [], expiredHolds: [], notifs: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
@@ -501,9 +510,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const applyVenues = (venues: Venue[]) => patch({ venues });
 
-  /** Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2). */
-  const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[]): EventRecord[] => {
-    const affected = newlyAffectedBookings(events, before, after);
+  /**
+   * Flag bookings a venue change has put in trouble and tell the coordinators (Week 7 changes #1 and #2).
+   * `savedByServer` are the events whose bookings the server has already flagged (US38, US39): it saved the
+   * flag and the coordinator is told from it, so they are not flagged again here.
+   */
+  const flagAffectedBookings = (events: EventRecord[], before: Venue[], after: Venue[], savedByServer: Set<string> = new Set()): EventRecord[] => {
+    const affected = newlyAffectedBookings(events, before, after).filter(({ event }) => !savedByServer.has(event.id));
     for (const { event, issues } of affected) {
       const summary = issues.map((i) => i.text).join(" ");
       patchEvent(event.id, {}, { title: "Venue issue — alternative arrangements needed", body: summary });
@@ -532,11 +545,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (role !== "coordinator" && role !== "venue") return;
         return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
           patch((s) => ({ events: attachBookings(s.events, bookings) }));
+          // US42-AC4: Venue Staff see expired holds, whose events they no longer see.
+          if (role === "venue") patch({ expiredHolds: bookings.filter((b) => b.status === "expired") });
+          // US42-AC3: the coordinator is warned about holds about to expire, and told when they have.
+          if (role === "coordinator") holdNotices(bookings).forEach((n) => notify(n.to, n.title, n.body));
           // US39: the coordinator is told about each booking whose venue has become unavailable.
           if (role === "coordinator") {
             for (const b of bookings) {
               if (b.flag && (b.status === "pending" || b.status === "approved")) {
                 notify("coordinator", "Replacement venue required", `${b.event_name} (${b.date}): ${b.flag.message}`);
+              }
+              // US38: a change to the venue's setup or turnaround time leaves this booking overlapping another.
+              if (b.reassessment && (b.status === "pending" || b.status === "approved")) {
+                notify("coordinator", "Booking requires reassessment", `${b.event_name} (${b.date}): ${b.reassessment.message}`);
               }
             }
           }
@@ -551,14 +572,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncEventBookings = async (e: EventRecord) => {
     if (e.backendId === undefined) return;
     const [stored, bookings] = await Promise.all([
-      apiFetch<StoredEvent>(`/events/${e.backendId}`),
+      // Venue Staff can only read an event while one of its bookings holds a venue: once the last is rejected it is no longer theirs to read.
+      apiFetch<StoredEvent>(`/events/${e.backendId}`).catch((err) => (err instanceof ApiError && err.status === 403 ? null : Promise.reject(err))),
       apiFetch<VenueBookingRecord[]>("/bookings"),
     ]);
-    const fresh = eventFromApi(stored);
+    const fresh = stored ? eventFromApi(stored) : null;
+    // All of them, not only this event's: approving or cancelling one changes what is in the way of the others
+    // at the venue (US46, US47) and whether they still Require Reassessment (US38).
     patch((s) => ({
       events: attachBookings(
-        s.events.map((x) => (x.id === e.id ? { ...x, venue: fresh.venue, bookingState: fresh.bookingState } : x)),
-        bookings.filter((b) => b.event_id === e.backendId),
+        s.events.map((x) => {
+          if (x.id !== e.id) return x;
+          return fresh ? { ...x, venue: fresh.venue, bookingState: fresh.bookingState } : { ...x, ...releasedSummary(x.bookings ?? []) };
+        }),
+        bookings,
       ),
     }));
   };
@@ -570,6 +597,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         method: "POST",
         body: JSON.stringify({ outcome, reason }),
       });
+      // The server sends back the decided booking as it now is; its other bookings and the rest of the venue's follow in syncEventBookings.
+      patch((s) => ({ events: mergeBookings(s.events, [booking]) }));
       if (outcome === "approved") {
         patchEvent(e.id, {}, { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` });
         notify("coordinator", "Venue booking approved", `${booking.venue_name} confirmed for ${e.name}.`);
@@ -583,6 +612,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err) {
       handleApiError(err);
+      // Refused because of what is in the way (US46, US48): it may have changed since this page loaded, so show what is there now.
+      if (err instanceof ApiError && err.status === 409) await syncEventBookings(e).catch(() => {});
       return false;
     }
   };
@@ -818,7 +849,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
 
       openModal: (kind, id, bookingId) => patch({ modal: { ...MODAL_CONTENT[kind], id, bookingId }, modalText: "" }),
-      closeModal: () => patch({ modal: null, modalText: "" }),
+      closeModal: () => { if (!changeRequestLock.current) patch({ modal: null, modalText: "" }); },
+      changeRequestPending,
       setModalText: (modalText) => patch({ modalText }),
       confirmModal: () => {
         const m = state.modal;
@@ -826,6 +858,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const text = (state.modalText || "").trim();
         const e = getEvent(state.events, m.id);
         if (!e) return;
+
+        if (m.kind === "change") {
+          if (changeRequestLock.current || e.backendId === undefined) return;
+          changeRequestLock.current = true;
+          setChangeRequestPending(true);
+          // US33: save only a proposal. No event mutation or fake notification.
+          void apiFetch(`/events/${e.backendId}/change-requests`, {
+            method: "POST", body: JSON.stringify({ proposed_changes: text }),
+          }).then(() => {
+            patch({ modal: null, modalText: "" });
+            flash("Change request submitted.");
+          }).catch(handleApiError).finally(() => {
+            changeRequestLock.current = false;
+            setChangeRequestPending(false);
+          });
+          return;
+        }
 
         // Review-workflow modals: the domain functions check the text, then the step is saved.
         const now = new Date();
@@ -865,11 +914,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           flash("Add a short note before sending.", "warn");
           return;
         }
-        if (m.kind === "change") {
-          patchEvent(m.id, { status: "under_review", changeNote: text }, { title: "Change requested by organiser", body: text });
-          notify("coordinator", "Change request", `${e.name}: ${text}`);
-          flash("Change request submitted.");
-        }
         patch({ modal: null, modalText: "" });
       },
 
@@ -903,22 +947,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify(input),
           });
           const saved = venueFromApi(res);
-          // US39: the server has saved the flag on these bookings; keep the events in step with it.
-          if (res.flagged_bookings?.length) {
-            const flaggedById = new Map(res.flagged_bookings.map((b) => [b.id, b]));
-            patch((s) => ({
-              events: s.events.map((e) => {
-                const updated = e.bookingRequest && flaggedById.get(e.bookingRequest.id);
-                return updated ? { ...e, bookingRequest: updated } : e;
-              }),
-            }));
-          }
+          // US39 and US38: the server has saved these flags (venue unavailable, Requires Reassessment); keep the events in step with them.
+          const savedByServer = [...(res.flagged_bookings ?? []), ...(res.reassessed_bookings ?? [])];
+          if (savedByServer.length) patch((s) => ({ events: mergeBookings(s.events, savedByServer) }));
+          const serverEvents = state.events.filter((e) => savedByServer.some((b) => b.event_id === e.backendId));
           const before = state.venues;
           const after = before.some((v) => v.id === saved.id)
             ? before.map((v) => (v.id === saved.id ? saved : v))
             : [...before, saved];
           applyVenues(after);
-          return { ok: true, venue: saved, flagged: flagAffectedBookings(state.events, before, after) };
+          const flaggedHere = flagAffectedBookings(state.events, before, after, new Set(serverEvents.map((e) => e.id)));
+          // One entry per event, however it was found.
+          const flagged = [...new Map([...serverEvents, ...flaggedHere].map((e) => [e.id, e])).values()];
+          return { ok: true, venue: saved, flagged };
         } catch (err) {
           if (err instanceof ApiError && err.status === 422) {
             return { ok: false, error: err.message, fields: err.fields };
@@ -980,6 +1021,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       approveBooking: (eventId, bookingId) => {
         const e = getEvent(state.events, eventId);
         if (e) void decideBooking(e, bookingId, "approved", "");
+      },
+      setHoldExpiry: async (eventId, bookingId, local) => {
+        const e = getEvent(state.events, eventId);
+        const expiresAt = fromExpiryInput(local);
+        if (!e) return false;
+        if (!expiresAt) {
+          flash("Choose the date and time the hold should expire.", "warn");
+          return false;
+        }
+        try {
+          const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}/hold`, {
+            method: "POST",
+            body: JSON.stringify({ expires_at: expiresAt }),
+          });
+          await syncEventBookings(e);
+          flash(`${booking.venue_name} held for ${e.name} until the new expiry.`);
+          return true;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) flash(err.message, "warn"); // e.g. after the start of setup
+          else handleApiError(err);
+          return false;
+        }
       },
       changeBooking: async (eventId, bookingId, details, acknowledged = false) => {
         const e = getEvent(state.events, eventId);
@@ -1183,7 +1246,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     return value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, isSavingDraft]);
+  }, [state, isSavingDraft, changeRequestPending]);
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;
 }

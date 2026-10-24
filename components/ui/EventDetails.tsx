@@ -62,7 +62,7 @@ export function EventDetails({ event }: { event: EventRecord }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div data-testid="event-details" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div className="tabular" style={{ fontSize: 12, color: "var(--text-subtle)" }}>
         <time dateTime={load.event.updatedAt}>{lastUpdatedLabel(load.event)}</time>
       </div>

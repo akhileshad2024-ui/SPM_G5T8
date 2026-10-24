@@ -1,0 +1,2 @@
+timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
+2026-10-24 17:10:31,unit,test_us48_unavailable_periods_and_expired_holds,21,passed,100.0,unit/test_us48_unavailable_periods_and_expired_holds

@@ -9,6 +9,7 @@ import { EventDetails } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import { StatusPill } from "@/components/ui/Pill";
+import { ChangeRequests } from "@/components/my-events/ChangeRequests";
 import type { EventRecord } from "@/lib/types";
 
 /** US15: one of the organiser's event requests, with its latest saved details. */
@@ -60,6 +61,7 @@ export default function EventDetailsPage() {
           <EventDetails event={event} />
           <ClarificationThread event={event} />
           <StatusHistoryToggle event={event} />
+          {event.status !== "draft" && <ChangeRequests eventId={backendId} />}
         </div>
       )}
     </div>

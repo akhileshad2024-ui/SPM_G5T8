@@ -79,7 +79,7 @@ TARGETS = {
     ],
     "test_us22_submit_booking_request": [
         "booking_request.py",
-        "venue_bookings.py",
+        "venue_bookings.py:held_periods,to_record,event_bookings,summarise,save_request,decide",
         "main.py:request_venue_booking,list_bookings,decide_booking",
         "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn",
     ],
@@ -93,6 +93,29 @@ TARGETS = {
         "event_fields.py",
         "main.py:event_view,lead_queue",
         "login/models.py",
+    ],
+    # US46, US47 and US48 share backend/venue_conflicts.py: each function is measured under the story that owns it.
+    "test_us38_flag_bookings_affected_by_venue_time_changes": [
+        "venue_reassessment.py",
+        "venue_conflicts.py:as_json",
+        "venue_bookings.py:_reassessment",
+        "schemas.py:BookingReassessment",
+    ],
+    "test_us46_prevent_overlapping_confirmed_bookings": [
+        "venue_conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking",
+        "venue_availability.py:clash_text",
+        "venue_bookings.py:require_unobstructed",
+        "schemas.py:BookingConflict",
+    ],
+    "test_us47_flag_conflicting_pending_requests": [
+        "venue_conflicts.py:conflicts_for",
+        "venue_bookings.py:staff_records",
+        "main.py:list_bookings",
+    ],
+    "test_us48_unavailable_periods_and_expired_holds": [
+        "venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts",
+        "venue_availability.py:overlapping_periods,unavailability_text",
+        "venue_bookings.py:held_periods",
     ],
 }
 

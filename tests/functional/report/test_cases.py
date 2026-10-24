@@ -1,5 +1,5 @@
 """
-The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US39, US41):
+The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US38, US39, US41, US46, US47, US48):
 the "written once" half of the test-case template. The Playwright specs in tests/functional/ carry
 the same IDs in their titles, e.g. "[TC-US18-01]".
 
@@ -21,9 +21,10 @@ EVENT = ("Event (Maya Rahman's request, assigned to Priya Tan, reviewed and appr
 CASES = []
 
 
-def case(id, story, ac, scenario, pre, steps, data, expected, gap=None):
-    """`gap`: for a test that is expected to fail today because of a known limitation, what the tester sees."""
-    CASES.append(dict(id=id, story=story, ac=ac, scenario=scenario, pre=pre, steps=steps, data=data, expected=expected, gap=gap))
+def case(id, story, ac, scenario, pre, steps, data, expected, gap=None, blocked=None):
+    """`gap`: for a test that is expected to fail today because of a known limitation, what the tester sees.
+    `blocked`: why a case can't be run at all yet (it has no Playwright test), e.g. it depends on a story that isn't built."""
+    CASES.append(dict(id=id, story=story, ac=ac, scenario=scenario, pre=pre, steps=steps, data=data, expected=expected, gap=gap, blocked=blocked))
 
 
 # ------------------------------------------------------------------ US17 Maintain Venue Catalogue
@@ -364,3 +365,114 @@ case("TC-US41-05", "US41", "AC5", "Check one booking can be changed or cancelled
      f"{COORD_DATA}\nRoom attendance 30 -> 35",
      "The room shows 35 people while the hall stays at 120. Cancelling the hall leaves the room Pending. Cancel all cancels the "
      "remaining two ('2 bookings cancelled.', '0 active').")
+
+
+# ------------------------------------------------------------------ US38 Flag Bookings Affected by Venue Time Changes
+TIMED_HALL = ("A venue exists with no setup or turnaround time. Career Fair (10:00-12:00) and Open House (12:30-14:00), "
+              "approved events on the same future date, have each requested it and are pending, so they clear each other.")
+OPEN_BOOKINGS = ["Sign in as Venue Staff and open Booking requests"]
+
+case("TC-US38-01", "US38", "AC1, AC2", "Check changing a venue's setup time flags the bookings that now overlap, listed with the booking they clash with",
+     f"{ENV} {STAFF} {TIMED_HALL}",
+     OPEN_BOOKINGS + ["Open Venue Catalogue, select Edit on the venue and change Setup minutes from 0 to 60; Save Venue", "Open Booking requests"],
+     f"{STAFF_DATA}\nSetup minutes 0 -> 60",
+     "A message says '<venue> updated. 2 bookings flagged to coordinators.' Under 'Bookings requiring reassessment' both bookings are listed, each tagged "
+     "'Requires Reassessment', saying the venue's setup and turnaround time changed (now 60 min setup and 0 min turnaround) and naming the other booking it clashes with "
+     "('Clashes with Open House, already requested on <date> (venue occupied 11:30–14:00 incl. 60 min setup).' and the same for Career Fair, held 09:00–12:00).")
+case("TC-US38-02", "US38", "AC1", "Check only the bookings that now overlap are flagged and every booking's hold follows the venue's new time",
+     f"{ENV} {STAFF} {TIMED_HALL} A third event, Evening Talk (18:00-19:00), has also requested it.",
+     ["Change the venue's setup time to 60 minutes", "Sign in as Venue Staff and open Booking requests", "Read Evening Talk's request"],
+     f"{STAFF_DATA}\nSetup minutes 0 -> 60",
+     "Career Fair and Open House are tagged 'Requires Reassessment'; Evening Talk is not and is not listed under 'Bookings requiring reassessment'. "
+     "Evening Talk's request reads 'Held from ... (60 min setup, 0 min teardown)'.")
+case("TC-US38-03", "US38", "AC3", "Check a flagged booking is never removed or cancelled automatically, and the event is unchanged",
+     f"{ENV} {STAFF} The venue and events of the first case, with both bookings confirmed by Venue Staff.",
+     ["Change the venue's setup time to 60 minutes", "Read both bookings and Career Fair's event (GET /bookings, GET /events/{id}) as the coordinator",
+      "Sign in as Venue Staff and open Booking requests"],
+     f"{STAFF_DATA}\nSetup minutes 0 -> 60",
+     "Both bookings are still approved, one flagged with the clash. Career Fair's event keeps its status, name, date, times, venue, booking state, attendance and layout. "
+     "Booking requests lists it under 'Bookings requiring reassessment' as Confirmed.")
+case("TC-US38-04", "US38", "AC4", "Check the event's coordinator is notified of the flagged booking",
+     f"{ENV} {COORD} The venue and events of the first case, with the venue's setup time changed to 60 minutes.",
+     ["Sign in as the Event Coordinator", "Open Notifications", "Open Career Fair in the Review queue and open its Venue tab"],
+     f"{COORD_DATA}",
+     "Notifications holds 'Booking requires reassessment' for Career Fair, saying the venue's setup and turnaround time changed (now 60 min setup and 0 min turnaround), "
+     "without naming Open House. The Venue tab shows 'Requires Reassessment.' on the booking. (No notification is stored until US36: the page works it out from the saved flag when it loads.)")
+case("TC-US38-05", "US38", "AC2", "Check a flag goes once the booking it clashed with is rejected",
+     f"{ENV} {STAFF} The venue and events of the first case, with the venue's setup time changed to 60 minutes so both bookings are flagged.",
+     OPEN_BOOKINGS + ["Select Reject with reason on Open House's request, enter a reason and confirm"],
+     f"{STAFF_DATA}\nReason=The hall is needed for the Career Fair.",
+     "A message says the booking was rejected. Without reloading the page, Open House's request leaves the pending list, Career Fair is no longer listed under "
+     "'Bookings requiring reassessment' or tagged 'Requires Reassessment', and its saved booking has no flag.")
+case("TC-US38-06", "US38", "AC2", "Check a flag goes once the venue's time is put back",
+     f"{ENV} {STAFF} The venue and events of the first case, with the venue's setup time changed to 60 minutes so both bookings are flagged.",
+     OPEN_BOOKINGS + ["Open Venue Catalogue, select Edit on the venue and change Setup minutes back to 0; Save Venue", "Open Booking requests"],
+     f"{STAFF_DATA}\nSetup minutes 60 -> 0",
+     "A message says the venue was updated (no bookings flagged). Neither booking is listed under 'Bookings requiring reassessment' and neither saved booking has a flag.")
+
+# ------------------------------------------------------------------ US46 Prevent Overlapping Confirmed Bookings
+HALL_30_45 = "A venue exists with 30 min setup and 45 min turnaround."
+GALA = "Gala (10:00-12:00) is confirmed at it."
+
+case("TC-US46-01", "US46", "AC1, AC3", "Check a booking that overlaps a confirmed booking can't be confirmed and the conflicting booking's details are shown",
+     f"{ENV} {STAFF} {HALL_30_45} {GALA} Fair (11:00-13:00) has been requested, with the warning acknowledged, and is pending.",
+     OPEN_BOOKINGS + ["Read Fair's request", "Select Approve booking"],
+     f"{STAFF_DATA}\nGala 10:00-12:00 (confirmed); Fair 11:00-13:00 (pending)",
+     "Fair's request shows \"Can't be approved while this stands.\" with 'Clashes with Gala, already booked on <date> (venue occupied 09:30–12:45 incl. 30 min setup and 45 min "
+     "turnaround).' and the line 'Gala · <date>, 10:00–12:00 · Confirmed booking'. Approve booking shows \"Can't approve:\" followed by the same message, and Fair stays pending.")
+case("TC-US46-02", "US46", "AC2", "Check the venue's setup and turnaround count around both bookings: touching windows are confirmed, one minute more is refused",
+     f"{ENV} {STAFF} {HALL_30_45} {GALA} Touching Fair (13:15-15:00) has been requested and is pending.",
+     OPEN_BOOKINGS + ["Select Approve booking on Touching Fair", "Request Overlapping Fair (13:14-15:00, warning acknowledged) as the coordinator and reload Booking requests",
+                      "Select Approve booking on Overlapping Fair"],
+     f"{STAFF_DATA}\nTouching Fair 13:15-15:00; Overlapping Fair 13:14-15:00",
+     "Gala occupies the venue until 12:45, so Touching Fair (setup from 12:45) is confirmed ('<venue> confirmed for Touching Fair.'). Overlapping Fair (setup from 12:44) "
+     "is refused with \"Can't approve:\" naming both Gala and Touching Fair.")
+case("TC-US46-03", "US46", "AC4", "Check the check is made again when the booking is confirmed, not only when it was requested",
+     f"{ENV} {STAFF} A venue exists with no setup or turnaround time. Gala (10:00-12:00) is confirmed at it. Fair (12:30-14:00) was requested and is pending.",
+     OPEN_BOOKINGS + ["Read Fair's request (nothing is in its way)", "In another session raise the venue's Setup minutes to 45", "On the open page select Approve booking on Fair"],
+     f"{STAFF_DATA}\nSetup minutes 0 -> 45",
+     "Fair looked approvable. Approve booking is refused with \"Can't approve:\" and 'Clashes with Gala, already booked on <date> (venue occupied 09:15–12:00 incl. 45 min setup).', "
+     "and the request then shows \"Can't be approved while this stands.\"")
+
+# ------------------------------------------------------------------ US47 Flag Conflicting Pending Requests
+case("TC-US47-01", "US47", "AC1", "Check pending requests that conflict with one another are flagged for manual resolution",
+     f"{ENV} {STAFF} {TIMED_HALL}",
+     OPEN_BOOKINGS + ["Open Venue Catalogue, select Edit on the venue and change Setup minutes from 0 to 60; Save Venue", "Open Booking requests"],
+     f"{STAFF_DATA}\nSetup minutes 0 -> 60",
+     "Before the change neither request is flagged. After it, a banner reads 'N pending requests conflict with another pending request.' and each of the two requests carries a "
+     "'Needs manual resolution' tag and 'This request conflicts with another pending request.', naming the other request with its date, time and status ('<event> · <date>, 12:30–14:00 · Pending booking').")
+case("TC-US47-02", "US47", "AC1", "Check nothing is decided for Venue Staff: they approve one, and the other can then only be rejected",
+     f"{ENV} {STAFF} {TIMED_HALL} The venue's setup time has been changed to 60 minutes, so the two requests conflict.",
+     OPEN_BOOKINGS + ["Select Approve booking on Career Fair", "Read Open House's request", "Select Approve booking on Open House",
+                      "Select Reject with reason on Open House, enter a reason and confirm"],
+     f"{STAFF_DATA}\nReason=The Career Fair has the hall.",
+     "Both requests were still pending before Staff acted. Career Fair is confirmed. Open House then shows \"Can't be approved while this stands.\" and no longer the 'Needs manual "
+     "resolution' tag; approving it is refused ('Can't approve: Clashes with Career Fair, already booked ...'); rejecting it with a reason works; Career Fair is left confirmed with nothing in its way.")
+case("TC-US47-03", "US47", "AC1", "Check requests that only touch are not flagged",
+     f"{ENV} {STAFF} A venue exists with 30 min setup and 45 min turnaround. Career Fair (10:00-12:00) and Open House (13:15-15:00) have each requested it and are pending.",
+     OPEN_BOOKINGS + ["Read both requests"],
+     STAFF_DATA,
+     "Career Fair is held until 12:45 and Open House from 12:45, so they do not overlap: neither request carries 'Needs manual resolution' or a conflict message.")
+
+# ------------------------------------------------------------------ US48 Include Unavailable Periods and Expired Holds in Conflict Checks
+case("TC-US48-01", "US48", "AC1", "Check an unavailable period over a pending booking is a conflict and stops it being confirmed, like a confirmed booking",
+     f"{ENV} {STAFF} {HALL_30_45} Career Fair (10:00-12:00) has requested it and is pending.",
+     OPEN_BOOKINGS + ["Open Venue Catalogue, select Edit on the venue, select + Add unavailable period (08:00 to 20:00 on the event's date, Maintenance, note 'Floor repairs'); Save Venue",
+                      "Open Booking requests and select Approve booking on Career Fair", "Change the period to end at 09:00 (another session), reload and select Approve booking"],
+     f"{STAFF_DATA}\nPeriod=<date> 08:00-20:00, Maintenance, Floor repairs; then ending 09:00",
+     "A message says '<venue> updated. 1 booking flagged to coordinators.' Career Fair's request shows \"Can't be approved while this stands.\" with '<venue> is unavailable "
+     "(Maintenance: Floor repairs) from <date>, 08:00 to <date>, 20:00.' and Approve booking is refused with \"Can't approve:\" and that message. With the period ended at 09:00 "
+     "(before the 09:30 setup) the warning is gone and the booking is confirmed.")
+case("TC-US48-02", "US48", "AC1", "Check a period next to the booking only clashes once the booking's setup reaches it",
+     f"{ENV} {STAFF} Two venues with 30 min setup and 45 min turnaround, each with a pending request for a 10:00-12:00 event (so each is held from 09:30). "
+     "One venue has an unavailable period ending 09:30, the other one ending 09:31.",
+     OPEN_BOOKINGS + ["Select Approve booking on the first venue's request", "Select Approve booking on the second venue's request"],
+     f"{STAFF_DATA}\nPeriods=06:00-09:30 and 06:00-09:31",
+     "The period ending 09:30, exactly when the setup starts, is not in the way: the booking is confirmed. The period ending 09:31 is: \"Can't approve: <venue> is unavailable (Maintenance) ...\".")
+case("TC-US48-03", "US48", "AC2", "Check expired tentative holds are excluded from the conflict check",
+     f"{ENV} {STAFF} A venue with a pending request whose tentative hold has expired, and a second event that asks for the same time.",
+     ["Request the venue for the second event", "Open Booking requests and read both requests"],
+     STAFF_DATA,
+     "The second request is not refused as a duplicate and is Suitable; neither request is flagged as conflicting with the other. A confirmed booking never expires.",
+     blocked="Blocked by US42 (Expire Tentative Venue Holds), which is not built: nothing in the app sets a hold's expiry time, so an expired hold can't be made through the "
+             "app. The rule is covered by unit and integration tests, which save an expired hold directly (tests/unit/venue/test_us48_*.py, tests/integration/test_us48_*.py).")
