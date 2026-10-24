@@ -137,8 +137,8 @@ export interface VenueBookingRecord {
   layout: string;
   /** US41: what this booking is for, e.g. "Main programme" or "Breakout session". */
   purpose: string | null;
-  /** pending and approved bookings hold the venue; rejected and cancelled ones do not. */
-  status: "pending" | "approved" | "rejected" | "cancelled";
+  /** pending and approved bookings hold the venue; rejected, cancelled and expired (US42) ones do not. */
+  status: "pending" | "approved" | "rejected" | "cancelled" | "expired";
   verdict: SuitabilityVerdict;
   requested_by: string;
   requested_at: string;
@@ -148,6 +148,11 @@ export interface VenueBookingRecord {
   decision_reason: string | null;
   /** US39: set while the venue is unavailable during this booking; the coordinator must arrange an alternative. */
   flag: BookingFlag | null;
+  /** US42: when this tentative hold lapses unless approved (ISO), and the Venue Staff member who set it (null = default). */
+  hold_expires_at?: string | null;
+  hold_expiry_set_by?: string | null;
+  /** US42: what the coordinator should be told, worked out by the server. */
+  hold_notice?: "expiring_soon" | "expired" | null;
 }
 
 export interface BookingFlag {

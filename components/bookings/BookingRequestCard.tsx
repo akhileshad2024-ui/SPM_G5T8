@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { attendanceLabel } from "@/lib/events/details";
 import { Tag } from "@/components/ui/Pill";
@@ -7,10 +8,13 @@ import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { StatusHistoryToggle } from "@/components/ui/StatusHistory";
 import type { EventRecord, Layout, VenueBookingRecord } from "@/lib/types";
 import { availabilityIssues } from "@/lib/venues/rules";
+import { holdExpiryLabel, toExpiryInput } from "@/lib/venues/hold-expiry";
 
 /** One pending booking request for Venue Staff to decide (US41: an event may have several, one per venue). */
 export function BookingRequestCard({ event, booking }: { event: EventRecord; booking: VenueBookingRecord }) {
   const app = useApp();
+  const [expiry, setExpiry] = useState(toExpiryInput(booking.hold_expires_at));
+  const [saving, setSaving] = useState(false);
   const venue = app.venue(String(booking.venue_id));
   if (!venue) return null;
 
@@ -45,6 +49,13 @@ export function BookingRequestCard({ event, booking }: { event: EventRecord; boo
             {new Date(booking.hold_end).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
             {" "}({booking.setup_minutes} min setup, {booking.teardown_minutes} min teardown) · {booking.attendance} people
           </div>
+          {holdExpiryLabel(booking) && (
+            // US42: the request is a tentative hold; it lapses at this time unless approved.
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: booking.hold_notice ? "var(--warn-fg)" : "var(--text)", marginTop: 6 }}>
+              {holdExpiryLabel(booking)}
+              {booking.hold_expiry_set_by ? ` · set by ${booking.hold_expiry_set_by}` : " · default (3 days after the request)"}
+            </div>
+          )}
           {others.length > 0 && (
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
               This event also has: {others.map((b) => `${b.venue_name}${b.purpose ? ` (${b.purpose})` : ""}, ${b.status}`).join("; ")}
@@ -79,6 +90,28 @@ export function BookingRequestCard({ event, booking }: { event: EventRecord; boo
             onClick={() => app.openModal("rejectBooking", event.id, booking.id)}
           >
             Reject with reason
+          </button>
+          <label className="field" style={{ marginTop: 6 }}>
+            <span className="eyebrow">Hold expires (campus time)</span>
+            <input
+              type="datetime-local"
+              className="text-input"
+              aria-label="Hold expires"
+              value={expiry}
+              onChange={(ev) => setExpiry(ev.target.value)}
+            />
+          </label>
+          <button
+            className="btn btn-ghost"
+            style={{ justifyContent: "center" }}
+            disabled={saving || !expiry || expiry === toExpiryInput(booking.hold_expires_at)}
+            onClick={async () => {
+              setSaving(true);
+              await app.setHoldExpiry(event.id, booking.id, expiry);
+              setSaving(false);
+            }}
+          >
+            Set hold expiry
           </button>
         </div>
       </div>

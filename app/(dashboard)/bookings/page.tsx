@@ -4,6 +4,7 @@ import { useApp } from "@/lib/state/app-context";
 import { AvailabilityCalendar } from "@/components/bookings/AvailabilityCalendar";
 import { BookingRequestCard } from "@/components/bookings/BookingRequestCard";
 import { bookingProblems } from "@/lib/venues/rules";
+import { holdExpiryLabel } from "@/lib/venues/hold-expiry";
 
 export default function BookingsPage() {
   const app = useApp();
@@ -48,6 +49,24 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+
+      {app.state.expiredHolds.length > 0 && (
+        // US42-AC4: holds that lapsed before they were approved. They never count as confirmed bookings.
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="section-heading">Expired holds</div>
+          {app.state.expiredHolds.map((b) => (
+            <div key={b.id} className="card" aria-label={`Expired hold: ${b.event_name} at ${b.venue_name}`} style={{ padding: "14px 18px" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <strong>{b.event_name}</strong>
+                <span className="pill" style={{ background: "var(--neutral-bg)", color: "var(--text-faint)" }}>Expired</span>
+              </div>
+              <div className="tabular" style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>
+                {b.venue_name} · {b.date}, {b.start}–{b.end} · {holdExpiryLabel(b)} · the venue has been released
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
