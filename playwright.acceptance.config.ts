@@ -5,14 +5,17 @@ import { defineConfig, devices } from "@playwright/test";
  * Start `npm run dev:all` first; provide TC passwords to this process only.
  */
 if (process.env.TC_SHARED_DB !== "1") throw new Error("Set TC_SHARED_DB=1 to acknowledge shared event writes.");
-for (const key of ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD"]) {
+const story = process.env.TC_STORY ?? "US09";
+if (!["US09", "US16", "US33"].includes(story)) throw new Error("TC_STORY must be US09, US16 or US33.");
+for (const key of story === "US33" ? ["TC_MAYA_PASSWORD"] : ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD"]) {
   if (!process.env[key]) throw new Error(`Missing ${key}; use the authorised TC credentials.`);
 }
 
 export default defineConfig({
   testDir: "tests/functional",
-  testMatch: process.env.TC_STORY === "US16" ? "us16-update-event-details.spec.ts" : "us09-respond-clarification.spec.ts",
-  grep: process.env.TC_STORY === "US16" ? /US16-TC01/ : /US09-TC01/,
+  testMatch: story === "US33" ? "us33-request-event-changes.spec.ts"
+    : story === "US16" ? "us16-update-event-details.spec.ts" : "us09-respond-clarification.spec.ts",
+  grep: new RegExp(`${story}-TC01`),
   workers: 1,
   retries: 0, // Do not automatically repeat shared-data writes.
   timeout: 120_000,

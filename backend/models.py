@@ -113,6 +113,19 @@ class Event(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class EventChangeRequest(Base):
+    """US33 proposals; US34 may later record a decision without losing the request."""
+    __tablename__ = "event_change_requests"
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    requested_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    proposed_changes = Column(Text, nullable=False)
+    status = Column(Text, nullable=False, default="pending", server_default="pending")
+    decision = Column(JSON(none_as_null=True), nullable=True)
+
+
 class EventDetailChange(Base):
     """US16: important detail changes, not status transitions or venue edits."""
     __tablename__ = "event_detail_changes"

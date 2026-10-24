@@ -469,3 +469,13 @@ export interface ApiEventDraft {
   submitted_at?: string | null;
   draft_form: NewRequestForm;
 }
+/** US33 proposals are separate from EventRecord's current values. */
+export interface EventChangeRequest {
+  id: number;
+  event_id: number;
+  requested_by_id: number;
+  requested_at: string;
+  proposed_changes: string;
+  status: string;
+  decision: Record<string, unknown> | null;
+}
