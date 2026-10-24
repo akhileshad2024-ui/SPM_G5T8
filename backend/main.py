@@ -598,6 +598,31 @@ def list_event_change_requests(event_id: int, db: Session = Depends(get_db),
         models.EventChangeRequest.requested_at, models.EventChangeRequest.id).all()
 
 
+@app.post("/events/{event_id}/change-requests/{request_id}/decision", response_model=schemas.EventChangeRequestResponse)
+def review_event_change(event_id: int, request_id: int, body: schemas.EventChangeDecisionIn,
+                        db: Session = Depends(get_db),
+                        user: User = Depends(require_roles(Role.coordinator))):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(404, "Event not found")
+    # Serialize competing reviews of this request on Postgres. No event edits occur.
+    saved = db.query(models.EventChangeRequest).filter_by(
+        id=request_id, event_id=event_id).with_for_update().first()
+    if saved is None:
+        raise HTTPException(404, "Change request not found")
+    try:
+        prepared = event_changes.prepare_decision(event, saved, user, body.outcome,
+                                                  body.reason, datetime.now(timezone.utc))
+    except event_changes.ChangeRequestError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
+    saved.status = prepared["status"]
+    saved.decision = prepared["decision"]
+    db.commit()
+    db.refresh(saved)
+    # US36 notification delivery is a separate, still-pending integration.
+    return saved
+
+
 # Fulfills US13: an event's timestamped status history, oldest first — only for users involved in it.
 @app.get("/events/{event_id}/history", response_model=List[schemas.StatusChangeResponse])
 def get_event_history(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

@@ -8,6 +8,7 @@ import { Dot } from "@/components/ui/Dot";
 import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { EventDetailsEditor } from "../EventDetailsEditor";
+import { ChangeRequests } from "@/components/my-events/ChangeRequests";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -105,6 +106,23 @@ export function RequestTab({ event }: { event: EventRecord }) {
     <div className={styles.layout}>
       <div className={styles.main}>
         <EventDetailsEditor key={event.id} event={event} />
+        {event.backendId !== undefined && event.coordinator === app.me.person && app.state.role === "coordinator" && (
+          <div className={`card ${styles.card}`}>
+            <section aria-label="Existing arrangements">
+              <h3>Existing arrangements</h3>
+              <p>Review these alongside the proposal. Recording a decision does not change event details or arrangements.</p>
+              <p>Event: {event.date}, {event.start}–{event.end}; expected attendance {event.pax}.</p>
+              {event.bookings?.length ? <ul>{event.bookings.map(booking => <li key={booking.id}>
+                {booking.venue_name}: {booking.status}; {booking.date}, {booking.start}–{booking.end};
+                {" "}attendance {booking.attendance}; layout {booking.layout}.
+              </li>)}</ul> : <p>No venue bookings recorded.</p>}
+              <p>Equipment: {event.equipState || "None"}. {event.equip.map(item => `${app.equipName(item.id)} × ${item.qty}`).join(", ")}</p>
+              <p>Registration: {event.reg ? `${event.registered} registered / capacity ${event.regCap}` : "Disabled"}.</p>
+              <p>Use Venue, Equipment and Registration tabs for the available arrangement details.</p>
+            </section>
+            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview />
+          </div>
+        )}
         {decision && (
           <div
             className={`card ${styles.card} ${decision.outcome === "approved" ? styles.decisionApproved : styles.decisionRejected}`}
