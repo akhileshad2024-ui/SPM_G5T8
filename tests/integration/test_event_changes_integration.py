@@ -114,6 +114,20 @@ class TestEventChangeRequestsApi(US05DraftApiTestCase):
         self.assertEqual(self.organiser.get(self.url).json()[0], first)
         self.assertEqual(first["decision"]["reason"], "Reviewed")
 
+    def test_us34_confirmed_event_and_recorded_arrangements_are_preserved(self):
+        self.event.status = "confirmed"
+        self.event.layout = "theatre"
+        self.event.equipment = [{"id": "E2", "qty": 2}]
+        self.event.equipment_state = "reserved"
+        self.event.registration_required = True
+        self.event.registration_cap = 100
+        self.db.commit()
+        before = {column.name: getattr(self.event, column.name) for column in models.Event.__table__.columns}
+        response = self.coordinator.post(self.decision_url(), json={"outcome": "accepted"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.db.expire_all()
+        self.assertEqual({column.name: getattr(self.event, column.name) for column in models.Event.__table__.columns}, before)
+
     def test_us34_authentication_role_and_assignment_are_enforced(self):
         url = self.decision_url()
         for client, code in [(TestClient(self.organiser.app), 401), (self.organiser, 403),
