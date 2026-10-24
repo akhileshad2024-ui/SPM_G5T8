@@ -324,6 +324,7 @@ export interface AppApi {
    * 404 not found). Detail readers load independently from list state.
    */
   loadEvent: (backendId: number) => Promise<StoredEvent>;
+  reloadEvents: () => Promise<void>;
 
   // ---- venue catalogue (US17) ----
   reloadVenues: () => Promise<void>;
@@ -628,6 +629,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);
 
+  // Durable, recipient-scoped notices are refreshed within US36's one-minute window.
+  useEffect(() => {
+    if (!state.authed || !state.user) return;
+    let active = true;
+    const role = state.user.role;
+    const refresh = () => apiFetch<Array<{ id: number; title: string; body: string; createdAt: string; read: boolean }>>("/notifications")
+      .then((rows) => {
+        if (!active) return;
+        patch((current) => ({ notifs: [
+          ...rows.map((row) => ({ id: -row.id, to: role, title: row.title, body: row.body,
+            when: new Date(row.createdAt).toLocaleString(), read: row.read })),
+          ...current.notifs.filter((row) => row.id > 0),
+        ] }));
+      }).catch(() => {});
+    void refresh();
+    const timer = setInterval(() => void refresh(), 15000);
+    return () => { active = false; clearInterval(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
+
   useIdleSignOut(
     state.authed,
     () => {
@@ -803,11 +824,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         router.push("/login");
       },
       handleApiError,
+      reloadEvents: loadEvents,
 
       flash,
       toggleNotifs: () => patch((s) => ({ notifsOpen: !s.notifsOpen })),
-      markAllRead: () =>
-        patch((s) => ({ notifs: s.notifs.map((n) => (n.to === s.role ? { ...n, read: true } : n)) })),
+      markAllRead: async () => {
+        try {
+          await apiFetch("/notifications/read", { method: "POST" });
+          patch((s) => ({ notifs: s.notifs.map((n) => (n.to === s.role ? { ...n, read: true } : n)) }));
+        } catch (error) { handleApiError(error); }
+      },
 
       select: (id, tab = "request") => patch({ selectedId: id, tab }),
       selectAndGoToQueue: (id) => {
@@ -1117,11 +1143,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return;
         }
         await Promise.all([loadEvents(), loadMyRegistrations()]);
-        notify(
-          "attendee",
-          saved.status === "registered" ? "Registration confirmed" : "Added to waitlist",
-          `${e.name} on ${e.date}. Confirmation email queued for ${me.email}.`,
-        );
         flash(
           saved.status === "registered"
             ? `Registered for ${e.name}. Confirmation email queued.`

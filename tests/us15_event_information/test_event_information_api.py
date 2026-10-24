@@ -89,6 +89,8 @@ def confirmed_event(db, venue):
         submitted_at=datetime(2026, 9, 30, 2, 0, tzinfo=timezone.utc),
     )
     db.add(event)
+    db.flush()
+    db.add(models.EquipmentAssignment(event_id=event.id, tech_id=get_user(db, Role.tech).id))
     db.commit()
     return event.id
 

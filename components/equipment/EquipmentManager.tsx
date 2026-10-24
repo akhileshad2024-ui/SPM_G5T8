@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useApp } from "@/lib/state/app-context";
 import { apiFetch } from "@/lib/api/client";
 import { EQUIP } from "@/lib/data/options";
 
@@ -13,6 +14,7 @@ type Snapshot = {
 
 /** Coordinator entry (US25) and assigned technician processing (US26–28). */
 export function EquipmentManager({ eventId, coordinator = false }: { eventId: number; coordinator?: boolean }) {
+  const app = useApp();
   const [data, setData] = useState<Snapshot | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [techId, setTechId] = useState("");
@@ -35,6 +37,7 @@ export function EquipmentManager({ eventId, coordinator = false }: { eventId: nu
     setBusy(true); setMessage("");
     try {
       accept(await apiFetch<Snapshot>(path, { method, ...(body ? { body: JSON.stringify(body) } : {}) }));
+      await app.reloadEvents();
       setMessage(method === "GET" ? "Availability refreshed." : "Equipment saved.");
     } catch (err) { setMessage(err instanceof Error ? err.message : "Could not save equipment."); }
     finally { setBusy(false); }

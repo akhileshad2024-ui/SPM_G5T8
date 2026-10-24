@@ -166,7 +166,9 @@ class TestEveryRolesVisibility(LeadTestCase):
         self.venue_id = self.venue().id
         self.request("Draft", status=S.draft, venue_id=self.venue_id, equipment_state="requested")
         self.request("Booked", status=S.approved, venue_id=self.venue_id)
-        self.request("Equipment", equipment_state="requested")
+        equipment_event = self.request("Equipment", equipment_state="requested")
+        self.db.add(models.EquipmentAssignment(event_id=equipment_event.id, tech_id=self.wei.id))
+        self.db.commit()
         self.request("Open", status=S.confirmed, registration_required=True)
         self.request("Closed registration", status=S.confirmed, registration_required=False)
 

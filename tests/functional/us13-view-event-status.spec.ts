@@ -101,12 +101,14 @@ test.describe("US13 - View Event Status", () => {
 
   test("[TC-041] [US13-AC1] technical support can view the status of an event that requests equipment", async ({ page }, info) => {
     await signIn(page, WEI, /\/equipment/);
+    await page.getByLabel("Assigned event", { exact: true }).selectOption({ label: names.symposium });
     const symposium = card(page, names.symposium);
     await expect(symposium).toContainText("Projector");
     await expect(symposium).toContainText("× 2");
     await openHistory(symposium);
     await expect(currentStatus(symposium)).toHaveText("Confirmed");
     await expect(card(page, names.pitch)).toHaveCount(0);
+    await expect(page.getByRole("option", { name: names.pitch, exact: true })).toHaveCount(0);
     observed(info, `${names.symposium} was listed under Equipment requests (Projector × 2); its Status history showed Current status Confirmed. The pitch night (no equipment) was not listed.`);
   });
 

@@ -34,7 +34,7 @@ def expected(event, user):
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:
-        return event.equipment_state is not None
+        return event.equipment_state is not None and event.equipment_assignment is not None and event.equipment_assignment.tech_id == user.id
     if user.role == Role.attendee:
         return event.status == S.confirmed and event.registration_required
     return False
@@ -66,6 +66,9 @@ def every_kind_of_event(db):
             venue_id=venue_id, equipment_state=equipment_state, registration_required=registration,
             facilities=[], accessibility=[], equipment=[],
         ))
+    db.flush()
+    for row in db.query(models.Event).filter(models.Event.equipment_state.is_not(None)):
+        db.add(models.EquipmentAssignment(event_id=row.id, tech_id=other_organiser_id))
     db.commit()
     return db.query(models.Event).all(), other_coordinator_id
 

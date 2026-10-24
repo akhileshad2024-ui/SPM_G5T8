@@ -6,7 +6,7 @@ Who is involved in an event, and so may see it and its status (US02 AC1, US13 AC
     lead               every live event, assigned or not: they oversee the coordinators and
                        assign the unassigned ones (US43, US11)
     venue staff        events with a venue booking
-    technical support  events that request equipment (once submitted)
+    technical support  submitted equipment requests assigned to that technician
     attendee           confirmed events open for registration
 
 Drafts are only ever visible to their organiser. Coordinator assignments, bookings and
@@ -37,7 +37,8 @@ def involved_events(query: Query, user: User) -> Query:
     if user.role == Role.venue:
         return query.filter(E.status != S.draft, E.venue_id.is_not(None))
     if user.role == Role.tech:
-        return query.filter(E.status != S.draft, E.equipment_state.is_not(None))
+        return query.filter(E.status != S.draft, E.equipment_state.is_not(None),
+                            E.equipment_assignment.has(tech_id=user.id))
     if user.role == Role.attendee:
         return query.filter(E.status == S.confirmed, E.registration_required.is_(True))
     return query.filter(False)
@@ -56,7 +57,8 @@ def is_involved(event: models.Event, user: User) -> bool:
     if user.role == Role.venue:
         return event.venue_id is not None
     if user.role == Role.tech:
-        return event.equipment_state is not None
+        return (event.equipment_state is not None and event.equipment_assignment is not None
+                and event.equipment_assignment.tech_id == user.id)
     if user.role == Role.attendee:
         return event.status == S.confirmed and bool(event.registration_required)
     return False

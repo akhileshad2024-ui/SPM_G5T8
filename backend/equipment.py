@@ -16,6 +16,7 @@ from database import get_db
 from login.models import Role, User
 from login.security import require_roles
 import models
+from messaging import notify
 
 router = APIRouter()
 CATALOGUE = [("E1", "Wireless microphone", 12), ("E2", "Projector", 6),
@@ -51,10 +52,13 @@ class ProgressIn(BaseModel):
 
 
 def seed_catalogue(db):
-    # Idempotent initial catalogue; no production stock is reset on restart.
+    # Concurrent startup workers may all seed; the primary key resolves races.
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+    insert = pg_insert if db.bind.dialect.name == "postgresql" else sqlite_insert
     for item_id, name, total in CATALOGUE:
-        if db.get(models.EquipmentStock, item_id) is None:
-            db.add(models.EquipmentStock(id=item_id, name=name, total=total, maintenance=0, out_of_service=0))
+        db.execute(insert(models.EquipmentStock).values(id=item_id, name=name, total=total,
+            maintenance=0, out_of_service=0).on_conflict_do_nothing(index_elements=["id"]))
     db.commit()
 
 
@@ -90,13 +94,18 @@ def availability(db, event, stock):
         models.EquipmentReservation.start < end, models.EquipmentReservation.end > start,
         models.Event.status.notin_([models.EventStatus.cancelled, models.EventStatus.rejected]),
     ).all()
-    # Peak concurrent use, not the sum of disjoint bookings within this event.
-    edges = [(max(start, r.start), r.quantity) for r in rows] + [(min(end, r.end), -r.quantity) for r in rows]
+    return max(0, stock.total - stock.maintenance - stock.out_of_service - peak_reserved(rows, start, end))
+
+
+def peak_reserved(rows, start, end):
+    """Maximum simultaneous held quantity in the half-open interval [start, end)."""
+    edges = [(max(start, r.start), r.quantity) for r in rows if r.start < end and r.end > start]
+    edges += [(min(end, r.end), -r.quantity) for r in rows if r.start < end and r.end > start]
     used = peak = 0
     for _, delta in sorted(edges, key=lambda edge: (edge[0], edge[1])):
         used += delta
         peak = max(peak, used)
-    return max(0, stock.total - stock.maintenance - stock.out_of_service - peak)
+    return peak
 
 
 def snapshot(db, event):
@@ -111,7 +120,7 @@ def snapshot(db, event):
                               "maintenance": s.maintenance, "outOfService": s.out_of_service,
                               "available": free[s.id]} for s in stock],
             "history": [{"itemId": h.item_id, "by": name, "at": h.changed_at.replace(tzinfo=timezone.utc).isoformat(), "changes": h.changes} for h, name in history],
-            "notificationPending": "Notification delivery depends on US36."}
+            "notificationPending": None}
 
 
 def audit(db, event, user, changes, item_id=None):
@@ -155,6 +164,7 @@ def save_request(event_id: int, body: RequestIn, db: Session = Depends(get_db), 
     else:
         db.add(models.EquipmentAssignment(event_id=event.id, tech_id=body.techId))
     audit(db, event, user, {"lines": event.equipment, "techId": body.techId})
+    notify(db, body.techId, event, "Equipment request submitted", f"{event.name}: review the equipment request and arrange the required items.")
     db.commit()
     return snapshot(db, event)
 
@@ -165,6 +175,7 @@ def update_line(event_id: int, item_id: str, body: ProgressIn, db: Session = Dep
     event = event_for(db, event_id, user, True)
     if event.status in {"draft", "cancelled", "rejected"}:
         raise HTTPException(409, "Equipment cannot be updated for a closed or draft event.")
+    old_lines = event.equipment
     line = next((dict(l) for l in event.equipment or [] if l["id"] == item_id), None)
     if line is None:
         raise HTTPException(404, "Equipment line not found")
@@ -187,7 +198,10 @@ def update_line(event_id: int, item_id: str, body: ProgressIn, db: Session = Dep
         db.query(models.EquipmentReservation).filter_by(event_id=event.id, item_id=item_id).delete()
     line.update(status=body.status, qty=qty, notes=body.notes.strip(), alternative=body.alternative.strip())
     event.equipment = [line if l["id"] == item_id else l for l in event.equipment]
+    previous_status = next(l.get("status", "pending") for l in (old_lines or []) if l["id"] == item_id)
     audit(db, event, user, line, item_id)
+    if previous_status != body.status:
+        notify(db, event.coordinator_id, event, "Equipment status updated", f"{event.name}: {stock[item_id].name} is now {body.status}. Review the equipment arrangements.")
     db.commit()
     return snapshot(db, event)
 
@@ -196,6 +210,7 @@ def update_line(event_id: int, item_id: str, body: ProgressIn, db: Session = Dep
 def assigned_requests(db: Session = Depends(get_db), user: User = Depends(require_roles(Role.tech))):
     events = db.query(models.Event).join(models.EquipmentAssignment, models.EquipmentAssignment.event_id == models.Event.id).filter(
         models.EquipmentAssignment.tech_id == user.id,
+        models.Event.equipment_state.is_not(None),
         models.Event.status.notin_([models.EventStatus.draft, models.EventStatus.rejected, models.EventStatus.cancelled]),
     ).order_by(models.Event.id).all()
     return [{"id": e.id, "name": e.name, "date": e.date.isoformat() if e.date else "", "start": str(e.start_time), "end": str(e.end_time)} for e in events]

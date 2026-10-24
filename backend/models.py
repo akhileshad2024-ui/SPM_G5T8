@@ -1,6 +1,7 @@
 import enum
 from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Date, Time, Text, Enum, ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from database import Base
 
 class Venue(Base):
@@ -87,6 +88,8 @@ class Event(Base):
     accessibility = Column(JSON, nullable=False, default=list)
     # [{id, qty, technicalRequirements}]
     equipment = Column(JSON, nullable=False, default=list)
+
+    equipment_assignment = relationship("EquipmentAssignment", uselist=False, foreign_keys="EquipmentAssignment.event_id")
 
     # Registration settings.
     registration_required = Column(Boolean, nullable=False, default=False)
@@ -281,3 +284,30 @@ class EquipmentUpdate(Base):
     changed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     changed_at = Column(DateTime(timezone=True), nullable=False)
     changes = Column(JSON, nullable=False)
+
+
+class Notification(Base):
+    """A durable, per-recipient notice; never a role-wide broadcast."""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class EmailOutbox(Base):
+    """Transactional outbox: registration and its confirmation are committed together."""
+    __tablename__ = "email_outbox"
+    id = Column(Integer, primary_key=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    recipient = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    attempts = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)

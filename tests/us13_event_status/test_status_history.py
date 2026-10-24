@@ -268,10 +268,12 @@ def test_venue_staff_see_events_with_a_venue_booking(signed_in, db):
     assert venue_staff.get(f"/events/{not_booked}/history").status_code == 403
 
 
-def test_technical_support_see_events_that_request_equipment(signed_in):
+def test_technical_support_see_events_that_request_equipment(signed_in, db):
     with_equipment = create(signed_in(Role.organiser))
     without_equipment = create(signed_in(Role.organiser), equipment=[])
 
+    db.add(models.EquipmentAssignment(event_id=with_equipment, tech_id=get_user(db, Role.tech).id))
+    db.commit()
     tech = signed_in(Role.tech)
 
     assert [e["id"] for e in tech.get("/events").json()] == [with_equipment]

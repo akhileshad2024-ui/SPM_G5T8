@@ -1,60 +1,82 @@
-# Yangbo — Sprint 3 delivery
+# Yangbo — US25–US32 delivery and DoD evidence
 
-Source: Notion Product Backlog, US25–US32, read 24 October 2026.
-Branch: `yangbo/m5-equipment-registration-tests`.
+PR: https://github.com/akhileshad2024-ui/SPM_G5T8/pull/36
+Sources: Notion Product Backlog and Sprint 3 DoD checklist read 24 October 2026.
 
-## What changed
+## Behavior
 
-The assigned coordinator opens Review queue → event → Equipment, adds/edits/removes equipment, chooses a technician and submits. The assigned technician opens Equipment, selects the event, checks availability, updates quantities, notes, alternative suggestions and line status. Selecting Pending releases a reservation; Reserved creates/amends it; Fulfilled locks the line. Requests, reservations and audit history persist in the database.
+Assigned coordinator: Review queue → event → Equipment. Add/edit/remove equipment types, positive integer quantities and technical requirements; choose an active technician and submit. The request and a notification to that technician are saved atomically.
 
-Availability excludes maintenance/out-of-service quantities and uses peak concurrent reservations during the event period. Adjacent intervals do not conflict. Cancelled/rejected events no longer consume stock. Reservations lock shared catalogue rows in PostgreSQL before checking and writing, preventing competing requests from committing the same stock. Unit/API tests use SQLite and do not prove production concurrency behavior.
+Assigned technician: Equipment → select an event. Check period-specific availability, update line status (Pending / Reserved / Unavailable / Fulfilled), quantity, notes and alternative suggestion. Reserved creates/amends the event/item reservation; Pending/Unavailable releases it; Fulfilled locks it. Status changes save a notification to the assigned coordinator. Every update has a stored actor and timestamp. Notifications survive reload and read state is persisted; active signed-in pages poll every 15 seconds.
 
-Existing US29–US32 implementation is retained. Added browser tests cover registration, duplicates, waitlist, closing date, status/history, confirmed/cancelled withdrawal, deadline, managed-event access, filters and CSV export.
+Availability excludes maintenance and out-of-service quantities and counts peak concurrent use in half-open time intervals. Adjacent reservations do not overlap. PostgreSQL writes lock stock rows in a consistent order before checking availability and committing reservations. Fulfilled equipment cannot be changed via the generic event editor either.
 
-## Acceptance coverage and pending work
+US29 successful registration commits an attendee-scoped notification and an email outbox row together with the registration. Configured SMTP can deliver after the response; a retry worker handles pending/failed messages. The UI only claims the email is queued, never that it reached the inbox.
 
-| Story | Implemented / covered | Pending |
-|---|---|---|
-| US25 | Equipment type/quantity/technical requirements; planning edits; invalid/unsupported/duplicate items rejected; assigned coordinator only; reserved and fulfilled items protected | AC4 technician notification requires US36 |
-| US26 | Assigned technician access; Pending/Reserved/Unavailable/Fulfilled; notes and alternative suggestion; saved user/time audit | AC4 coordinator notifications require US36 |
-| US27 | Period availability; overlapping reservations; maintenance/out-of-service exclusion; shortfall displayed | Browser test and representative deployed response-time measurement (<3s) must run |
-| US28 | Persistent event/item reservations, capacity guard, amendments and release, adjacent/overlap cases | Browser execution; PostgreSQL concurrent reservation validation |
-| US29–32 | Existing implementation plus new browser test suite | Browser execution; actual email delivery remains absent (US29 AC5). Rescheduling workflow dependencies remain outside these tests |
+## Review fixes
 
-The written US29 criterion says registration is prevented at capacity, while the existing implementation offers a waitlist (consistent with US30's Waitlisted status). The browser test records the existing waitlist behavior; the PO should confirm this interpretation. No additional confirmed place is allocated when full.
+- Closed the old GET /events and GET /events/{id}/history permission bypass: technicians now need the stored equipment assignment everywhere, not just on the new equipment API.
+- Empty equipment requests no longer appear in the technician selector.
+- Refresh canonical event details after equipment writes so quantity summaries and detail views do not show stale saved values.
+- Restored the readable “Projector × 2” summary used by the pre-existing US13 browser tests. Full GitHub logs were unavailable unauthenticated, so this is a code-confirmed regression fix, not a claim that it was the only CI failure.
+- Merged main through 356d6e0, retaining the new Lead role and both independent test accounts when resolving the seed-user conflict.
+- Preserved the fixed registration-status locator and quoted Python executable paths for Windows paths containing spaces.
+- Isolated all automated tests from developer SMTP settings.
 
-## Run
+## Verification for the revised code
 
-```bash
-npm ci
-python -m pip install -r backend/requirements.txt pytest httpx
-python -m pytest tests/us25_us28_equipment tests/us29_us32_registration -q
-npm test
-npx tsc --noEmit
-npx playwright install chromium
-npx playwright test tests/functional/us25-us28-equipment.spec.ts tests/functional/us29-us32-registration.spec.ts
+- Frontend unit tests: 351 passed, 21 files.
+- TypeScript: passed.
+- Production `npm run build`: passed, without font mocks.
+- Equipment + registration tests: 75 passed; opt-in PostgreSQL test skipped (no local PostgreSQL available).
+- US27 local API performance: 1,000 historical reservations, 5 requests; measured maximum 0.0391 seconds. This verifies local API latency, not a deployed end-to-end SLA.
+- Full backend regression: 1,434 tests passed and 609 subtests passed; one opt-in PostgreSQL test skipped.
+- The full browser run exposed two legacy equipment-card tests that assumed all requests were displayed at once. US13/US15 now explicitly select the assigned event before inspecting its card; these updates need a fresh run.
+- Revised module browser suite: 13 passed on Chromium Headless Shell 134. The full 180-test browser suite is being verified separately; GitHub uses its own installed browser version.
+- SMTP delivery tests: a real SMTP connection to a local test receiver passed (no external mail sent). Adapter tests: verify TLS usage, saved recipient, message body, durable retry after transport failure and no resend after successful delivery. TLS/failure adapter tests use mocked transport; the local receiver test uses a real socket. External mailbox receipt is NOT verified.
+
+## Run on Windows (PowerShell, repository root)
+
+```powershell
+$env:Path = (Resolve-Path ".\.venv312\Scripts").Path + ";" + $env:Path
+$env:PYTHON = "python"
+npm.cmd ci
+npx.cmd tsc --noEmit
+npm.cmd test
+python -m pytest -q
+npx.cmd playwright install chromium
+npm.cmd run test:functional
+npm.cmd run build
 ```
 
-Playwright starts its own backend and frontend and resets only its throwaway SQLite database. Do not run seed scripts against the shared database. Existing tables/records are unchanged; SQLAlchemy creates the four new equipment tables on backend startup and seeds missing catalogue rows without resetting existing stock. Existing requests need the assigned coordinator to submit/assign them before a technician can process them.
+Run the FULL functional suite, including the pre-existing US13/US15 tests. Playwright resets only its throwaway SQLite database. Never run seed scripts against the shared database. Thirteen selected US25–US32 browser tests (see discovery output for the exact count) cover the module and its regressions; full suite results remain required.
 
-Operations may set `maintenance` and `out_of_service` on `equipment_stock` to reflect unavailable quantities. These are counts, not individual asset tracking; no inventory administration screen is introduced. Values should be non-negative and sum to no more than total.
+## SMTP deployment
 
-## Verification
+Set `SMTP_HOST`, `SMTP_FROM`, port, TLS mode and optional username/password in the backend's private environment. Do not commit credentials or paste them into chat. TLS is required by default; `SMTP_SSL=true` uses implicit TLS, otherwise STARTTLS is used. Plaintext is an explicit local-development-only option.
 
-- Targeted backend tests: 61 passed (equipment API + existing registration API).
-- Frontend unit tests: 323 passed across 20 files.
-- TypeScript check: passed.
-- New Playwright suite discovery: 10 tests in 2 files.
-- Browser execution: blocked before any UI assertion. Current Chromium archives were unavailable; a compatible Chromium 134 downloaded successfully, but this environment denied its process socket creation (`socket(): Operation not permitted`). Do not record these tests as passed.
-- Full backend regression: 1,180 tests passed, with 488 subtests passed.
-- Production build: passed using temporary `NEXT_FONT_GOOGLE_MOCKED_RESPONSES` with local fallback fonts. The unmodified font-fetching build failed in the existing Google Fonts loader; real font delivery is not verified. No font or build configuration changes are included.
+Start the API (which creates new tables), then run a supervised `python -m mail_worker` process from `backend`, or schedule `python -m mail_worker --once`. Without HOST/FROM the queue stays pending. Failed messages retain a diagnostic error type and are retried up to ten attempts. Check `email_outbox` for exhausted rows and correct configuration before resetting their attempt counts. Delivery is at-least-once: a worker crash after SMTP acceptance but before database commit may produce a duplicate; messages use a stable Message-ID.
 
-## DoD / review
+Acceptance smoke check: register a test attendee whose mailbox you control in an authorised test deployment, run the worker, verify `sent_at` and actual inbox receipt. Do not claim US29 email AC complete without this evidence.
 
-Do not mark all criteria met or Done yet. Peer review, merge, CI on the merge commit, browser tests and the dependencies above remain pending. This branch has not been pushed or merged by this workspace.
+## Real PostgreSQL concurrency check (local disposable database only)
 
-## Today's Daily Scrum draft (actual work only)
+Use an existing local disposable PostgreSQL or, if Docker is installed:
 
-Completed: reviewed US25–US32 acceptance criteria; implemented persisted equipment requests and technician assignment, line status/notes/history, interval availability and reservations; added API and Playwright coverage.
-Next: run the new Playwright suite on a machine with Chromium, review the changes with a teammate, submit/merge the PR and check CI.
-Blockers: this environment prevents Chromium from launching. US25/US26 notification criteria depend on US36; US29's real email confirmation is still unimplemented. Production concurrency and availability response time require deployment verification.
+```powershell
+docker run --name connectsphere-dod-pg -e POSTGRES_PASSWORD=dod-local-only -e POSTGRES_DB=dod_test -p 127.0.0.1:55432:5432 -d postgres:16
+$env:DOD_POSTGRES_TEST_URL = "postgresql+psycopg://postgres:dod-local-only@127.0.0.1:55432/dod_test"
+python -m pytest tests/integration/test_equipment_postgres_concurrency.py -q
+```
+
+The test makes and removes a uniquely named schema, and refuses remote hosts. Two threads compete for the last unit using independent PostgreSQL sessions: required result is one success, one HTTP 409, exactly one reservation. Local Docker credentials above are disposable test values, never production credentials.
+
+## Still required before marking Done
+
+1. Updated full browser suite and GitHub CI must pass on this revision.
+2. Real SMTP configuration/inbox receipt for US29 AC5.
+3. Run the opt-in PostgreSQL concurrency test and record its output.
+4. Verify US27 response time in the target deployment if the DoD requires deployment evidence.
+5. A teammate must review and approve; merge into main; confirm CI on the merge commit.
+
+These are not waived by passing unit tests. Do not mark peer review, merge, or production verification complete from this document alone.

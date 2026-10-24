@@ -6,9 +6,11 @@ reservation, and registration, with a different view per role.
 
 Sign-in, the venue catalogue, event requests and venue booking requests are served by a
 FastAPI backend (`backend/`) on Supabase Postgres; the app starts with no sample events.
-Actions that are not yet saved on the server (equipment reservations, notifications)
-only change the browser's copy, held in a single React context
-(`lib/state/app-context.tsx`), and are lost on reload.
+Equipment requests and reservations are saved on the server. Equipment submission/status
+notices and registration confirmations are recipient-scoped and persist across reloads.
+Registration confirmation emails use a transactional SMTP outbox; configure delivery and
+run the retry worker as described in [US25–US32 delivery](docs/US25-US32-delivery.md).
+Other workflows may still produce browser-only notifications pending their US36 work.
 
 ## Login & role-based access control (RBAC)
 

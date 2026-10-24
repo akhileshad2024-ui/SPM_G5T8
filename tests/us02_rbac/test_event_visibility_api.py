@@ -86,6 +86,8 @@ def seeded(db):
         )
         db.add(event)
         db.flush()
+        if equipment:
+            db.add(models.EquipmentAssignment(event_id=event.id, tech_id=get_user(db, Role.tech).id))
         event_ids[name] = event.id
     db.commit()
     return event_ids
