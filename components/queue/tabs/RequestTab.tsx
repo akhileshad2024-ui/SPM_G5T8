@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "@/lib/state/app-context";
-import { canAssignCoordinator } from "@/lib/events/review/assignment";
+import { assignmentNote } from "@/lib/events/review/lead";
 import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
 import { EventDetailsToggle } from "@/components/ui/EventDetails";
@@ -18,41 +18,14 @@ function formatTimestamp(iso: string): string {
     : d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-/** US11: give an unassigned event a coordinator from the Event Coordinator accounts. */
+/** US11/US43: the event's coordinator and who assigned them. Only the Lead assigns (Assignments page). */
 function CoordinatorCard({ event }: { event: EventRecord }) {
-  const app = useApp();
-  const me = app.me.person;
-  const coordinators = app.state.coordinators.map((c) => c.name);
-  const [choice, setChoice] = useState(me);
-  const assignable = canAssignCoordinator(event);
-
+  const assigned = assignmentNote(event, formatTimestamp);
   return (
     <div className={`card ${styles.sideCard}`}>
       <div className={`eyebrow ${styles.sideHeading}`}>Coordinator</div>
       <div className={styles.coordinatorName}>{event.coordinator || "Unassigned"}</div>
-      {event.coordinator ? null : assignable ? (
-        <>
-          <select
-            className={`select-input ${styles.assignSelect}`}
-            value={choice}
-            onChange={(e) => setChoice(e.target.value)}
-            aria-label="Coordinator to assign"
-          >
-            {coordinators.map((c) => (
-              <option key={c} value={c}>
-                {c === me ? `${c} (me)` : c}
-              </option>
-            ))}
-          </select>
-          <button className={`btn btn-ghost ${styles.assignButton}`} onClick={() => app.assignCoordinator(event.id, choice)}>
-            Assign
-          </button>
-        </>
-      ) : (
-        <div className={styles.hint}>
-          {event.status === "draft" ? "Drafts can't be assigned until submitted." : "This event is closed."}
-        </div>
-      )}
+      {assigned && <div className={styles.hint}>{assigned}</div>}
     </div>
   );
 }

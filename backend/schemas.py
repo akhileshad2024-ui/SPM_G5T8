@@ -607,6 +607,8 @@ class EventResponse(BaseModel):
     organiser: str
     coordinatorId: Optional[int] = None
     coordinator: Optional[str] = None
+    assignedBy: Optional[str] = None  # US11: who assigned the coordinator...
+    assignedAt: Optional[datetime] = None  # ...and when
     purpose: str = ""
     eventType: str = ""
     pax: Optional[int] = None
@@ -648,6 +650,8 @@ class EventView(BaseModel):
     organiser: Optional[str] = None
     coordinatorId: Optional[int] = None
     coordinator: Optional[str] = None
+    assignedBy: Optional[str] = None
+    assignedAt: Optional[datetime] = None
     purpose: Optional[str] = None
     eventType: Optional[str] = None
     pax: Optional[int] = None

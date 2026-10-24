@@ -166,6 +166,17 @@ class VenueBooking(Base):
     flag = Column(JSON(none_as_null=True), nullable=True)
 
 
+class EventAssignment(Base):
+    """US11: one row per coordinator assignment of an event, with who assigned it and when."""
+    __tablename__ = "event_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    coordinator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class EventStatusChange(Base):
     """US13: one row per status change of an event, oldest first, written only by
     event_status.change_status() so every story records changes the same way."""

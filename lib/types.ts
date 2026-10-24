@@ -5,7 +5,8 @@
  * the in-memory data held in `AppProvider` (see `lib/state/app-context.tsx`).
  */
 
-export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee";
+/** "lead" is the Event Coordinator Lead (US43). Keep in sync with Role in backend/login/models.py. */
+export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee" | "lead";
 
 export type EventStatus =
   | "draft"
@@ -242,6 +243,9 @@ export interface EventRecord {
   facilities: string[];
   access: string[];
   coordinator: string | null;
+  /** US11: who assigned the coordinator, and when (ISO). */
+  assignedBy?: string | null;
+  assignedAt?: string | null;
   venue: string | null;
   bookingState: BookingState;
   equip: EquipmentLine[];

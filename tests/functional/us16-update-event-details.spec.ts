@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
+import { action, GRACE, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
 
 /** US16-TC01: numbered UI steps match the shared Sheet. No API fixture/reset.
  * Covers approved AC1/2/4, not the US36-dependent notification AC3.
@@ -10,7 +10,9 @@ const REVISED = "Prepare an introductory conference for new students.";
 const shared = process.env.TC_SHARED_DB === "1";
 
 async function signIn(page: Page, email: string, landing: RegExp) {
-  const password = shared ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : "TC_PRIYA_PASSWORD"] : PASSWORD;
+  const password = shared
+    ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : email === GRACE.email ? "TC_GRACE_PASSWORD" : "TC_PRIYA_PASSWORD"]
+    : PASSWORD;
   if (!password) throw new Error("Missing authorised TC password.");
   await page.goto("/login");
   await page.getByPlaceholder("you@connectsphere.edu").fill(email);
@@ -90,13 +92,16 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   const eventRow = page.locator('[class*="MyEventsTable"][class*="row"]').filter({ has: page.locator(`a[href="${href}"]`) });
   await expect(eventRow.locator(".pill")).toHaveText("Submitted");
 
-  // Steps 8–11: UI login, assignment and review. Stop naturally if setup is unavailable.
+  // Steps 8–11: UI login, the Lead's assignment (US43) and Priya's review. Stop naturally if setup is unavailable.
+  await signOut(page);
+  await signIn(page, GRACE.email, /\/assignments/);
+  const request = page.locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId}` });
+  await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
+  await request.getByRole("button", { name: "Assign", exact: true }).click();
+  await expect(request).toHaveCount(0);
   await signOut(page);
   await signIn(page, PRIYA.email, /\/queue/);
   await queueEvent(page, eventId);
-  await page.getByLabel("Coordinator to assign").selectOption({ label: "Priya Tan (me)" });
-  await action(page, "Assign").click();
-  await expect(page.getByLabel("Coordinator to assign")).toHaveCount(0);
   await action(page, "Start review").click();
   await expect(workspaceStatus(page)).toHaveText("Under Review");
 

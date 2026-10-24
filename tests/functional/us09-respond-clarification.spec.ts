@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, MAYA, PRIYA, PASSWORD, submitDialog, workspaceStatus } from "./support/app";
+import { action, GRACE, MAYA, PRIYA, PASSWORD, submitDialog, workspaceStatus } from "./support/app";
 
 /** Numbered UI workflow matches the shared US09-TC01. No API fixture or reset.
  * Acceptance config uses the existing DB and written TC passwords. Normal CI
@@ -13,7 +13,7 @@ const shared = process.env.TC_SHARED_DB === "1";
 
 async function signIn(page: Page, who: typeof MAYA, landing: RegExp) {
   const password = shared
-    ? process.env[who.email === MAYA.email ? "TC_MAYA_PASSWORD" : "TC_PRIYA_PASSWORD"]
+    ? process.env[who.email === MAYA.email ? "TC_MAYA_PASSWORD" : who.email === GRACE.email ? "TC_GRACE_PASSWORD" : "TC_PRIYA_PASSWORD"]
     : PASSWORD;
   if (!password) throw new Error("The authorised TC password is missing.");
   await page.goto("/login");
@@ -111,13 +111,16 @@ for (const kind of ["clarification", "amendment"] as const) {
     console.log(`${id} EVENT_ID=${eventId}`);
     await testInfo.attach("event-id", { body: `EVENT_ID=${eventId}\nEnvironment=${shared ? "existing shared DB" : "isolated CI regression"}`, contentType: "text/plain" });
 
-    // Steps 9–12: assign, start review and ask the question through the UI.
+    // Steps 9–12: the Lead assigns Priya (US43), then Priya starts the review and asks the question through the UI.
+    await signOut(page);
+    await signIn(page, GRACE, /\/assignments/);
+    const request = page.locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId}` });
+    await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
+    await request.getByRole("button", { name: "Assign", exact: true }).click();
+    await expect(request).toHaveCount(0);
     await signOut(page);
     await signIn(page, PRIYA, /\/queue/);
     await openQueueEvent(page, eventId);
-    await page.getByLabel("Coordinator to assign").selectOption({ label: "Priya Tan (me)" });
-    await action(page, "Assign").click();
-    await expect(page.getByLabel("Coordinator to assign")).toHaveCount(0);
     await expect(action(page, "Start review")).toBeVisible();
     await action(page, "Start review").click();
     await expect(workspaceStatus(page)).toHaveText("Under Review");

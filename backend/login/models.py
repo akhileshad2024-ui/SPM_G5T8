@@ -11,6 +11,7 @@ class Role(str, enum.Enum):
     venue = "venue"
     tech = "tech"
     attendee = "attendee"
+    lead = "lead"  # US43: Event Coordinator Lead
 
 
 class User(Base):

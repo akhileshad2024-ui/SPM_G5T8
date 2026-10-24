@@ -19,7 +19,8 @@ Two kinds of story are supported:
    measured against the backend code it is meant to test (TARGETS below), so a unit test
    of schemas.py is not marked down for main.py; a file not listed is measured against
    all of backend/. Integration tests (tests/integration/) are not part of this mode;
-   run them by hand if wanted (see README).
+   run them by hand if wanted (see README). A story listed in STORY_FRONTEND (e.g. us43)
+   also gets frontend/coverage_report.txt and frontend/htmlcov/index.html, as in mode 2.
 
 2. Stories with their own test folder in STORY_DIRS (e.g. us01 -> tests/us01_secure_login/),
    whose pytest tests (unit/ and API) are run together. Under
@@ -82,6 +83,17 @@ TARGETS = {
         "main.py:request_venue_booking,list_bookings,decide_booking",
         "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn",
     ],
+    "test_us11_assign_coordinator": [
+        "event_review.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign",
+        "main.py:utc,event_response,list_coordinators,review_step,assign_coordinator",
+        "models.py:EventAssignment",
+    ],
+    "test_us43_lead_oversight": [
+        "event_access.py",
+        "event_fields.py",
+        "main.py:event_view,lead_queue",
+        "login/models.py",
+    ],
 }
 
 # ---------------------------------------------------------------- mode 2: one report per story folder
@@ -115,11 +127,15 @@ STORY_FRONTEND = {
     "us13": ["lib/events/status-history.ts"],
     "us15": ["lib/events/details.ts"],
     "us29": ["lib/registration.ts"],
+    "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
+    "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
-# Where a story's Vitest tests live, when not in its STORY_DIRS folder.
+# Where a story's Vitest tests live, when not in its STORY_DIRS folder (several separated by spaces).
 STORY_FRONTEND_TESTS = {
     "us03": "tests/unit/event-request",
+    "us11": "tests/unit/event-review",
+    "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 
 
@@ -251,10 +267,17 @@ def run_unit_files(story: str) -> int:
             writer.writerow([now.strftime("%Y-%m-%d %H:%M:%S"), r["kind"], r["name"], r["tests"],
                              "passed" if r["passed"] else "FAILED", f"{r['coverage']:.1f}", f"unit/{r['name']}"])
 
+    frontend = run_frontend_tests(story, stamp_dir)
+    if frontend:
+        (stamp_dir / "summary.txt").write_text(summary + f"\n{frontend}\n", encoding="utf-8")
+
     print(summary)
+    if frontend:
+        print(f"{story.upper()} {frontend}")
     print(f"Report folder: {stamp_dir}")
     print(f'Open one with:  start "" "{results[0]["folder"] / "htmlcov" / "index.html"}"')
-    return 0 if all(r["passed"] for r in results) else 1
+    frontend_failed = frontend is not None and "FAILURES" in frontend
+    return 0 if all(r["passed"] for r in results) and not frontend_failed else 1
 
 
 # ---------------------------------------------------------------- mode 2 helpers
@@ -284,7 +307,7 @@ def run_frontend_tests(story: str, out: Path) -> str | None:
     folder = out / "frontend"
     run = subprocess.run(
         [
-            npx, "vitest", "run", STORY_FRONTEND_TESTS.get(story, STORY_DIRS[story]), "--coverage",
+            npx, "vitest", "run", *(STORY_FRONTEND_TESTS.get(story) or STORY_DIRS[story]).split(), "--coverage",
             *[f"--coverage.include={f}" for f in STORY_FRONTEND[story]],
             "--coverage.reporter=text", "--coverage.reporter=json-summary", "--coverage.reporter=html",
             f"--coverage.reportsDirectory={folder / 'htmlcov'}",

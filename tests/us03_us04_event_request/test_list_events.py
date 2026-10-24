@@ -66,10 +66,11 @@ def test_drafts_stay_private_to_their_organiser(signed_in):
     submitted = create(organiser, submit=True)
 
     # Staff see only events they are involved in (US13); a draft is never one of them.
-    assert ids(signed_in(Role.coordinator)) == [submitted]  # submitted and not yet picked up
+    assert ids(signed_in(Role.lead)) == [submitted]  # submitted and not yet assigned (US43)
+    assert ids(signed_in(Role.coordinator)) == []  # assigned to nobody yet (US43)
     assert ids(signed_in(Role.tech)) == [submitted]  # requests equipment
     assert ids(signed_in(Role.venue)) == []  # no venue booking yet
-    for role in (Role.coordinator, Role.venue, Role.tech):
+    for role in (Role.lead, Role.coordinator, Role.venue, Role.tech):
         assert draft not in ids(signed_in(role)), role
 
 
@@ -98,7 +99,7 @@ def test_signed_out_users_cannot_list_events(client):
 def test_listing_shows_names_not_ids(signed_in, db):
     create(signed_in(Role.organiser))
 
-    event = signed_in(Role.coordinator).get("/events").json()[0]
+    event = signed_in(Role.lead).get("/events").json()[0]
 
     assert event["organiser"] == "Maya Rahman"
     assert event["organiserId"] == get_user(db, Role.organiser).id

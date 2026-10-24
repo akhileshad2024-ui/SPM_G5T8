@@ -55,6 +55,8 @@ export interface StoredEvent {
   start?: string | null;
   end?: string | null;
   coordinator?: string | null;
+  assignedBy?: string | null;
+  assignedAt?: string | null;
   pax?: number | null;
   venueLocation?: string;
   venueCapacity?: number | null;
@@ -113,6 +115,8 @@ export function eventFromApi(e: StoredEvent): EventRecord {
     facilities: e.facilities ?? [],
     access: e.access ?? [],
     coordinator: e.coordinator ?? null,
+    assignedBy: e.assignedBy ?? null,
+    assignedAt: e.assignedAt ?? null,
     venue: e.venue == null ? null : String(e.venue),
     venueName: e.venueName ?? null,
     bookingState: (e.bookingState ?? null) as BookingState,

@@ -1,0 +1,27 @@
+Frontend coverage for US11
+Measured files: lib/events/review/assignment.ts, lib/events/review/lead.ts
+Tests  108 passed (108)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  6 passed (6)
+      Tests  108 passed (108)
+   Start at  13:26:45
+   Duration  1.69s (import 53%, transform 29%, tests 11%, worker 7%)
+
+ % Coverage report from v8
+---------------|---------|----------|---------|---------|-------------------
+File           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+---------------|---------|----------|---------|---------|-------------------
+---------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 24/24 )
+Branches     : 100% ( 18/18 )
+Functions    : 100% ( 12/12 )
+Lines        : 100% ( 20/20 )
+================================================================================

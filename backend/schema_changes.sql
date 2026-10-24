@@ -33,6 +33,12 @@ ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS flag json;
 -- 2c. US41: each booking of an event has its own purpose (e.g. "Breakout session"). Safe to run more than once.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS purpose varchar;
 
+-- 2d. US43: the Event Coordinator Lead role. The users.role check constraint must allow 'lead'.
+--     (The event_assignments table for US11 is created by the backend on start-up.)
+ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role;
+ALTER TABLE users ADD CONSTRAINT user_role
+  CHECK (role IN ('organiser', 'coordinator', 'venue', 'tech', 'attendee', 'lead'));
+
 -- 3. LATER, once every teammate's branch uses the new venue model (staging/main merged and pulled).
 --    Branches that still read "unavailableDates" break without it. This cannot be undone.
 -- ALTER TABLE venues DROP COLUMN "unavailableDates";
