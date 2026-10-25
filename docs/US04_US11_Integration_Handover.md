@@ -17,7 +17,18 @@ UI submission, exact generated ID, unassigned Lead queue, refresh and new login.
 One isolated regression passed after correcting the test's ID selector and
 matching the UI's formatted date; the first failure report is preserved under
 `coverage/functional/us04-initial-failure/`. No production code/AC changed.
-Shared TC execution and final PR/merge/CI evidence remain outstanding.
+Shared TC03 passed on 25 Oct 2026, 13:57:38–13:57:58 SGT: event 41,
+EVENT_DATE 2026-10-25, Maya count 27 to 28; Jordan saw the same Submitted,
+unassigned event after refresh and a fresh login. The shared event is retained.
+The yellow record identifies Codex (Playwright), not a duplicate human run.
+PR-ready checkpoint passed on the same code: unittest discovery 449;
+pytest 1477 passed and 609 subtests passed, with one disposable-PostgreSQL-only
+equipment-concurrency test skipped; frontend 357 passed; Playwright 186 passed
+and one HTTPS-only case skipped; TypeScript and production Build passed.
+The existing `backend/event_submission.py` has 100% statement coverage (five
+statements, no branches); this is not repository-wide 100% coverage.
+Final peer approval, merge and merge-commit CI remain outstanding. This follow-up
+does not backdate Story completion into Sprint 3.
 
 Shared execution (requires running local frontend/backend):
 `TC_SHARED_DB=1 TC_STORY=US04 npx playwright test --config=playwright.acceptance.config.ts`.
