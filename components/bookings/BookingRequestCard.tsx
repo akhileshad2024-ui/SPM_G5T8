@@ -54,6 +54,10 @@ export function BookingRequestCard({ event, booking }: { event: EventRecord; boo
             {event.facilities.map((f) => (
               <Tag key={f} label={f} bg="#fff" fg="#4A5169" border="rgba(10,14,26,.14)" />
             ))}
+            {/* US23-AC2: the event's accessibility needs are venue requirements too. */}
+            {event.access.map((a) => (
+              <Tag key={`access-${a}`} label={a} bg="var(--info-bg)" fg="var(--info-fg)" />
+            ))}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
             Held from {new Date(booking.hold_start).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} to{" "}

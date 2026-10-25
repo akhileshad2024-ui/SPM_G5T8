@@ -411,6 +411,8 @@ class VenueBooking(BaseModel):
     hold_expires_at: Optional[datetime] = None
     hold_expiry_set_by: Optional[str] = None
     hold_notice: Optional[Literal["expiring_soon", "expired"]] = None
+    # US23-AC5: "approved" / "rejected" for 7 days after Venue Staff decide, so the coordinator is told.
+    decision_notice: Optional[Literal["approved", "rejected"]] = None
 
 
 class BookingHoldIn(BaseModel):

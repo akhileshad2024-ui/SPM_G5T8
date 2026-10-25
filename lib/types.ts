@@ -193,6 +193,8 @@ export interface VenueBookingRecord {
   hold_expiry_set_by?: string | null;
   /** US42: what the coordinator should be told, worked out by the server. */
   hold_notice?: "expiring_soon" | "expired" | null;
+  /** US23-AC5: set for 7 days after Venue Staff decide, so the requesting coordinator is told. */
+  decision_notice?: "approved" | "rejected" | null;
 }
 
 export interface BookingFlag {
