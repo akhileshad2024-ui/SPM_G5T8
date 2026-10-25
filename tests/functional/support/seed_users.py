@@ -40,6 +40,7 @@ ACCOUNTS = [
     ("taylor@student.connectsphere.edu", "Taylor Test", Role.attendee),
     ("unassigned.tech@connectsphere.edu", "Unassigned Technician", Role.tech),
     ("grace.ong@connectsphere.edu", "Grace Ong", Role.lead),  # US43: Event Coordinator Lead
+    ("jordan.lee@connectsphere.edu", "Jordan Lee", Role.lead),  # Reusable coursework Lead, including US04-TC03
     # US01: accounts the login tests lock, fail against or change the password of, so no other test is affected.
     ("lockout.test@connectsphere.edu", "Lockout Test", Role.tech),
     ("failcount.test@connectsphere.edu", "Fail Count Test", Role.venue),

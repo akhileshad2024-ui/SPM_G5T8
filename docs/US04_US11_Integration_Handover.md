@@ -1,6 +1,46 @@
 # US04 to US11 integration handover
 
+## Current verification status — 25 Oct 2026 (SGT)
+
+The original handover/design below is retained as historical context, not the
+current execution procedure. US43/US11 is merged; the Lead role, authorised queue
+and `/assignments` UI exist. INT01–INT04 run against the real FastAPI/SQLAlchemy
+boundary; the current focused submission suite passed 12 tests.
+
+The canonical English blue specification is [US04-TC03 in the shared test record](https://docs.google.com/spreadsheets/d/1oFFQeaXos2mdzwWmufojRhmvWCXHESTP1bxHzSEaUFw/edit#gid=600006).
+It uses Maya and the reusable Lead Jordan Lee (`jordan.lee@connectsphere.edu`),
+whose active `lead` role was verified read-only on the shared DB. Passwords stay
+in the authorised test record/process environment, never in Git.
+
+`tests/functional/us04-submit-to-lead-queue.spec.ts` follows that procedure:
+UI submission, exact generated ID, unassigned Lead queue, refresh and new login.
+One isolated regression passed after correcting the test's ID selector and
+matching the UI's formatted date; the first failure report is preserved under
+`coverage/functional/us04-initial-failure/`. No production code/AC changed.
+Shared TC03 passed on 25 Oct 2026, 13:57:38–13:57:58 SGT: event 41,
+EVENT_DATE 2026-10-25, Maya count 27 to 28; Jordan saw the same Submitted,
+unassigned event after refresh and a fresh login. The shared event is retained.
+The yellow record identifies Codex (Playwright), not a duplicate human run.
+PR-ready checkpoint passed on the same code: unittest discovery 449;
+pytest 1477 passed and 609 subtests passed, with one disposable-PostgreSQL-only
+equipment-concurrency test skipped; frontend 357 passed; Playwright 186 passed
+and one HTTPS-only case skipped; TypeScript and production Build passed.
+The existing `backend/event_submission.py` has 100% statement coverage (five
+statements, no branches); this is not repository-wide 100% coverage.
+Final peer approval, merge and merge-commit CI remain outstanding. This follow-up
+does not backdate Story completion into Sprint 3.
+
+Shared execution (requires running local frontend/backend):
+`TC_SHARED_DB=1 TC_STORY=US04 npx playwright test --config=playwright.acceptance.config.ts`.
+Supply `TC_MAYA_PASSWORD` and `TC_JORDAN_PASSWORD` to the process separately.
+Normal CI discovers this spec through the existing functional workflow and seeds
+Jordan only into its throwaway SQLite database. Neither run needs new SQL,
+table reset, automatic assignment or shared-data cleanup.
+
 ## Scope and acceptance status
+
+Historical producer-only status at initial handover; superseded by the current
+verification status above. Approved AC4 is unchanged.
 
 Requirement source: Week 7 Customer Changes, change 5, and approved US04 AC4.
 New submissions enter an unassigned queue visible to the Event Coordinator Lead,

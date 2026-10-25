@@ -17,6 +17,7 @@ export const MARCUS = { email: "marcus.lee@connectsphere.edu", name: "Marcus Lee
 export const WEI = { email: "wei.lim@connectsphere.edu", name: "Wei Lim" }; // Technical Support
 export const SAM = { email: "sam.adeyemi@student.connectsphere.edu", name: "Sam Adeyemi" }; // Attendee
 export const GRACE = { email: "grace.ong@connectsphere.edu", name: "Grace Ong" }; // Event Coordinator Lead (US43)
+export const JORDAN = { email: "jordan.lee@connectsphere.edu", name: "Jordan Lee" }; // Reusable coursework Lead
 
 type Account = typeof MAYA;
 
