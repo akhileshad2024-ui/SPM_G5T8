@@ -1,3 +1,5 @@
+import threading
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
@@ -19,7 +21,18 @@ from event_status import change_status, record_initial_status
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="ConnectSphere API")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # US42-AC3 / US36: hold warnings go out on time even while nobody is using the app.
+    stop = threading.Event()
+    sweeper = threading.Thread(target=messaging.sweep_holds_forever, args=(stop,), name="hold-sweeper", daemon=True)
+    sweeper.start()
+    yield
+    stop.set()
+
+
+app = FastAPI(title="ConnectSphere API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -131,6 +144,7 @@ def submit_event_request(
         record_initial_status(db, saved, user, now)
     else:
         change_status(db, saved, models.EventStatus.submitted, user, now)
+    messaging.request_submitted(db, saved)  # the Lead's queue (US43)
     db.commit()
     db.refresh(saved)
     return saved
@@ -260,11 +274,10 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 
     now = datetime.now(timezone.utc)
     override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, now)
+    notice = booking_request.build_notification(venue, event, needs, override)
+    messaging.booking_requested(db, event, notice)  # US22-AC4: saved with the request
     row = venue_bookings.save_request(db, event, booking_request.build_booking(venue, event, needs, verdict, user.email, now, override, request.purpose))
-    return schemas.BookingRequestResponse(
-        booking=venue_bookings.to_record(row),
-        notification=booking_request.build_notification(venue, event, needs, override),
-    )
+    return schemas.BookingRequestResponse(booking=venue_bookings.to_record(row), notification=notice)
 
 # The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events
 # they are involved in (event_access.py), oldest first. The event page merges them into its events, so a
@@ -272,9 +285,9 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 # Venue Staff also get what is in the way of each booking right now (US46 a confirmed booking, US47 another
 # pending request, US48 an unavailable period) and what a "Requires Reassessment" flag clashes with (US38).
 def expire_lapsed_holds(db: Session) -> None:
-    """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released.
-    Called before bookings or events are read; there is no background job."""
-    if hold_expiry.expire_due(db, datetime.now(timezone.utc)):
+    """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released,
+    and tell the coordinators (US42-AC3). Called before bookings or events are read; there is no background job."""
+    if messaging.sweep_holds(db, datetime.now(timezone.utc)):
         db.commit()
 
 
@@ -327,6 +340,7 @@ def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session
     except booking_request.BookingRefused as refusal:
         db.rollback()
         raise HTTPException(status_code=409, detail=refusal.message)
+    messaging.booking_decided(db, booking)  # US23-AC5
     db.commit()
     db.refresh(booking)
     return venue_bookings.staff_records(db, [booking], datetime.now(timezone.utc))[0]
@@ -449,6 +463,7 @@ def update_venue(venue_id: int, venue_update: schemas.VenueUpdate, db: Session =
     now = datetime.now(timezone.utc)
     record_change(db, db_venue, change_action(changes), user.email, changes, now)
     flagged, reassessed = venue_reassessment.after_venue_change(db, db_venue, changes, now)
+    messaging.bookings_flagged(db, flagged, reassessed)  # US39-AC5, US38-AC4
     db.commit()
     db.refresh(db_venue)
     # Not columns: only read by the response model (VenueUpdateResponse).
@@ -554,6 +569,8 @@ def create_event(request: schemas.EventRequestIn, db: Session = Depends(get_db),
     db.add(event)
     db.flush()  # assigns event.id for the status history
     record_initial_status(db, event, user, now)
+    if request.submit:
+        messaging.request_submitted(db, event)  # the Lead's queue (US43)
     db.commit()
     db.refresh(event)
     return event_response(db, event)
@@ -596,6 +613,7 @@ def request_event_change(event_id: int, body: schemas.EventChangeRequestIn,
     saved = models.EventChangeRequest(event_id=event.id, requested_by_id=user.id,
                                      requested_at=datetime.now(timezone.utc), **prepared)
     db.add(saved)
+    messaging.change_requested(db, event, saved)  # US33-AC2
     db.commit()
     db.refresh(saved)
     return saved
@@ -634,9 +652,9 @@ def review_event_change(event_id: int, request_id: int, body: schemas.EventChang
         raise HTTPException(exc.status_code, str(exc)) from exc
     saved.status = prepared["status"]
     saved.decision = prepared["decision"]
+    messaging.change_decided(db, event, saved)  # US34-AC5
     db.commit()
     db.refresh(saved)
-    # US36 notification delivery is a separate, still-pending integration.
     return saved
 
 
@@ -714,7 +732,10 @@ def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventVi
 @app.post("/events/{event_id}/assign", response_model=schemas.EventView, response_model_exclude_unset=True)
 def assign_coordinator(event_id: int, body: schemas.AssignCoordinatorIn, db: Session = Depends(get_db),
                        user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
-    return review_step(event_id, db, user, lambda event, now: event_review.assign(db, event, user, body.coordinatorId, now))
+    def step(event, now):
+        event_review.assign(db, event, user, body.coordinatorId, now)
+        messaging.coordinator_assigned(db, event, user)  # US11-AC4, US36-AC6
+    return review_step(event_id, db, user, step)
 
 
 # Fulfills US07: start reviewing a submitted request.
@@ -727,16 +748,20 @@ def start_review(event_id: int, db: Session = Depends(get_db), user: User = Depe
 @app.post("/events/{event_id}/clarification", response_model=schemas.EventView, response_model_exclude_unset=True)
 def request_clarification(event_id: int, body: schemas.ClarificationIn, db: Session = Depends(get_db),
                           user: User = Depends(require_roles(*EVENT_REVIEWERS))):
-    return review_step(event_id, db, user,
-                       lambda event, now: event_review.request_clarification(db, event, user, body.kind, body.message, now))
+    def step(event, now):
+        event_review.request_clarification(db, event, user, body.kind, body.message, now)
+        messaging.clarification_requested(db, event)  # US08-AC4
+    return review_step(event_id, db, user, step)
 
 
 # US09: record an organiser response; only the coordinator explicitly resumes review.
 @app.post("/events/{event_id}/clarification-response", response_model=schemas.EventView, response_model_exclude_unset=True)
 def respond_to_clarification(event_id: int, body: schemas.ClarificationResponseIn,
                              db: Session = Depends(get_db), user: User = Depends(require_roles(Role.organiser))):
-    return review_step(event_id, db, user,
-                       lambda event, now: event_review.respond_to_clarification(event, user, body.message, now))
+    def step(event, now):
+        event_review.respond_to_clarification(event, user, body.message, now)
+        messaging.clarification_answered(db, event)  # US09-AC3
+    return review_step(event_id, db, user, step)
 
 
 @app.post("/events/{event_id}/resume-review", response_model=schemas.EventView, response_model_exclude_unset=True)
@@ -749,8 +774,10 @@ def resume_event_review(event_id: int, db: Session = Depends(get_db),
 @app.post("/events/{event_id}/decision", response_model=schemas.EventView, response_model_exclude_unset=True)
 def decide_request(event_id: int, body: schemas.DecisionIn, db: Session = Depends(get_db),
                    user: User = Depends(require_roles(*EVENT_REVIEWERS))):
-    return review_step(event_id, db, user,
-                       lambda event, now: event_review.decide(db, event, user, body.outcome, body.reason, now))
+    def step(event, now):
+        event_review.decide(db, event, user, body.outcome, body.reason, now)
+        messaging.request_decided(db, event)  # US10-AC5
+    return review_step(event_id, db, user, step)
 
 
 # US16: details and important-change history are committed atomically.
@@ -784,6 +811,7 @@ def update_event_details(event_id: int, body: schemas.EventDetailsUpdate,
         if affects:
             db.add(models.EventDetailChange(event_id=event.id, changed_by_id=user.id,
                 changed_at=now, changes=jsonable_encoder(changes), affects_arrangements=True))
+            messaging.details_changed(db, event, changes, user)  # US16-AC3
         db.commit()
         db.refresh(event)
     return event_view(db, event, user)
@@ -822,6 +850,8 @@ def update_event(event_id: int, request: schemas.EventRequestIn, db: Session = D
     if request.submit:
         change_status(db, event, models.EventStatus.submitted, user, now)
     apply_event_request(event, request, now)
+    if request.submit:
+        messaging.request_submitted(db, event)  # the Lead's queue (US43)
     db.commit()
     db.refresh(event)
     return event_response(db, event)

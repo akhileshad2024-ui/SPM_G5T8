@@ -2,8 +2,8 @@ import type { EventRecord } from "../../types";
 import type { Coordinator } from "./api";
 
 /**
- * US43 / US11: what the Event Coordinator Lead's Assignments page shows, and what a coordinator is told
- * when the Lead assigns them. The server decides which events each role receives (backend/event_access.py);
+ * US43 / US11: what the Event Coordinator Lead's Assignments page shows. The server decides which events
+ * each role receives (backend/event_access.py) and tells a coordinator when they are assigned (US36);
  * these only arrange what it sent.
  */
 
@@ -27,11 +27,4 @@ export function waitingSubtitle(events: EventRecord[]): string {
 export function assignmentNote(event: Pick<EventRecord, "assignedBy" | "assignedAt">, formatTime: (iso: string) => string): string | null {
   if (!event.assignedBy) return null;
   return `Assigned by ${event.assignedBy}${event.assignedAt ? ` on ${formatTime(event.assignedAt)}` : ""}`;
-}
-
-/** US11 AC4: a notice for each request assigned to the coordinator that they haven't started on. */
-export function assignmentNotices(events: Array<{ name: string; status: string; assignedBy?: string | null }>): Array<{ title: string; body: string }> {
-  return events
-    .filter((e) => e.status === "submitted")
-    .map((e) => ({ title: "Event assigned to you", body: `${e.assignedBy ?? "The Event Coordinator Lead"} assigned ${e.name} to you.` }));
 }

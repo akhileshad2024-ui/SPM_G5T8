@@ -2,7 +2,8 @@
 US39 Mark Venue Temporarily Unavailable (Week 7 change #2): when Venue Staff record, edit or end an
 unavailability period, every booking that still holds the venue during it is flagged as needing
 alternative arrangements. A flagged booking is never cancelled and its event is left untouched; the
-flag is saved on the booking, so the coordinator sees it (and is notified) from GET /bookings.
+flag is saved on the booking, so the coordinator sees it from GET /bookings, and is notified when it is
+raised (messaging.bookings_flagged).
 
 The overlap rule is kept free of the database so it can be unit tested directly.
 """

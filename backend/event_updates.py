@@ -2,7 +2,7 @@
 
 AC1: only the assigned coordinator edits planning details.
 AC4: identify arrangement-sensitive changes; this does NOT rebook/reapprove.
-The API owns the transaction and AC2 history. US36 notification delivery is pending.
+The API owns the transaction, AC2 history and the AC3 notifications (messaging.details_changed).
 """
 # Implementation boundary: planning is submitted through approved, not a new AC
 # defining every future workflow state. Confirmed-event direct editing is unopened.

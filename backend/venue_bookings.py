@@ -104,8 +104,8 @@ def staff_records(db, rows: List[models.VenueBooking], now: datetime) -> List[di
 
 
 def decision_notice(row, now: datetime) -> Optional[str]:
-    """US23-AC5: "approved" or "rejected" while the decision is recent enough to tell the coordinator about.
-    Notifications aren't stored on the server yet (US36), so the page shows these when it loads."""
+    """US23-AC5: "approved" or "rejected" while the decision is recent enough to show the coordinator.
+    The notification itself is saved when Venue Staff decide (messaging.booking_decided)."""
     decided = _utc(getattr(row, "decided_at", None))
     if row.status not in ("approved", "rejected") or decided is None:
         return None

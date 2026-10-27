@@ -22,10 +22,28 @@ export function NotificationsPanel() {
               <span className={styles.itemTitle}>{n.title}</span>
               <span className={styles.itemWhen}>{n.when}</span>
             </div>
+            {n.eventName && <div className={styles.itemEvent}>{n.eventName}</div>}
             <div className={styles.itemBody}>{n.body}</div>
+            <div className={styles.itemActions}>
+              {n.eventId !== undefined && (
+                <button className={styles.itemAction} onClick={() => app.openNotification(n.id)}>
+                  Open event
+                </button>
+              )}
+              {!n.read && (
+                <button className={styles.itemAction} onClick={() => app.markRead(n.id)}>
+                  Mark as read
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {mine.length === 0 && <div className="empty-state">Nothing yet for this role.</div>}
+        {app.state.olderNotifs && (
+          <button className={styles.showOlder} onClick={app.loadOlderNotifs}>
+            Show older
+          </button>
+        )}
       </div>
     </div>
   );

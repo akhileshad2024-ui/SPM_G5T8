@@ -1,10 +1,10 @@
-import type { NotificationRecord, VenueBookingRecord } from "../types";
+import type { VenueBookingRecord } from "../types";
 
 /**
  * US42 — tentative venue holds expire (Week 7 change CR-W7-4), on the page.
  *
- * The server decides when a hold lapses and what the coordinator should be told
- * (backend/hold_expiry.py, `hold_notice` on each booking); these helpers only show it.
+ * The server decides when a hold lapses and tells the coordinator (backend/hold_expiry.py,
+ * messaging.sweep_holds); these helpers only show it.
  * Expiry times are entered and shown in campus time (Singapore, UTC+8), like the rest of the app.
  */
 
@@ -40,24 +40,4 @@ export function holdExpiryLabel(booking: Pick<VenueBookingRecord, "status" | "ho
   if (booking.status === "expired") return `Hold expired ${formatCampusTime(booking.hold_expires_at)}`;
   if (booking.status === "pending") return `Held until ${formatCampusTime(booking.hold_expires_at)}`;
   return null;
-}
-
-type Notice = Pick<NotificationRecord, "to" | "title" | "body">;
-
-/**
- * US42-AC3: the coordinator is told when a hold is within 24 hours of expiring, and again when it has
- * expired — one notice per booking, from what the server worked out (`hold_notice`).
- */
-export function holdNotices(bookings: readonly VenueBookingRecord[]): Notice[] {
-  return bookings.flatMap((b): Notice[] => {
-    if (!b.hold_expires_at) return [];
-    const where = `${b.venue_name} for ${b.event_name}`;
-    if (b.hold_notice === "expiring_soon") {
-      return [{ to: "coordinator", title: "Venue hold expiring soon", body: `${where} is held until ${formatCampusTime(b.hold_expires_at)}. It is released if not approved by then.` }];
-    }
-    if (b.hold_notice === "expired") {
-      return [{ to: "coordinator", title: "Venue hold expired", body: `${where} expired on ${formatCampusTime(b.hold_expires_at)} and has been released. Request the venue again if it is still needed.` }];
-    }
-    return [];
-  });
 }

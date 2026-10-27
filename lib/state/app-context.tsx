@@ -31,14 +31,13 @@ import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
-import { assignmentNotices } from "../events/review/lead";
 import { approveRequest, rejectRequest } from "../events/review/decision";
 import { startReview } from "../events/review/review";
 import { IDLE_TIMEOUT_MS, useIdleSignOut } from "../auth/idle-timeout";
 import { equipName, freeQty, getEvent, getVenue, reservedQty } from "../selectors";
 import { attachBookings, bookingProblem, buildBookingRequest, type BookingDetails, mergeBookings, releasedSummary } from "../venues/booking";
-import { fromExpiryInput, holdNotices } from "../venues/hold-expiry";
-import { decisionNotices } from "../venues/booking-decisions";
+import { fromExpiryInput } from "../venues/hold-expiry";
+import { nextOlderPage, notificationTarget, savedId, withNewestPage, withOlderPage, type StoredNotification } from "../notifications";
 import { VERDICT_LABEL } from "../venues/suitability";
 import { newlyAffectedBookings, venueFromApi } from "../venues/rules";
 import { decideRegistration, registrationFromApi, withdrawalError, type StoredRegistration } from "../registration";
@@ -146,6 +145,8 @@ interface AppState {
   /** US42: tentative holds that lapsed, for Venue Staff (their events no longer hold a venue, so aren't listed). */
   expiredHolds: VenueBookingRecord[];
   notifs: NotificationRecord[];
+  /** US36: the server may have older notifications than the ones loaded (see loadOlderNotifs). */
+  olderNotifs: boolean;
   selectedId: string;
   tab: EventTab;
   queueFilter: QueueFilter;
@@ -196,6 +197,7 @@ function sessionUiState() {
     queueFilter: "action",
     search: "",
     notifsOpen: false,
+    olderNotifs: false,
     toast: null,
     toastKind: "ok",
     modal: null,
@@ -297,6 +299,9 @@ export interface AppApi {
   flash: (msg: string, kind?: ToastKind) => void;
   toggleNotifs: () => void;
   markAllRead: () => void;
+  markRead: (id: number) => void;
+  openNotification: (id: number) => void;
+  loadOlderNotifs: () => void;
 
   // ---- queue / event selection ----
   select: (id: string, tab?: EventTab) => void;
@@ -450,7 +455,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { path, body } = reviewRequest(backendId, step);
     try {
       const saved = await apiFetch<StoredEvent>(path, { method: "POST", body: JSON.stringify(body) });
-      return applyResult({ ...result, event: withSavedReview(result.event, saved) }, success, kind);
+      // US36: the server saved this step's notifications for their recipients, so none are made here.
+      return applyResult({ ...result, event: withSavedReview(result.event, saved), notifications: [] }, success, kind);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 409 || err.status === 422)) {
         flash(err.message, "warn"); // e.g. someone else got there first
@@ -517,7 +523,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     for (const { event, issues } of affected) {
       const summary = issues.map((i) => i.text).join(" ");
       patchEvent(event.id, {}, { title: "Venue issue — alternative arrangements needed", body: summary });
-      notify("coordinator", "Alternative venue needed", `${event.name} (${event.date}): ${summary}`);
     }
     return affected.map((a) => a.event);
   };
@@ -535,31 +540,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .then((stored) => {
         patch({ events: stored.map(eventFromApi) });
         const role = state.user?.role;
-        // US11: a coordinator is told about each request the Lead assigned them that they haven't started on.
-        if (role === "coordinator") {
-          for (const n of assignmentNotices(stored)) notify("coordinator", n.title, n.body);
-        }
+        // US11, US23, US38, US39 and US42 notices are saved on the server for the coordinator involved (US36).
         if (role !== "coordinator" && role !== "venue") return;
         return apiFetch<VenueBookingRecord[]>("/bookings").then((bookings) => {
           patch((s) => ({ events: attachBookings(s.events, bookings) }));
           // US42-AC4: Venue Staff see expired holds, whose events they no longer see.
           if (role === "venue") patch({ expiredHolds: bookings.filter((b) => b.status === "expired") });
-          // US42-AC3: the coordinator is warned about holds about to expire, and told when they have.
-          if (role === "coordinator") holdNotices(bookings).forEach((n) => notify(n.to, n.title, n.body));
-          // US23-AC5: the coordinator is told what Venue Staff decided about their requests.
-          if (role === "coordinator") decisionNotices(bookings).forEach((n) => notify(n.to, n.title, n.body));
-          // US39: the coordinator is told about each booking whose venue has become unavailable.
-          if (role === "coordinator") {
-            for (const b of bookings) {
-              if (b.flag && (b.status === "pending" || b.status === "approved")) {
-                notify("coordinator", "Replacement venue required", `${b.event_name} (${b.date}): ${b.flag.message}`);
-              }
-              // US38: a change to the venue's setup or turnaround time leaves this booking overlapping another.
-              if (b.reassessment && (b.status === "pending" || b.status === "approved")) {
-                notify("coordinator", "Booking requires reassessment", `${b.event_name} (${b.date}): ${b.reassessment.message}`);
-              }
-            }
-          }
         });
       })
       .catch(handleApiError);
@@ -598,8 +584,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       // The server sends back the decided booking as it now is; its other bookings and the rest of the venue's follow in syncEventBookings.
       patch((s) => ({ events: mergeBookings(s.events, [booking]) }));
-      // US23-AC4: approving confirms the hold; rejecting releases the venue. The coordinator is told
-      // when their page loads (US23-AC5, decisionNotices), since this runs in Venue Staff's browser.
+      // US23-AC4: approving confirms the hold; rejecting releases the venue. The server saves the
+      // coordinator's notification with the decision (US23-AC5).
       if (outcome === "approved") {
         patchEvent(e.id, {}, { title: "Venue booking approved", body: `${booking.venue_name} confirmed for ${e.date}, ${e.start}–${e.end}.` });
         flash(`${booking.venue_name} confirmed for ${e.name}. The coordinator will be notified.`);
@@ -637,14 +623,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!state.authed || !state.user) return;
     let active = true;
     const role = state.user.role;
-    const refresh = () => apiFetch<Array<{ id: number; title: string; body: string; createdAt: string; read: boolean }>>("/notifications")
+    const refresh = () => apiFetch<StoredNotification[]>("/notifications")
       .then((rows) => {
         if (!active) return;
-        patch((current) => ({ notifs: [
-          ...rows.map((row) => ({ id: -row.id, to: role, title: row.title, body: row.body,
-            when: new Date(row.createdAt).toLocaleString(), read: row.read })),
-          ...current.notifs.filter((row) => row.id > 0),
-        ] }));
+        patch((current) => withNewestPage(current, rows, role));
       }).catch(() => {});
     void refresh();
     const timer = setInterval(() => void refresh(), 15000);
@@ -838,6 +820,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
           patch((s) => ({ notifs: s.notifs.map((n) => (n.to === s.role ? { ...n, read: true } : n)) }));
         } catch (error) { handleApiError(error); }
       },
+      // US36-AC3: a saved notice is marked on the server too; a page-only one just here.
+      markRead: async (id) => {
+        try {
+          const saved = savedId({ id });
+          if (saved !== null) await apiFetch(`/notifications/${saved}/read`, { method: "POST" });
+          patch((s) => ({ notifs: s.notifs.map((n) => (n.id === id ? { ...n, read: true } : n)) }));
+        } catch (error) { handleApiError(error); }
+      },
+      // US36: go to the event a notification is about, on the page this role works on it, and mark it read.
+      openNotification: (id) => {
+        const n = state.notifs.find((x) => x.id === id);
+        const target = n && notificationTarget(n, state.role, state.events);
+        if (!n || !target) return;
+        if (!n.read) void value.markRead(id);
+        // Show every event, unfiltered, so the one opened is in the coordinator's list.
+        patch(target.select ? { notifsOpen: false, selectedId: target.select, tab: "request", queueFilter: "all", search: "" } : { notifsOpen: false });
+        router.push(target.route);
+      },
+      // US36: the next page of older saved notifications, below the ones already shown.
+      loadOlderNotifs: async () => {
+        const before = nextOlderPage(state.notifs);
+        if (before === null) return;
+        try {
+          const rows = await apiFetch<StoredNotification[]>(`/notifications?before=${before}`);
+          const role = state.role;
+          patch((s) => withOlderPage(s, rows, role));
+        } catch (error) { handleApiError(error); }
+      },
 
       select: (id, tab = "request") => patch({ selectedId: id, tab }),
       selectAndGoToQueue: (id) => {
@@ -868,8 +878,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const e = getEvent(state.events, id);
         if (!e) return;
         patchEvent(id, { status: "confirmed" }, { title: "Event confirmed", body: "All arrangements in place." });
-        notify("organiser", "Event confirmed", `${e.name} is confirmed.`);
-        notify("attendee", "Event confirmed", `${e.name} is confirmed for ${e.date}.`);
+        // US14-AC4: the confirm endpoint (US14) sends the notifications with messaging.event_confirmed.
         flash(`${e.name} confirmed.`);
       },
 
@@ -1035,7 +1044,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             );
           }
-          notify(res.notification.to, res.notification.title, res.notification.body);
+          // US22-AC4: Venue Staff's notice is saved on the server.
           flash(`Booking requested at ${v.name}.`);
           return true;
         } catch (err) {

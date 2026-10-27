@@ -9,9 +9,9 @@ approve it (US23). Every hold has an expiry date and time, so a venue is never h
   - once the expiry passes without an approval, the hold lapses: the booking becomes "expired",
     the venue is free for other requests, and the hold is never treated as a confirmed booking.
 
-There is no background job. Lapsing is decided from the time whenever bookings are read or decided:
-`is_lapsed` answers it for one booking, and `expire_due` saves the "expired" status for every lapsed
-hold (the endpoints call it before reading bookings).
+Lapsing is decided from the time: `is_lapsed` answers it for one booking, and `expire_due` saves the
+"expired" status for every lapsed hold. messaging.sweep_holds calls it (and tells the coordinator, US36)
+every minute in the background and before bookings, events or notifications are read.
 
 Times: expiries are stored in UTC. hold_start (start of setup) is local campus wall-clock time, so
 it is compared in campus time (schemas.CAMPUS_TZ).

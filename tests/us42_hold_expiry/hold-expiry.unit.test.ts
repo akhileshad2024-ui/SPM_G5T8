@@ -3,7 +3,6 @@ import {
   formatCampusTime,
   fromExpiryInput,
   holdExpiryLabel,
-  holdNotices,
   toExpiryInput,
 } from "../../lib/venues/hold-expiry";
 import type { VenueBookingRecord } from "../../lib/types";
@@ -75,37 +74,5 @@ describe("US42 - Expire Tentative Venue Holds (page helpers)", () => {
       expect(holdExpiryLabel(booking({ hold_expires_at: null }))).toBeNull();
     });
   });
-
-  describe("telling the coordinator", () => {
-    it("[US42-AC3] warns when a hold is about to expire", () => {
-      expect(holdNotices([booking({ hold_notice: "expiring_soon" })])).toEqual([{
-        to: "coordinator",
-        title: "Venue hold expiring soon",
-        body: "Lecture Theatre 1 for Design Keynote is held until 02 Jan 2027, 18:00. It is released if not approved by then.",
-      }]);
-    });
-
-    it("[US42-AC3] tells them again when it has expired", () => {
-      const [notice] = holdNotices([booking({ status: "expired", hold_notice: "expired" })]);
-      expect(notice.title).toBe("Venue hold expired");
-      expect(notice.body).toContain("has been released");
-    });
-
-    it("[US42-AC3] says nothing about holds that aren't close to expiring", () => {
-      expect(holdNotices([booking(), booking({ id: 2, status: "approved" })])).toEqual([]);
-    });
-
-    it("[US42-AC3-B01] one notice per booking that needs one", () => {
-      const notices = holdNotices([
-        booking({ id: 1, hold_notice: "expiring_soon" }),
-        booking({ id: 2, hold_notice: null }),
-        booking({ id: 3, status: "expired", hold_notice: "expired" }),
-      ]);
-      expect(notices.map((n) => n.title)).toEqual(["Venue hold expiring soon", "Venue hold expired"]);
-    });
-
-    it("a notice without an expiry time is ignored", () => {
-      expect(holdNotices([booking({ hold_expires_at: null, hold_notice: "expired" })])).toEqual([]);
-    });
-  });
+  // US42-AC3 (telling the coordinator) is sent by the server since US36: tests/us36_notifications.
 });
