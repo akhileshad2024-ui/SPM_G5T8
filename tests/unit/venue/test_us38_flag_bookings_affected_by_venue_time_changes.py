@@ -588,12 +588,12 @@ class TestPageMatchesBackend(unittest.TestCase):
             with self.subTest(file=relative):
                 self.assertIn("Requires Reassessment", self.source(relative))
 
-    def test_a_venue_edit_hands_the_flagged_bookings_to_the_page_which_tells_the_coordinator_when_it_loads(self):
+    def test_a_venue_edit_hands_the_flagged_bookings_to_the_page_and_the_server_tells_the_coordinator(self):
         self.assertIn("reassessed_bookings", schemas.VenueUpdateResponse.model_fields)
         self.assertIn("reassessed_bookings", self.interface("ApiVenue"))
-        context = self.source("lib/state/app-context.tsx")
-        self.assertIn("reassessed_bookings", context)
-        self.assertIn("Booking requires reassessment", context)
+        self.assertIn("reassessed_bookings", self.source("lib/state/app-context.tsx"))
+        # Since US36 the coordinator's notification is saved by the server (messaging.bookings_flagged).
+        self.assertIn("Booking requires reassessment", self.source("backend/messaging.py"))
 
 
 if __name__ == "__main__":

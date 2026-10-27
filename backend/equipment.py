@@ -2,7 +2,7 @@
 
 All writes lock the event, then catalogue rows in id order. PostgreSQL serializes
 competing reservations on these shared stock rows; SQLite is used only by tests.
-US36 owns delivery of request/status notifications, not this module.
+Request/status notifications go through messaging.notify (US36).
 """
 from datetime import datetime, timezone
 from typing import Literal

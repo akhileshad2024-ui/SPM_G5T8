@@ -375,6 +375,9 @@ export interface NotificationRecord {
   body: string;
   when: string;
   read: boolean;
+  /** US36-AC2: the event a saved notification is about (its server id and name). */
+  eventId?: number;
+  eventName?: string;
 }
 
 export type ToastKind = "ok" | "warn" | "bad";

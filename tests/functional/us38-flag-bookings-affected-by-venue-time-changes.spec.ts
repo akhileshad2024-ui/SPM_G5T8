@@ -8,8 +8,8 @@ import { DANIEL, catalogueCard, createVenue, dateLabel, eventFor, futureDate, ob
  * "As a Venue Staff member, I want existing bookings re-checked when a venue's setup or turnaround time
  * changes so that bookings that now clash are identified rather than silently removed."
  *
- * AC4 (the coordinator is notified): there is no stored notification until US36, so the flag is saved on the
- * booking and the coordinator's page turns it into a notification when it loads. That is what is tested.
+ * AC4 (the coordinator is notified): the notification is saved with the flag (US36) and shown in the
+ * coordinator's Notifications. That is what is tested.
  *
  * Test cases: tests/functional/report/test_cases.py.
  */
@@ -110,7 +110,8 @@ test.describe("US38 - Flag Bookings Affected by Venue Time Changes", () => {
     await signIn(page, PRIYA, /\/queue/);
     const bell = page.getByRole("button", { name: /Notifications/ });
     await bell.click();
-    const notice = page.locator('[class*="NotificationsPanel_item__"]', { hasText: fair });
+    // Narrowed to this notification: since US36 the coordinator also has others about the event (e.g. "Event assigned to you").
+    const notice = page.locator('[class*="NotificationsPanel_item__"]', { hasText: fair }).filter({ hasText: "Booking requires reassessment" });
     await expect(notice).toContainText("Booking requires reassessment");
     await expect(notice).toContainText("setup and turnaround time changed (now 60 min setup and 0 min turnaround)");
     await expect(notice).not.toContainText(house); // the other booking is another event's: the coordinator isn't told which

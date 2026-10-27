@@ -10,7 +10,9 @@ Equipment requests and reservations are saved on the server. Equipment submissio
 notices and registration confirmations are recipient-scoped and persist across reloads.
 Registration confirmation emails use a transactional SMTP outbox; configure delivery and
 run the retry worker as described in [US25–US32 delivery](docs/US25-US32-delivery.md).
-Other workflows may still produce browser-only notifications pending their US36 work.
+Notifications (US36) are saved on the server for the person involved, with the step that causes them,
+and the page checks for new ones every 15 seconds: see [US36 test cases](docs/US36-functional-tests.md)
+and, for stories still being built, the [handover](docs/US36_Notifications_Handover.md).
 
 ## Login & role-based access control (RBAC)
 
@@ -235,8 +237,8 @@ Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-req
   or the venue was deactivated); rejecting needs a reason and releases the venue, handing the event
   back to its previous approved venue if it had one. Asking for a replacement venue releases the
   event's earlier pending request, and approving the replacement releases its earlier booking.
-- Not yet saved: the notification itself (the server produces its text; the page shows it in the
-  browser) and the activity log lines, which are rebuilt only for the current session.
+- Venue Staff's notification of a new request, and the coordinator's of the decision, are saved with
+  the step (US36). Not yet saved: the activity log lines, which are rebuilt only for the current session.
 - Events now state accessibility needs from the same fixed set as venues (Wheelchair Access, Special
   Physical Seating, Mobility/Facility Arrangements), so the two can be compared.
 
@@ -272,9 +274,8 @@ bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
   booking that now overlaps another it did not overlap before is marked **Requires Reassessment** with the
   booking(s) it clashes with (`reassessed_bookings` in the response). Nothing is removed, cancelled or rejected.
   The flag is saved on the booking (`venue_bookings.reassessment`) and clears by itself when nothing clashes any
-  more (the other booking is rejected or cancelled, or the times are put back). The coordinator is notified from
-  the saved flag (the page builds the notification when it loads; stored notifications come with US36) and is
-  not told which other event it clashes with. Venue Staff are.
+  more (the other booking is rejected or cancelled, or the times are put back). The coordinator is notified when
+  the flag is saved (US36) and is not told which other event it clashes with. Venue Staff are.
 - `GET /bookings` gives Venue Staff each booking with its `conflicts`. Coordinators get their bookings without them.
 - **Database:** `venue_bookings` gains the `reassessment` column (and uses US42's `hold_expires_at`). The backend does
   not alter existing tables, so run the US38 step of `backend/schema_changes.sql` once in the Supabase SQL Editor

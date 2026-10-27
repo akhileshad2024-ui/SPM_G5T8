@@ -1,13 +1,13 @@
 /**
  * US43 — Event Coordinator Lead Oversight, and US11 — Assign Event Coordinator (unit).
  *
- * The rules in lib/events/review/lead.ts behind the Lead's Assignments page, the coordinator's
- * "Event assigned to you" notice and the "Assigned by" line, plus the Lead's role check (isLead),
+ * The rules in lib/events/review/lead.ts behind the Lead's Assignments page and the "Assigned by"
+ * line, plus the Lead's role check (isLead),
  * the API mapping of the assignment record (eventFromApi) and the page title (getPageMeta).
  */
 import { describe, expect, it } from "vitest";
 import { eventFromApi, type StoredEvent } from "../../../lib/events/request/api";
-import { assignmentNote, assignmentNotices, coordinatorWorkloads, unassignedRequests, waitingSubtitle } from "../../../lib/events/review/lead";
+import { assignmentNote, coordinatorWorkloads, unassignedRequests, waitingSubtitle } from "../../../lib/events/review/lead";
 import { isCoordinator, isLead } from "../../../lib/events/review/shared";
 import { getPageMeta } from "../../../lib/ui/page-meta";
 import { COORDINATOR, LEAD, ORGANISER, createEvent } from "./fixtures";
@@ -108,21 +108,4 @@ describe("US11 - the recorded assignment", () => {
   });
 });
 
-describe("US11 - the assigned coordinator is notified", () => {
-  it("[US11-AC4] one notice per assigned request not yet started, naming who assigned it", () => {
-    expect(assignmentNotices([
-      { name: "Charity Gala", status: "submitted", assignedBy: "Grace Ong" },
-      { name: "Workshop", status: "under_review", assignedBy: "Grace Ong" },
-      { name: "Seminar", status: "approved", assignedBy: "Grace Ong" },
-    ])).toEqual([{ title: "Event assigned to you", body: "Grace Ong assigned Charity Gala to you." }]);
-  });
-
-  it("[US11-AC4] names the Lead generically when no assigner was recorded", () => {
-    expect(assignmentNotices([{ name: "Open Day", status: "submitted", assignedBy: null }]))
-      .toEqual([{ title: "Event assigned to you", body: "The Event Coordinator Lead assigned Open Day to you." }]);
-  });
-
-  it("[US11-AC4] no notices when nothing new is assigned", () => {
-    expect(assignmentNotices([])).toEqual([]);
-  });
-});
+// US11-AC4 (the assigned coordinator is notified) is sent by the server since US36: tests/us36_notifications.
