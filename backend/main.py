@@ -286,9 +286,9 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 # pending request, US48 an unavailable period) and what a "Requires Reassessment" flag clashes with (US38).
 def expire_lapsed_holds(db: Session) -> None:
     """US42-AC2: save "expired" on every tentative hold whose expiry has passed, so its venue is released,
-    and tell the coordinators (US42-AC3). Called before bookings or events are read; there is no background job."""
-    if messaging.sweep_holds(db, datetime.now(timezone.utc)):
-        db.commit()
+    and tell the coordinators (US42-AC3). Called before bookings or events are read, as well as every minute
+    in the background."""
+    messaging.sweep_and_save(db)
 
 
 @app.get("/bookings", response_model=List[schemas.VenueBooking])

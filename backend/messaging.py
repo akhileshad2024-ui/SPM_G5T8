@@ -12,6 +12,7 @@ Functions for stories still being built (US12, US14, US44, US49-US51) are ready 
 docs/US36_Notifications_Handover.md.
 """
 import logging
+import threading
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -189,6 +190,15 @@ def sweep_holds(db, now):
 
 
 SWEEP_INTERVAL_SECONDS = 60
+_sweep_lock = threading.Lock()
+
+
+def sweep_and_save(db):
+    """sweep_holds, committed. Requests and the background thread sweep at the same time in their own
+    sessions; one at a time, so two of them can't each send a warning the other has not saved yet."""
+    with _sweep_lock:
+        if sweep_holds(db, datetime.now(timezone.utc)):
+            db.commit()
 
 
 def sweep_holds_forever(stop, session_factory=SessionLocal, interval=SWEEP_INTERVAL_SECONDS):
@@ -197,8 +207,7 @@ def sweep_holds_forever(stop, session_factory=SessionLocal, interval=SWEEP_INTER
     while not stop.wait(interval):
         try:
             with session_factory() as db:
-                if sweep_holds(db, datetime.now(timezone.utc)):
-                    db.commit()
+                sweep_and_save(db)
         except Exception:
             log.exception("Hold sweep failed; retrying in %s s", interval)
 
@@ -306,9 +315,8 @@ PAGE_SIZE = 200
 def list_notifications(before: Optional[int] = None, db: Session = Depends(get_db),
                        user: User = Depends(get_current_user_without_renewal)):
     """The user's notifications, newest first, PAGE_SIZE at a time; `before` (an id) pages back to older ones."""
-    if sweep_holds(db, datetime.now(timezone.utc)):
-        db.commit()
-    query = (db.query(models.Notification, models.Event.name)
+    sweep_and_save(db)
+    query =(db.query(models.Notification, models.Event.name)
              .join(models.Event, models.Event.id == models.Notification.event_id)
              .filter(models.Notification.recipient_id == user.id))
     if before is not None:

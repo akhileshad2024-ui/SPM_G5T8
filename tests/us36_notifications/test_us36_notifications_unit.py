@@ -121,6 +121,34 @@ def test_US36_US42_AC3_background_sweep_warns_without_anyone_using_the_app(db, e
     assert row.venue_name in notices(db, Role.coordinator)[0].body
 
 
+def test_US36_US42_AC3_sweeps_at_the_same_time_warn_only_once(db, event, venue, monkeypatch):
+    # The background thread and the page's requests each sweep in their own session. Slow down sending
+    # so the two sweeps overlap: without taking turns, both find no warning saved yet and both send one.
+    import threading
+    import time
+    from database import SessionLocal
+    booking(db, event, venue, hold_expires_at=datetime.now(timezone.utc) + timedelta(hours=2))
+    db.commit()
+    send = messaging.notify
+
+    def slow_notify(*args):
+        time.sleep(0.3)
+        send(*args)
+
+    monkeypatch.setattr(messaging, "notify", slow_notify)
+
+    def sweep():
+        with SessionLocal() as session:
+            messaging.sweep_and_save(session)
+
+    sweeps = [threading.Thread(target=sweep) for _ in range(2)]
+    for thread in sweeps:
+        thread.start()
+    for thread in sweeps:
+        thread.join()
+    assert [n.title for n in notices(db, Role.coordinator)] == ["Venue hold expiring soon"]
+
+
 def test_US36_US42_background_sweep_keeps_running_after_a_failure(caplog):
     import threading
 
