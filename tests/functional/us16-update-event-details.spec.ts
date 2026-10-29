@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, GRACE, JORDAN, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
+import { action, JORDAN, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
 import { singaporeTestDate } from "./support/dates";
 
 test.use({ timezoneId: "Asia/Singapore" });
@@ -14,7 +14,7 @@ const shared = process.env.TC_SHARED_DB === "1";
 
 async function signIn(page: Page, email: string, landing: RegExp) {
   const password = shared
-    ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : email === GRACE.email ? "TC_GRACE_PASSWORD" : email === JORDAN.email ? "TC_JORDAN_PASSWORD" : "TC_PRIYA_PASSWORD"]
+    ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : email === JORDAN.email ? "TC_JORDAN_PASSWORD" : "TC_PRIYA_PASSWORD"]
     : PASSWORD;
   if (!password) throw new Error("Missing authorised TC password.");
   await page.goto("/login");
@@ -79,7 +79,9 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
       if (wanted !== on) await button.click();
     }
   }
-  await expect(page.locator('[class*="stepperValue"]')).toHaveText(["0", "0", "0", "0", "0"]);
+  const quantities = page.locator('[class*="stepperValue"]');
+  expect(await quantities.count()).toBeGreaterThan(0);
+  for (const quantity of await quantities.all()) await expect(quantity).toHaveText("0");
   await expect(page.getByPlaceholder("Connections, setup, compatibility or power needs")).toHaveCount(0);
   await action(page, "Continue").click();
 
@@ -99,8 +101,9 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
 
   // Steps 8–11: UI login, the Lead's assignment (US43) and Priya's review. Stop naturally if setup is unavailable.
   await signOut(page);
-  await signIn(page, GRACE.email, /\/assignments/);
-  const request = page.locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId}` });
+  await signIn(page, JORDAN.email, /\/assignments/);
+  const request = page.getByRole("region", { name: "Unassigned requests", exact: true })
+    .locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId} ·` });
   await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
   await request.getByRole("button", { name: "Assign", exact: true }).click();
   await expect(request).toHaveCount(0);

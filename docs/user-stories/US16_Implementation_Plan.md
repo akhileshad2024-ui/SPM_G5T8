@@ -26,6 +26,23 @@ Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
 - Unit/API integration evidence already covers recipient selection and ordinary
   edits. This UI TC proves the organiser journey; it does not claim every staff
   recipient/arrangement scenario was exercised through a browser.
+- Follow-up review found TC01's blue setup still described coordinator self-
+  assignment. Its steps 8–10 now match Lead assignment and both US16 tests use
+  Jordan's existing reusable account. Prior yellow records remain unchanged;
+  the revised shared procedure is not treated as already executed. Equipment
+  checks now cover every displayed catalogue item rather than assuming five.
+- Added one real-route integration case for affected organiser/assigned technician/
+  Venue Staff recipients, exclusion of unrelated users and no duplicate notice
+  on an identical save. All ten US16 integration tests passed.
+- PR checkpoint: unittest discovery 449; final full backend 1518 passed + 609
+  subtests, one disposable-PostgreSQL-only case skipped; frontend 361 passed.
+  Full Playwright 194 passed, one HTTPS-only case skipped (6.2m). After the final
+  TC01 setup correction both US16 tests passed again (19.7s); unchanged journeys
+  reuse that full run. Type check and production build passed.
+- Scoped event_updates coverage remains 100%: 17 statements and six branch
+  outcomes. Overall measured backend coverage is about 98%; frontend statement
+  17.34% and branch 19.64%. These are separate scopes, not project-wide 100%.
+  Existing coverage exclusions/skips still need release-level review.
 
 ## Approved requirements
 
