@@ -1,7 +1,31 @@
 # US16 — Update Event Details
 
-Status: AC1/AC2/AC4 implemented and verified; AC3 notification delivery pending US36.
+Status: editing/history implemented; US36 notifications merged. TC02 notification acceptance is being verified; final peer review, merge and DoD remain pending.
 Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
+
+## Notification verification follow-up — 29 Oct 2026 (SGT)
+
+- Current base: main `cae5273`, including US36 PR #39. Its backend already calls
+  `messaging.details_changed` when an important detail changes; no new business
+  module, table or AC is needed. Older pending notes below describe earlier work.
+- Added blue US16-TC02 in the existing shared test record (sheet 600017), before
+  its automation: Maya UI submission, Jordan assignment, Priya attendance 85→90,
+  then Maya reads the notification across refresh/new login and opens its event.
+  Every setup step is UI-driven. The run-start Singapore date and unique event
+  name are recorded; shared IDs and catalogue size are not hard-coded.
+- Extended the existing US16 Playwright file. TC01 remains a separate unchanged
+  workflow; TC02 adds AC3 coverage. `TC_CASE=US16-TC02` selects it for explicit
+  shared acceptance and requires Maya/Priya/Jordan credential variables.
+- Type check passed. Isolated TC02 passed (10.3s; total 15.5s). An earlier command
+  failed before test execution because a relative Python path was resolved from
+  backend; the absolute interpreter path fixed that environment issue.
+- Live DB read-only checks confirmed existing notifications, event_detail_changes
+  and email_outbox columns, plus the three active/unlocked test accounts. No SQL
+  setup, seed, reset or shared cleanup is required. Shared acceptance and full
+  regression are pending; no new yellow execution or overall Done is claimed yet.
+- Unit/API integration evidence already covers recipient selection and ordinary
+  edits. This UI TC proves the organiser journey; it does not claim every staff
+  recipient/arrangement scenario was exercised through a browser.
 
 ## Approved requirements
 
