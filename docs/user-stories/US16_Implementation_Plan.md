@@ -1,6 +1,6 @@
 # US16 — Update Event Details
 
-Status: editing/history implemented; US36 notifications merged. TC02 notification acceptance is being verified; final peer review, merge and DoD remain pending.
+Status: all approved US16 AC have implementation and test evidence, including shared TC01/TC02. This follow-up awaits peer review, merge, green merge-commit CI and final DoD.
 Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
 
 ## Notification verification follow-up — 29 Oct 2026 (SGT)
@@ -43,6 +43,21 @@ Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
   outcomes. Overall measured backend coverage is about 98%; frontend statement
   17.34% and branch 19.64%. These are separate scopes, not project-wide 100%.
   Existing coverage exclusions/skips still need release-level review.
+- Shared TC01 passed on `fad45fe`: event 42, 29 Oct 2026 11:05:06.971–
+  11:05:21.534 SGT. It executed the revised 22-step Lead-assignment procedure,
+  saved purpose/attendance/history, verified refresh and Maya's read-only view.
+- Shared TC02 passed on the same code: event 43, EVENT_DATE=2026-10-29,
+  EVENT_NAME=`US16 Notification Test 2026-10-29 11:05:54.254`, Maya count 29→30,
+  11:05:54.114–11:06:04.408 SGT. Maya read exactly one persisted attendance-change
+  notice after refresh/re-login; its link opened event 43 with attendance 90 and
+  Under Review. Read-only DB verification confirmed both events and notices.
+- Actual yellow records were appended to the existing Sheet: TC01 run 2 and
+  TC02 run 1. Earlier records remain unchanged; neither run is labelled manual.
+  Reports/JSON/results are under `coverage/us16/shared-20261029-tc01-run1/` and
+  `coverage/us16/shared-20261029-tc02-run1/`. All shared data remains; no SQL/reset,
+  API fixture or automatic retry was used. Final sign-out completed in both.
+- Remaining: publish this follow-up, teammate review, merge and green CI on the
+  merged SHA, then final Sprint 4 DoD. No unrelated US14/US33/US34 work included.
 
 ## Approved requirements
 
