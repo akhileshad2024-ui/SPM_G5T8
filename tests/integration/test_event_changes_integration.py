@@ -35,6 +35,22 @@ class TestEventChangeRequestsApi(US05DraftApiTestCase):
         self.assertEqual(self.db.query(models.Event).count(), 1)
         self.assertEqual(self.db.query(models.EventChangeRequest).count(), 1)
 
+        # US33-AC2 / TC01: the real submit route saves exactly one notice for
+        # the assigned coordinator; organisers and unrelated coordinators do not get it.
+        inbox = self.coordinator.get("/notifications")
+        self.assertEqual(inbox.status_code, 200, inbox.text)
+        notices = [n for n in inbox.json() if n["eventId"] == self.event.id and n["title"] == "Change requested"]
+        self.assertEqual(len(notices), 1)
+        notice = notices[0]
+        self.assertIn(self.event.name, notice["body"])
+        self.assertIn(saved["proposed_changes"], notice["body"])
+        self.assertIn(notice, self.coordinator.get("/notifications").json())
+        unrelated = self.client(Role.coordinator, "unrelated.us33@test.edu")
+        for other in (self.organiser, self.other_organiser, unrelated):
+            other_inbox = other.get("/notifications")
+            self.assertEqual(other_inbox.status_code, 200, other_inbox.text)
+            self.assertFalse(any(n["eventId"] == self.event.id and n["title"] == "Change requested" for n in other_inbox.json()))
+
     def test_ac1_confirmed_events_can_receive_proposals(self):
         self.event.status = "confirmed"
         self.db.commit()

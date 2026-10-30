@@ -7,6 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
 if (process.env.TC_SHARED_DB !== "1") throw new Error("Set TC_SHARED_DB=1 to acknowledge shared event writes.");
 const story = process.env.TC_STORY ?? "US09";
 if (!["US04", "US06", "US09", "US16", "US33", "US34"].includes(story)) throw new Error("TC_STORY must be US04, US06, US09, US16, US33 or US34.");
+if (story === "US33" && (!process.env.TC_JORDAN_PASSWORD || !process.env.TC_PRIYA_PASSWORD)) throw new Error("Supply authorised TC_JORDAN_PASSWORD and TC_PRIYA_PASSWORD for US33 assignment and notification checks.");
 for (const key of story === "US04" ? ["TC_MAYA_PASSWORD", "TC_JORDAN_PASSWORD"] : story === "US33" ? ["TC_MAYA_PASSWORD"] : story === "US06"
   ? ["TC_MAYA_PASSWORD", "TC_ALEX_PASSWORD"] : ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD"]) {
   if (!process.env[key]) throw new Error(`Missing ${key}; use the authorised TC credentials.`);
