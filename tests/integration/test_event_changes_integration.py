@@ -107,12 +107,29 @@ class TestEventChangeRequestsApi(US05DraftApiTestCase):
                 self.assertEqual((self.event.status, self.event.expected_attendance), ("submitted", 85))
                 self.assertEqual(self.db.query(models.Event).count(), 1)
 
+                # US34-AC5 / TC01–TC02: the real decision route persists one notice
+                # for the requesting organiser, for each outcome; not for the editor.
+                title = f"Change request {outcome}"
+                inbox = self.organiser.get("/notifications")
+                self.assertEqual(inbox.status_code, 200, inbox.text)
+                notices = [n for n in inbox.json() if n["eventId"] == self.event.id and n["title"] == title]
+                self.assertEqual(len(notices), 1)
+                self.assertIn(f"your change request was {outcome}", notices[0]["body"])
+                self.assertIn(self.event.name, notices[0]["body"])
+                for other in (self.coordinator, self.other_organiser):
+                    other_inbox = other.get("/notifications")
+                    self.assertEqual(other_inbox.status_code, 200, other_inbox.text)
+                    self.assertFalse(any(n["eventId"] == self.event.id and n["title"] == title for n in other_inbox.json()))
+
     def test_us34_existing_decision_is_not_overwritten_on_duplicate_click(self):
         url = self.decision_url()
         first = self.coordinator.post(url, json={"outcome": "accepted", "reason": "  Reviewed  "}).json()
         self.assertEqual(self.coordinator.post(url, json={"outcome": "rejected"}).status_code, 409)
         self.assertEqual(self.organiser.get(self.url).json()[0], first)
         self.assertEqual(first["decision"]["reason"], "Reviewed")
+        notices = self.organiser.get("/notifications").json()
+        self.assertEqual(sum(n["eventId"] == self.event.id and n["title"] == "Change request accepted" for n in notices), 1)
+        self.assertFalse(any(n["eventId"] == self.event.id and n["title"] == "Change request rejected" for n in notices))
 
     def test_us34_confirmed_event_and_recorded_arrangements_are_preserved(self):
         self.event.status = "confirmed"
