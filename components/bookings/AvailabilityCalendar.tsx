@@ -64,7 +64,7 @@ function DayPeriods({ venue, day, showVenue }: { venue: CalendarVenue; day: stri
 }
 
 /** Day and week: a row per venue, a column per day. */
-function VenueRows({ venues, days }: { venues: CalendarVenue[]; days: string[] }) {
+export function VenueRows({ venues, days }: { venues: CalendarVenue[]; days: string[] }) {
   const columns = { gridTemplateColumns: `150px repeat(${days.length}, minmax(0, 1fr))` };
   return (
     <div className={days.length > 1 ? styles.wideGrid : styles.grid}>
@@ -90,7 +90,7 @@ function VenueRows({ venues, days }: { venues: CalendarVenue[]; days: string[] }
 }
 
 /** Month: a square per day, Monday first. With several venues shown, each entry says which venue it is. */
-function MonthGrid({ venues, days, month }: { venues: CalendarVenue[]; days: string[]; month: string }) {
+export function MonthGrid({ venues, days, month }: { venues: CalendarVenue[]; days: string[]; month: string }) {
   return (
     <div className={styles.wideGrid}>
       <div className={styles.monthRow}>
