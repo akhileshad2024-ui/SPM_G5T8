@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { action, GRACE, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
+import { action, JORDAN, MAYA, PRIYA, PASSWORD, workspaceStatus } from "./support/app";
 import { singaporeTestDate } from "./support/dates";
 
 test.use({ timezoneId: "Asia/Singapore" });
@@ -14,7 +14,7 @@ const shared = process.env.TC_SHARED_DB === "1";
 
 async function signIn(page: Page, email: string, landing: RegExp) {
   const password = shared
-    ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : email === GRACE.email ? "TC_GRACE_PASSWORD" : "TC_PRIYA_PASSWORD"]
+    ? process.env[email === MAYA.email ? "TC_MAYA_PASSWORD" : email === JORDAN.email ? "TC_JORDAN_PASSWORD" : "TC_PRIYA_PASSWORD"]
     : PASSWORD;
   if (!password) throw new Error("Missing authorised TC password.");
   await page.goto("/login");
@@ -40,11 +40,11 @@ function field(page: Page, label: string) {
   return page.locator("div.field").filter({ has: page.locator("label", { hasText: new RegExp(`^${label}$`) }) });
 }
 
-async function queueEvent(page: Page, eventId: string) {
+async function queueEvent(page: Page, eventId: string, name = NAME) {
   await page.goto("/queue");
   await action(page, "All").click();
   await page.getByPlaceholder(/search events/i).fill(`EVT-${eventId}`);
-  const row = page.locator('button[class*="QueueList"][class*="row"]').filter({ hasText: NAME });
+  const row = page.locator('button[class*="QueueList"][class*="row"]').filter({ hasText: name });
   await expect(row).toHaveCount(1);
   await row.click();
 }
@@ -79,7 +79,9 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
       if (wanted !== on) await button.click();
     }
   }
-  await expect(page.locator('[class*="stepperValue"]')).toHaveText(["0", "0", "0", "0", "0"]);
+  const quantities = page.locator('[class*="stepperValue"]');
+  expect(await quantities.count()).toBeGreaterThan(0);
+  for (const quantity of await quantities.all()) await expect(quantity).toHaveText("0");
   await expect(page.getByPlaceholder("Connections, setup, compatibility or power needs")).toHaveCount(0);
   await action(page, "Continue").click();
 
@@ -99,8 +101,9 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
 
   // Steps 8–11: UI login, the Lead's assignment (US43) and Priya's review. Stop naturally if setup is unavailable.
   await signOut(page);
-  await signIn(page, GRACE.email, /\/assignments/);
-  const request = page.locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId}` });
+  await signIn(page, JORDAN.email, /\/assignments/);
+  const request = page.getByRole("region", { name: "Unassigned requests", exact: true })
+    .locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId} ·` });
   await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
   await request.getByRole("button", { name: "Assign", exact: true }).click();
   await expect(request).toHaveCount(0);
@@ -178,4 +181,118 @@ test("[US16-TC01][AC1,AC2,AC4] assigned planning edit and important-change histo
   await expect(page.locator('input:not([type="hidden"]), select, textarea')).toHaveCount(0);
   await signOut(page);
   // Executor appends the actual yellow record after the complete matching run.
+});
+
+test("[US16-TC02][US16-AC3] significant attendance change notifies the organiser and persists", async ({ page }, info) => {
+  test.setTimeout(120_000);
+  // Steps 1–3: one Singapore timestamp identifies this run; no fixed date or shared ID.
+  const started = new Date();
+  const date = singaporeTestDate(started);
+  const clock = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Singapore", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  }).format(started);
+  const tag = `${date.iso} ${clock}.${String(started.getMilliseconds()).padStart(3, "0")}`;
+  const name = `US16 Notification Test ${tag}`;
+  await info.attach("test-data", { body: `EVENT_DATE=${date.iso}; RUN_TAG=${tag}; EVENT_NAME=${name}`, contentType: "text/plain" });
+  await signIn(page, MAYA.email, /\/my-events$/);
+  const views = page.getByRole("link", { name: "View", exact: true });
+  const before = await views.evaluateAll(links => links.map(link => link.getAttribute("href")));
+  await action(page, "New event request").click();
+
+  // Steps 4–6: exact blue TC inputs. Every setup action goes through the UI.
+  await page.getByPlaceholder("Alumni Homecoming Dinner").fill(name);
+  await page.getByPlaceholder("What is this event for, and who is it for?").fill("Verify notification after a significant attendance change.");
+  await field(page, "Expected attendance").locator("input").fill("85");
+  await field(page, "Event type").locator("select").selectOption({ label: "Conference" });
+  await field(page, "Proposed date").locator("input").fill(date.iso);
+  await field(page, "Start").locator("input").fill("18:00");
+  await field(page, "End").locator("input").fill("21:00");
+  await action(page, "Continue").click();
+  await field(page, "Preferred venue location").locator("input").fill("");
+  await field(page, "Required capacity").locator("input").fill("");
+  const banquet = action(page, "Banquet");
+  if (!(await banquet.getAttribute("class"))?.includes("chipOn")) await banquet.click();
+  for (const [label, selected] of [["Facilities needed", "PA system"], ["Accessibility needs", "Wheelchair Access"]]) {
+    for (const button of await field(page, label).getByRole("button").all()) {
+      const wanted = (await button.innerText()) === selected;
+      const on = (await button.getAttribute("class"))?.includes("chipOn") ?? false;
+      if (wanted !== on) await button.click();
+    }
+  }
+  const quantities = page.locator('[class*="stepperValue"]');
+  expect(await quantities.count()).toBeGreaterThan(0);
+  for (const quantity of await quantities.all()) await expect(quantity).toHaveText("0");
+  await expect(page.getByPlaceholder("Connections, setup, compatibility or power needs")).toHaveCount(0);
+  await action(page, "Continue").click();
+  await page.getByRole("checkbox", { name: /Enable attendee registration/ }).uncheck();
+
+  // Steps 7–8: one submission; find this run's new event from the loaded baseline.
+  expect(singaporeTestDate(new Date()).iso, "Restart if midnight crossed before submission.").toBe(date.iso);
+  await action(page, "Submit for review").click();
+  await expect(page).toHaveURL(/\/my-events$/);
+  await expect(views).toHaveCount(before.length + 1);
+  const added = (await views.evaluateAll(links => links.map(link => link.getAttribute("href"))))
+    .filter(href => !before.includes(href));
+  expect(added).toHaveLength(1);
+  const href = added[0]!;
+  const eventId = href.split("/").pop()!;
+  const row = page.locator('[class*="MyEventsTable"][class*="row"]').filter({ has: page.locator(`a[href="${href}"]`) });
+  await expect(row).toContainText(name);
+  await expect(row.locator(".pill")).toHaveText("Submitted");
+  const record = `EVENT_ID=${eventId}; EVENT_DATE=${date.iso}; EVENT_NAME=${name}; count=${before.length}->${before.length + 1}; ${shared ? "shared acceptance" : "isolated regression"}`;
+  console.log(`US16-TC02 ${record}`);
+  await info.attach("event-record", { body: record, contentType: "text/plain" });
+
+  // Steps 9–15: Jordan assigns the event; Priya opens it and starts review.
+  await signOut(page);
+  await signIn(page, JORDAN.email, /\/assignments$/);
+  const request = page.getByRole("region", { name: "Unassigned requests", exact: true })
+    .locator('[aria-label^="Unassigned request:"]').filter({ hasText: `EVT-${eventId} ·` });
+  await expect(request).toContainText(name);
+  await request.getByLabel("Coordinator to assign").selectOption({ label: PRIYA.name });
+  await request.getByRole("button", { name: "Assign", exact: true }).click();
+  await expect(request).toHaveCount(0);
+  await signOut(page);
+  await signIn(page, PRIYA.email, /\/queue/);
+  await queueEvent(page, eventId, name);
+  await action(page, "Start review").click();
+  await expect(workspaceStatus(page)).toHaveText("Under Review");
+
+  // Steps 16–17: change attendance only; the server saves the edit and its notice.
+  await action(page, "Edit event details").click();
+  const editor = page.getByRole("region", { name: "Edit event details", exact: true });
+  await expect(editor.getByLabel("Expected attendance")).toHaveValue("85");
+  await editor.getByLabel("Expected attendance").fill("90");
+  await expect(editor.getByRole("status")).toContainText("May affect existing arrangements.");
+  await editor.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(editor.getByRole("button", { name: "Edit event details", exact: true })).toBeVisible();
+  await expect(page.locator('[class*="EventWorkspace"][class*="line"]').first()).toContainText("90");
+
+  // Steps 18–21: Maya checks the saved notice after login, refresh and a new session.
+  await signOut(page);
+  await signIn(page, MAYA.email, /\/my-events$/);
+  const notice = page.locator('[class*="NotificationsPanel_item__"]', { hasText: name })
+    .filter({ hasText: "Event details changed" });
+  async function checkNotice() {
+    await page.getByRole("button", { name: /^Notifications/ }).click();
+    await expect(notice).toHaveCount(1);
+    await expect(notice).toContainText("Priya Tan");
+    await expect(notice).toContainText("expected attendance");
+  }
+  await checkNotice();
+  await page.reload();
+  await checkNotice();
+  await signOut(page);
+  await signIn(page, MAYA.email, /\/my-events$/);
+  await checkNotice();
+
+  // Steps 22–23: the notice opens the correct persisted event; finish with sign-out.
+  await notice.getByRole("button", { name: "Open event", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/my-events/${eventId}$`));
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.locator(".pill").first()).toHaveText("Under Review");
+  const details = page.getByRole("region", { name: "Event", exact: true });
+  await expect(details.locator("dt").filter({ hasText: /^Expected attendance$/ })
+    .locator("xpath=following-sibling::dd[1]")).toHaveText("90");
+  await signOut(page);
 });

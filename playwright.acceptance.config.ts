@@ -6,6 +6,8 @@ import { defineConfig, devices } from "@playwright/test";
  */
 if (process.env.TC_SHARED_DB !== "1") throw new Error("Set TC_SHARED_DB=1 to acknowledge shared event writes.");
 const story = process.env.TC_STORY ?? "US09";
+const us16Case = process.env.TC_CASE ?? "US16-TC01";
+if (story === "US16" && !["US16-TC01", "US16-TC02"].includes(us16Case)) throw new Error("TC_CASE must be US16-TC01 or US16-TC02.");
 if (!["US04", "US06", "US09", "US16", "US33", "US34"].includes(story)) throw new Error("TC_STORY must be US04, US06, US09, US16, US33 or US34.");
 if (story === "US33" && (!process.env.TC_JORDAN_PASSWORD || !process.env.TC_PRIYA_PASSWORD)) throw new Error("Supply authorised TC_JORDAN_PASSWORD and TC_PRIYA_PASSWORD for US33 assignment and notification checks.");
 for (const key of story === "US04" ? ["TC_MAYA_PASSWORD", "TC_JORDAN_PASSWORD"] : story === "US33" ? ["TC_MAYA_PASSWORD"] : story === "US06"
@@ -17,7 +19,7 @@ export default defineConfig({
   testDir: "tests/functional",
   testMatch: story === "US04" ? "us04-submit-to-lead-queue.spec.ts" : story === "US06" ? "us06-draft-ownership.spec.ts" : story === "US34" ? "us34-review-event-changes.spec.ts" : story === "US33" ? "us33-request-event-changes.spec.ts"
     : story === "US16" ? "us16-update-event-details.spec.ts" : "us09-respond-clarification.spec.ts",
-  grep: new RegExp(story === "US04" ? "US04-TC03" : story === "US06" ? "US06-TC02" : story === "US34" ? "US34-TC0[12]" : `${story}-TC01`),
+  grep: new RegExp(story === "US16" ? us16Case : story === "US04" ? "US04-TC03" : story === "US06" ? "US06-TC02" : story === "US34" ? "US34-TC0[12]" : `${story}-TC01`),
   workers: 1,
   retries: 0, // Do not automatically repeat shared-data writes.
   timeout: 120_000,

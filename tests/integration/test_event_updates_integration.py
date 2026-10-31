@@ -3,7 +3,7 @@
 Protect persistence/ownership/history boundaries of US16-TC01. SQLite does not
 prove PostgreSQL locking or Supabase RLS; notification delivery is not mocked as Pass.
 """
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -73,6 +73,49 @@ class TestEventUpdatesApi(US05DraftApiTestCase):
         for _ in range(2):
             self.assertEqual(self.coordinator.patch(self.path + "/details", json={"pax": 90}).status_code, 200)
         self.assertEqual(self.db.query(models.EventDetailChange).count(), 1)
+
+    def test_TC02_important_change_notifies_affected_users_not_unrelated_users(self):
+        # Given: a real event has a venue booking and one assigned technician.
+        tech = self.client(Role.tech, "assigned.tech@connectsphere.edu")
+        staff = self.client(Role.venue, "venue.staff@connectsphere.edu")
+        unrelated_tech = self.client(Role.tech, "unassigned.tech@connectsphere.edu")
+        tech_id = tech.get("/auth/me").json()["id"]
+        staff_id = staff.get("/auth/me").json()["id"]
+        venue = models.Venue(name="TC02 room", location="Campus", cap=120,
+            layouts=["theatre"], last_updated_by="venue.staff@connectsphere.edu")
+        self.db.add(venue)
+        self.db.flush()
+        self.db.add(models.EquipmentAssignment(event_id=self.event.id, tech_id=tech_id))
+        self.db.add(models.VenueBooking(event_id=self.event.id, event_name=self.event.name,
+            venue_id=venue.id, venue_name=venue.name, status="approved", date=self.event.date,
+            start_time="18:00", end_time="21:00", setup_minutes=0, teardown_minutes=0,
+            hold_start=datetime.combine(self.event.date, datetime.min.time()).replace(hour=18),
+            hold_end=datetime.combine(self.event.date, datetime.min.time()).replace(hour=21),
+            attendance=85, layout="theatre", verdict="suitable", requested_by=self.actor.email,
+            requested_at=datetime.now(timezone.utc)))
+        self.db.commit()
+
+        # When: the actual route changes attendance, then receives an identical save.
+        for _ in range(2):
+            response = self.coordinator.patch(self.path + "/details", json={"pax": 90})
+            self.assertEqual(response.status_code, 200, response.text)
+
+        # Then: each affected recipient reads one persisted notice; no-op saves add none.
+        saved = self.db.query(models.Notification).filter_by(event_id=self.event.id).all()
+        self.assertEqual({n.recipient_id for n in saved}, {self.event.organiser_id, tech_id, staff_id})
+        self.assertEqual(len(saved), 3)
+        for recipient in (self.organiser, tech, staff):
+            response = recipient.get("/notifications")
+            self.assertEqual(response.status_code, 200, response.text)
+            notices = [n for n in response.json() if n["eventId"] == self.event.id]
+            self.assertEqual(len(notices), 1)
+            self.assertEqual(notices[0]["title"], "Event details changed")
+            self.assertIn("expected attendance", notices[0]["body"])
+            self.assertIn(self.actor.name, notices[0]["body"])
+        for unrelated in (self.coordinator, self.other_organiser, unrelated_tech):
+            response = unrelated.get("/notifications")
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertFalse(any(n["eventId"] == self.event.id for n in response.json()))
 
     def test_invalid_or_protected_input_does_not_write(self):
         for body in [{"status": "approved"}, {"coordinator_id": 99}, {"name": None},
