@@ -2,8 +2,8 @@
 
 最后更新：2026-10-31（Asia/Shanghai）。范围：US50（3 点）、US51（3 点）、US45（5 点），共 11 点。
 
-当前分支：`yangbo-sprint4-us50-us51`。本轮核实 HEAD：`cae52735af7f86595949a56e4ae74cd6cd463fa0`。
-本文件尚未提交；没有为三条故事创建实现提交。本轮有 US51 收件人函数及测试的未提交补丁，未接入业务流程。此前的 handoff 文档是 2026-10-30 历史快照，其中“尚未取得 AC”的描述已被用户随后提供的正式原文取代；以本文件为当前进度入口。
+当前分支：`yangbo-sprint4-us50-us51`。本轮核实 HEAD：`b6f82bf03b370983bc577ab1dbd5e28c475f7404`，已将 origin/main e6ab88c 合入任务分支。
+US51 收件人修正和文档已在 `01be1d3` 提交，包含于当前合并提交；仍未接入业务流程。本轮仅更新测试记录，按用户要求不 push。此前的 handoff 文档是 2026-10-30 历史快照，其中“尚未取得 AC”的描述已被用户随后提供的正式原文取代；以本文件为当前进度入口。下文 T1/T2 及此前日志保留当时事实，不当作当前提交状态。
 
 ## 记录规则与需求来源
 
@@ -25,7 +25,7 @@
 | US50-3: Has the responsible Technical Support Staff notified of each flagged reservation | 辅助函数已存在；故事未接入；未验收 | `backend/messaging.py:equipment_reassess` 通知活动 assigned technician；US36 有辅助函数测试 | 未在 accepted 中调用；未证明每个被标记预留及其负责人员均正确关联／通知 | T1 的 US36 测试覆盖辅助函数；本 AC 流程 T0；基础提交 cae5273，故事实现提交无 | Zhenhan／US36：逐预留通知与重复保护约定；设备负责人数据映射需团队确认 |
 | US51-1: Has the event's registration settings re-evaluated automatically when a change is accepted | 未实现；未接入；未验收 | `backend/registrations.py` 有报名、容量及候补基础；US34 保存决定 | 无 accepted 自动重评、有效新值输入及同事务接入 | T1 覆盖既有决定边界；本 AC 为 T0；实现提交：无 | Yuetong／US34：新值交接；需求方确认设置有效性规则 |
 | US51-2: Sees registration settings that are no longer valid flagged as "Requires Reassessment" | 未实现；未接入；未验收 | 有现成报名视图及场地标记展示思路，不构成本 AC 实现 | 无报名设置持久化标记、显示及解决流程 | T0；实现提交：无 | Chin Hui／US49：共享标记契约；需求方确认容量下降、禁用报名、日期／截止日期变化的判定与解决方式 |
-| US51-3: Sees registered attendees notified where the change affects them | 收件人筛选已修改并通过函数测试；未接入；未验收 | `backend/messaging.py:attendees_affected` 仅选择本活动 registered；通用 `attendees()` 保留候补范围；函数不 commit | 无 accepted 接入及影响判定；函数通过不等于 AC 完成 | T2：57 passed、13 subtests passed（合并测试集结果）；本 AC 流程 T0；版本 cae5273 + 未提交补丁，无实现提交 | 需求方确认“影响参会者”的规则；Yuetong 提供 accepted 新值；Zhenhan 确认后续流程接入 |
+| US51-3: Sees registered attendees notified where the change affects them | 收件人筛选已修改并通过函数测试；未接入；未验收 | `backend/messaging.py:attendees_affected` 仅选择本活动 registered；通用 `attendees()` 保留候补范围；函数不 commit | 无 accepted 接入及影响判定；函数通过不等于 AC 完成 | 修正提交 01be1d3；T3 在合并提交 b6f82bf 上通过 67 后端测试、29 子测试及 17 前端单测（测试集总数）；本 AC 流程 T0 | 需求方确认“影响参会者”的规则；Yuetong 提供 accepted 新值；Zhenhan 确认后续流程接入 |
 | US45-1: Has the event returned to the relevant earlier planning stage when the Safety Officer rejects the safety arrangement or requests changes | 未实现；未接入；未验收 | `backend/event_status.py:change_status` 有集中转换及历史记录；`backend/messaging.py:safety_check_decided` 支持两类结果通知 | 无 US44 安全决定接入、返回阶段映射；现转换表没有所需返工路径，不能将安全拒绝当作活动终态 rejected | T1 仅覆盖安全通知 helper；本 AC 为 T0；实现提交：无 | Akhi／US44：实际结果枚举、审查记录／轮次及调用接口；需求方确认目标阶段 |
 | US45-2: Sees the venue or equipment arrangements named in the request flagged as "Requires Reassessment", reusing the flag from US49–US51 | 未实现；未接入；未验收 | US38 场地标记基础存在；当前 schema 原因仅允许 venue_time_changed | 无安全原因共享标记及点名目标输入／校验；必须只处理被点名安排 | T0；实现提交：无 | Akhi／US44：点名安排类型及 ID；Chin Hui／US49：共享标记和多原因兼容契约 |
 | US45-3: Can resubmit the event for another Operational Safety Check once the flagged arrangements are resolved | 未实现；未接入；未验收 | `backend/messaging.py:safety_check_ready` 仅提供通知基础 | 无后端送审接口、标记解决校验及新审查轮次 | T0；实现提交：无 | Akhi／US44：送审／重送审接口、审查状态与轮次；共享机制提供解决状态及权限 |
@@ -79,6 +79,32 @@ $env:TEMP = (Get-Location).Path
 
 静态核查：`git diff --check` 通过（针对已跟踪改动）；新文档另行检查全部 10 条 AC、测试规格覆盖 ID 及文件存在。分支及 HEAD 未变。
 
+### T3 — 合并 main 后通知与 US34 回归（2026-10-31）
+
+测试版本：`b6f82bf03b370983bc577ab1dbd5e28c475f7404`；包括修正提交 `01be1d3` 和 main `e6ab88c`。测试前已跟踪工作区干净。
+
+```powershell
+$env:TMP = (Get-Location).Path
+$env:TEMP = (Get-Location).Path
+.\.venv312\Scripts\python.exe -m pytest -p no:cacheprovider tests/us36_notifications/test_us36_notifications_unit.py tests/us36_notifications/test_us36_notifications_api.py tests/unit/event_request/test_event_changes.py tests/integration/test_event_changes_integration.py -q
+.\node_modules\.bin\vitest.cmd run tests/us36_notifications/notifications.unit.test.ts
+```
+
+实际结果：后端 `67 passed, 1 warning, 29 subtests passed in 22.95s`；前端 `1 file / 17 tests passed`，1.07 秒。后端警告为既有 TestClient/httpx 弃用提示。首次沙箱执行分别因 SQLite 文件访问失败及 Vite spawn EPERM 未能启动；获批在沙箱外重跑后通过。
+
+覆盖 US51 registered-only、其他活动隔离、通用候补范围保留、事务 rollback；既有通知 API；US34 决定持久化、活动／安排不被自动改写、重复决定、权限及本次 main 新增回归。不是 US34→US51 自动重评集成证据。
+
+US34 浏览器回归命令（真实本地应用和隔离 SQLite，非共享验收配置）：
+
+```powershell
+$env:PYTHON = Join-Path (Get-Location).Path '.venv312\Scripts\python.exe'
+$env:TC_SHARED_DB = '0'
+.\node_modules\.bin\playwright.cmd test tests/functional/us34-review-event-changes.spec.ts --config playwright.config.ts
+```
+
+实际结果：Chromium `3 passed (1.7m)`。US34-TC01 accepted 和 TC02 rejected 均验证决定持久化、organiser 通知及原活动字段不变；第三例验证已有场地／设备／报名安排可见且未自动应用提案。TC01 EVENT_ID=1、Request #1；TC02 EVENT_ID=2、Request #2；执行记录均注明 isolated regression。启动时有请求重试和 NO_COLOR 警告，未导致测试失败。
+HTML 报告：`coverage/functional/report/index.html`（本地生成、被 Git 忽略，后续运行可能覆盖）。不是共享数据库验收，也不是三条新故事流程集成。
+
 ## 尚未采纳的建议与待决规则
 
 以下都是建议／待确认问题，不是新增客户 AC，也不是已实现方案：
@@ -96,7 +122,7 @@ $env:TEMP = (Get-Location).Path
 | 项目 | 当前状态／证据 |
 |---|---|
 | 全部 AC 实现及逐条验证 | 未完成，见上表 |
-| 适用单元／集成测试 | T1 历史基线及 T2 本轮函数／既有 API 回归通过；新故事流程未完成 |
+| 适用单元／集成测试 | T3 在合并提交 b6f82bf 上通过 67 后端测试／29 子测试、17 前端单测及 3 个 US34 浏览器回归；新故事流程未完成 |
 | 功能测试规格及真实执行记录 | 规格文档完成（含明确待确认规则）；所有新流程 NOT RUN / BLOCKED，无虚构执行结果 |
 | US34／US36／US44／US49／US14 联调 | 未完成 |
 | 非作者评审 | 无本故事评审证据 |
@@ -106,6 +132,14 @@ $env:TEMP = (Get-Location).Path
 | 必要文档更新 | 本进度表已建立；交付文档仍需随实现更新 |
 
 ## 每轮交付日志
+
+### 2026-10-31 — 合并后实测（不 push）
+
+- 做了什么：确认用户已提交 01be1d3 并合并 main，HEAD b6f82bf；运行 T3 后端、前端及真实 US34 浏览器回归；更新本记录。
+- 没做什么：未修改生产／测试代码；未新增故事接口集成；未 commit、push 或创建 PR。
+- 验证了什么：67 后端测试／29 子测试、17 前端单测、3 个 Chromium 回归全部通过；保留 US34 接受不直接修改活动字段的边界。首次沙箱启动失败及重跑情况见 T3。
+- 下一步：本次合并回归无测试失败；如需 Draft PR 可使用本批提交，但 US50／51 自动重评和 US45 仍需团队接口及规则，不能宣称 DoD 完成。
+- 对应提交：测试代码 b6f82bf03b370983bc577ab1dbd5e28c475f7404；本轮记录为未提交文档。
 
 ### 2026-10-31 — fetch 与 Draft PR 建议
 
