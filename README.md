@@ -158,6 +158,9 @@ Under Review) and confirming an event (US14, Approved → Confirmed).
   (e.g. 10:00–12:00 with 30 + 45 min occupies 09:30–12:45). This window is used
   for suitability, the availability calendar and conflict detection
   (`lib/venues/rules.ts`). Venue Staff can't approve a booking that clashes.
+- The availability calendar (US19, [test cases](docs/US19-functional-tests.md)) shows each
+  venue by day, week or month. Everyone who can open it sees when a venue is busy; the
+  server only names an event to someone who may see that event (`backend/venue_calendar.py`).
 - When a venue edit (longer setup/turnaround, a new unavailable period,
   deactivation) puts existing bookings in trouble, they are **kept** and
   flagged: the coordinator gets a notification, the event's activity log and
@@ -292,6 +295,7 @@ app/
   (dashboard)/queue/         Coordinator: review queue + event workspace (tabs)
   (dashboard)/board/         Coordinator: pipeline board
   (dashboard)/venues/        Coordinator: venue search + read-only details (US18, US20)
+  (dashboard)/calendar/      Coordinator, Lead, Technical support: venue availability calendar (US19)
   (dashboard)/my-events/     Organiser: my requests + stats
   (dashboard)/new-request/   Organiser: 3-step new request wizard
   (dashboard)/bookings/      Venue staff: availability calendar + booking requests

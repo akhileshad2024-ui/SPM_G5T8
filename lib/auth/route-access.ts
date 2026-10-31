@@ -21,16 +21,23 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
     ["/queue", "Review queue"],
     ["/board", "Pipeline"],
     ["/venues", "Venues"],
+    ["/calendar", "Venue calendar"],
     ["/registrations", "Event registrations"],
   ],
   venue: [
     ["/bookings", "Booking requests"],
     ["/catalogue", "Venue catalogue"],
   ],
-  tech: [["/equipment", "Equipment"]],
+  tech: [
+    ["/equipment", "Equipment"],
+    ["/calendar", "Venue calendar"],
+  ],
   attendee: [["/browse", "Browse events"]],
   // US43: the Event Coordinator Lead's unassigned queue and coordinators' assignments.
-  lead: [["/assignments", "Assignments"]],
+  lead: [
+    ["/assignments", "Assignments"],
+    ["/calendar", "Venue calendar"],
+  ],
 };
 
 /**

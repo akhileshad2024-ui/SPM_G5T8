@@ -21,6 +21,8 @@ export function getPageMeta(pathname: string, events: EventRecord[], venues: Ven
       return { title: "Booking requests", subtitle: `${pendingBookings} requests pending · conflicts flagged automatically` };
     case pathname.startsWith("/venues"):
       return { title: "Venues", subtitle: "Search and filter venues, and see the details of each" };
+    case pathname.startsWith("/calendar"):
+      return { title: "Venue calendar", subtitle: "Bookings, tentative holds and unavailable periods at each venue" };
     case pathname.startsWith("/catalogue"):
       return { title: "Venue catalogue", subtitle: `${venues.filter((v) => v.isActive).length} active venues, with layouts, facilities, accessibility and setup times` };
     case pathname.startsWith("/assignments"):
