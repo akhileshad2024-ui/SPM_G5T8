@@ -7,7 +7,9 @@ from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 
+import main
 import models
 import venue_calendar
 from auth_testkit import get_user
@@ -202,3 +204,32 @@ def test_US19_AC5_calendar_names_only_the_events_the_viewer_may_see(db):
     periods = venue_calendar.calendar(db, priya, MON, MON, NOW)[0]["periods"]
     assert [p["event_name"] for p in periods] == ["Mine", None]
     assert periods[1]["kind"] == "confirmed"
+
+
+# The route on its own, called as a function: who may call it is tested through the API.
+
+def test_US19_AC1_the_route_returns_the_calendar(db):
+    venue = saved_venue(db)
+    saved_booking(db, saved_event(db), venue)
+    rows = main.get_venue_availability(MON, MON, db, get_user(db, Role.venue))
+    assert [p["event_name"] for row in rows for p in row["periods"]] == ["Gala"]
+
+
+def test_US19_AC2_the_route_refuses_a_bad_range(db):
+    with pytest.raises(HTTPException) as refused:
+        main.get_venue_availability(MON, MON - timedelta(days=1), db, get_user(db, Role.venue))
+    assert refused.value.status_code == 422
+    assert refused.value.detail == "The end date can't be before the start date."
+
+
+def test_US19_AC6_the_route_saves_lapsed_holds_before_reading(db):
+    venue = saved_venue(db)
+    saved_booking(db, saved_event(db), venue, status="pending")
+    row = db.query(models.VenueBooking).one()
+    row.hold_expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    db.commit()
+
+    rows = main.get_venue_availability(MON, MON, db, get_user(db, Role.venue))
+    assert rows[0]["periods"][0]["kind"] == "expired"
+    db.expire_all()
+    assert db.query(models.VenueBooking).one().status == "expired"

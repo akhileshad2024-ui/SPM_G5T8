@@ -2,7 +2,7 @@
 
 > "As an authorised internal user, I want to view a venue availability calendar showing bookings and recorded unavailable periods so that I can identify potential event times."
 
-Automated in `tests/functional/us19-availability-calendar.spec.ts` (browser, run by CI on every pull request) and `tests/us19_availability_calendar/` (API and unit).
+Automated in `tests/functional/us19-availability-calendar.spec.ts` (browser, run by CI on every pull request) and `tests/us19_availability_calendar/` (API and unit). The component's unit tests run in jsdom, with the server's reply faked (`availability-calendar.dom.unit.test.ts`).
 
 | ID | AC | Preconditions | Steps | Expected result |
 |---|---|---|---|---|
