@@ -12,7 +12,7 @@ Don't create notifications in the browser (`notify(...)` in `lib/state/app-conte
 | US44-AC6 / US36-AC7 Safety outcome | Akhi | `messaging.safety_check_decided(db, event, outcome, comment)` with `outcome` = `"approved"`, `"changes_requested"` or `"rejected"` | Coordinator |
 | US49-AC3 Venue reassessment | Chin Hui | `messaging.venue_booking_reassess(db, booking)` | Every active Venue Staff member |
 | US50-AC3 Equipment reassessment | Yangbo | `messaging.equipment_reassess(db, event)` | Assigned technician |
-| US51-AC3 Registrations affected | Yangbo | `messaging.attendees_affected(db, event, "what changed for them")` | Registered and waitlisted attendees |
+| US51-AC3 Registrations affected | Yangbo | `messaging.attendees_affected(db, event, "what changed for them")` | Registered attendees only; caller must first determine that the change affects them |
 
 Example (US12):
 

@@ -256,7 +256,7 @@ def test_US36_US50_AC3_no_technician_means_no_notice(db, event):
     assert db.query(models.Notification).count() == 0
 
 
-def test_US36_US51_AC3_registered_and_waitlisted_attendees_are_told_but_not_withdrawn_ones(db, event):
+def test_US36_US51_AC3_only_registered_attendees_are_told(db, event):
     registered = get_user(db, Role.attendee).id
     waitlisted = add_user(db, "wait@student.connectsphere.edu", Role.attendee).id
     withdrawn = add_user(db, "gone@student.connectsphere.edu", Role.attendee).id
@@ -265,5 +265,34 @@ def test_US36_US51_AC3_registered_and_waitlisted_attendees_are_told_but_not_with
     register(db, event, withdrawn, models.RegistrationStatus.withdrawn)
     messaging.attendees_affected(db, event, "now starts at 14:00.")
     assert [n.body for n in notices(db, registered)] == ["Design Keynote: now starts at 14:00."]
-    assert len(notices(db, waitlisted)) == 1
+    assert notices(db, waitlisted) == []
     assert notices(db, withdrawn) == []
+
+
+def test_US51_notification_does_not_include_registrations_for_other_events(db, event):
+    other = models.Event(organiser_id=event.organiser_id, name="Other event",
+                         status=models.EventStatus.approved)
+    db.add(other)
+    db.flush()
+    attendee = get_user(db, Role.attendee).id
+    register(db, other, attendee)
+    messaging.attendees_affected(db, event, "now starts at 14:00.")
+    assert notices(db, attendee) == []
+
+
+def test_US51_recipient_filter_does_not_change_general_attendee_audience(db, event):
+    registered = get_user(db, Role.attendee).id
+    waitlisted = add_user(db, "waiting@student.connectsphere.edu", Role.attendee).id
+    register(db, event, registered)
+    register(db, event, waitlisted, models.RegistrationStatus.waitlisted)
+    assert messaging.attendees(db, event) == [registered, waitlisted]
+
+
+def test_US51_notification_is_rolled_back_with_callers_transaction(db, event):
+    attendee = get_user(db, Role.attendee).id
+    register(db, event, attendee)
+    db.commit()
+    messaging.attendees_affected(db, event, "now starts at 14:00.")
+    assert len(notices(db, attendee)) == 1
+    db.rollback()
+    assert notices(db, attendee) == []
