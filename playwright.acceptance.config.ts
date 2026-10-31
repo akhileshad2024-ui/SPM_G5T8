@@ -9,7 +9,8 @@ const story = process.env.TC_STORY ?? "US09";
 const us16Case = process.env.TC_CASE ?? "US16-TC01";
 if (story === "US16" && !["US16-TC01", "US16-TC02"].includes(us16Case)) throw new Error("TC_CASE must be US16-TC01 or US16-TC02.");
 if (!["US04", "US06", "US09", "US16", "US33", "US34"].includes(story)) throw new Error("TC_STORY must be US04, US06, US09, US16, US33 or US34.");
-for (const key of story === "US16" ? ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD", "TC_JORDAN_PASSWORD"] : story === "US04" ? ["TC_MAYA_PASSWORD", "TC_JORDAN_PASSWORD"] : story === "US33" ? ["TC_MAYA_PASSWORD"] : story === "US06"
+if (story === "US33" && (!process.env.TC_JORDAN_PASSWORD || !process.env.TC_PRIYA_PASSWORD)) throw new Error("Supply authorised TC_JORDAN_PASSWORD and TC_PRIYA_PASSWORD for US33 assignment and notification checks.");
+for (const key of story === "US04" ? ["TC_MAYA_PASSWORD", "TC_JORDAN_PASSWORD"] : story === "US33" ? ["TC_MAYA_PASSWORD"] : story === "US06"
   ? ["TC_MAYA_PASSWORD", "TC_ALEX_PASSWORD"] : ["TC_MAYA_PASSWORD", "TC_PRIYA_PASSWORD"]) {
   if (!process.env[key]) throw new Error(`Missing ${key}; use the authorised TC credentials.`);
 }
