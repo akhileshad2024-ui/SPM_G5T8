@@ -56,8 +56,8 @@ submitted ──start review──▶ under_review ──approve──▶ approv
 - **US09** (organiser responds to a clarification request) moves a request from
   Pending clarification back to Under review. Until it is built, a request sent
   for clarification stays in Pending clarification.
-- **US12** (reassign to another coordinator). US11 only assigns a coordinator
-  to an unassigned event.
+- **US12** (reassign to another coordinator) is built on top of US11's assignment record:
+  see `docs/user-stories/US12_reassign_coordinator.md`. US11 itself only assigns an unassigned event.
 
 ---
 

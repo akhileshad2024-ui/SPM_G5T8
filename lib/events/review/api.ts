@@ -16,6 +16,7 @@ export interface Coordinator {
 
 export type ReviewStep =
   | { step: "assign"; coordinatorId: number }
+  | { step: "reassign"; coordinatorId: number; reason: string }
   | { step: "review" }
   | { step: "clarification"; kind: ClarificationKind; message: string }
   | { step: "decision"; outcome: "approved" | "rejected"; reason: string };
@@ -26,6 +27,8 @@ export function reviewRequest(backendId: number, request: ReviewStep): { path: s
   switch (request.step) {
     case "assign":
       return { path, body: { coordinatorId: request.coordinatorId } };
+    case "reassign":
+      return { path, body: { coordinatorId: request.coordinatorId, reason: request.reason } };
     case "review":
       return { path, body: {} };
     case "clarification":

@@ -29,6 +29,7 @@ import { eventFromApi, eventKey, eventRequestBody, type StoredEvent } from "../e
 import { createPendingRequestGuard } from "../events/request/pending-request";
 import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
+import { reassignCoordinator, type AssignmentHistoryEntry } from "../events/review/reassignment";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
 import { approveRequest, rejectRequest } from "../events/review/decision";
@@ -310,6 +311,10 @@ export interface AppApi {
   setQueueFilter: (f: QueueFilter) => void;
   setSearch: (q: string) => void;
   assignCoordinator: (id: string, coordinator: string) => void;
+  /** US12: the Lead hands an assigned event to another coordinator, with a reason. Resolves true once saved. */
+  reassignCoordinator: (id: string, coordinator: string, reason: string) => Promise<boolean>;
+  /** US12-AC5: the event's complete assignment history, oldest first. Throws ApiError. */
+  loadAssignmentHistory: (backendId: number) => Promise<AssignmentHistoryEntry[]>;
 
   // ---- review workflow ----
   startReview: (id: string) => void;
@@ -868,6 +873,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           `${coordinator} is now coordinating ${e.name}.`,
         );
       },
+
+      reassignCoordinator: async (id, coordinator, reason) => {
+        const e = getEvent(state.events, id);
+        if (!e) return false;
+        const coordinators = state.coordinators.map((c) => c.name);
+        return saveReviewStep(
+          reassignCoordinator(e, actor, { coordinator, coordinators, reason }, new Date()),
+          { step: "reassign", coordinatorId: coordinatorId(state.coordinators, coordinator) ?? 0, reason },
+          `${e.name} reassigned to ${coordinator}. Both coordinators and the organiser have been notified.`,
+        );
+      },
+      loadAssignmentHistory: (backendId) => apiFetch<AssignmentHistoryEntry[]>(`/events/${backendId}/assignments`),
 
       startReview: (id) => {
         const e = getEvent(state.events, id);

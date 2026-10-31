@@ -58,3 +58,8 @@ WHERE status = 'pending' AND hold_expires_at IS NULL;
 -- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
 -- flagged (NULL when nothing needs reassessing). Safe to run more than once.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;
+
+-- US12 (reassign an Event Coordinator, CR-W7-5): a reassignment records the coordinator it replaced and the
+-- Lead's reason, so event_assignments is the event's full assignment history. Safe to run more than once.
+ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS previous_coordinator_id integer REFERENCES users(id);
+ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS reason text;
