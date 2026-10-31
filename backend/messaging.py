@@ -290,8 +290,17 @@ def equipment_reassess(db, event):
 
 
 def attendees_affected(db, event, what_changed):
-    """US51-AC3: registered and waitlisted attendees are told how an accepted change affects them."""
-    notify_all(db, attendees(db, event), event, "Event changed", f"{event.name}: {what_changed}")
+    """US51-AC3: notify registered attendees after the caller establishes an impact.
+
+    This helper neither determines impact nor commits. The accepted-change workflow
+    must call it in its own transaction. Other stories still use attendees(), which
+    includes the waitlist; US51 does not implicitly expand to that audience.
+    """
+    recipients = [r.attendee_id for r in db.query(models.Registration).filter(
+        models.Registration.event_id == event.id,
+        models.Registration.status == models.RegistrationStatus.registered,
+    ).order_by(models.Registration.id)]
+    notify_all(db, recipients, event, "Event changed", f"{event.name}: {what_changed}")
 
 
 # ---------------------------------------------------------------- registration (US29)
