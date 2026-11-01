@@ -767,6 +767,21 @@ class AssignCoordinatorIn(BaseModel):
     coordinatorId: int
 
 
+class ReassignCoordinatorIn(BaseModel):
+    """US12: the coordinator to hand the event to, and why (required, 1-1000 characters)."""
+    coordinatorId: int
+    reason: str = ""
+
+
+class AssignmentHistoryEntry(BaseModel):
+    """US12-AC5: one assignment (previousCoordinator and reason unset) or reassignment of an event."""
+    coordinator: Optional[str] = None
+    previousCoordinator: Optional[str] = None
+    assignedBy: Optional[str] = None
+    assignedAt: datetime
+    reason: Optional[str] = None
+
+
 class ClarificationIn(BaseModel):
     kind: Literal["clarification", "amendment"]
     message: str = ""

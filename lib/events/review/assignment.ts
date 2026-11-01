@@ -21,7 +21,7 @@ export function canAssignCoordinator(event: EventRecord): boolean {
 /**
  * US11: the Event Coordinator Lead gives an unassigned event its main internal point of contact.
  * `coordinators` is the list of staff who hold the Event Coordinator role.
- * Changing an existing coordinator is reassignment (US12), not handled here.
+ * Changing an existing coordinator is reassignment (US12, ./reassignment.ts).
  */
 export function assignCoordinator(
   event: EventRecord,
