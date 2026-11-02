@@ -78,6 +78,7 @@ export interface StoredEvent {
   createdAt?: string;
   clarification?: Partial<NonNullable<EventRecord["clarification"]>> | null;
   decision?: { outcome?: string; reason?: string; by?: string; at?: string } | null;
+  safetyReview?: EventRecord["safetyReview"] | null;
   draftForm?: NewRequestForm | null;
 }
 
@@ -142,6 +143,8 @@ export function eventFromApi(e: StoredEvent): EventRecord {
     // US08 / US10: saved by the coordinator's review steps (backend/event_review.py).
     clarification: (e.clarification ?? undefined) as EventRecord["clarification"],
     decision: (e.decision ?? undefined) as EventRecord["decision"],
+    // US44: saved by the Safety Officer's decision (backend/safety_check.py).
+    safetyReview: e.safetyReview ?? undefined,
   };
 }
 

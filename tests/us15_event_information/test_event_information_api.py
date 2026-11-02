@@ -25,24 +25,28 @@ EXPECTED = {
                                 "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                 "venue", "venueName", "bookingState", "equip", "equipState",
                                 "reg", "regCap", "regClose", "registered", "withdrawalClose",
-                                "clarification", "decision", "submittedAt", "createdAt", "draftForm"},
+                                "clarification", "decision", "submittedAt", "createdAt", "draftForm", "safetyReview"},
     Role.coordinator: EVERYONE | {"coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax",
                                   "venueLocation", "venueCapacity", "layout", "facilities", "access",
                                   "venue", "venueName", "bookingState", "equip", "equipState",
                                   "reg", "regCap", "regClose", "registered", "withdrawalClose",
-                                  "clarification", "decision", "submittedAt", "createdAt"},
+                                  "clarification", "decision", "submittedAt", "createdAt", "safetyReview"},
     # US43: the coordinator's fields without the review notes (clarification, decision).
     Role.lead: EVERYONE | {"coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax",
                            "venueLocation", "venueCapacity", "layout", "facilities", "access",
                            "venue", "venueName", "bookingState", "equip", "equipState",
                            "reg", "regCap", "regClose", "registered", "withdrawalClose",
-                           "submittedAt", "createdAt"},
+                           "submittedAt", "createdAt", "safetyReview"},
     Role.venue: EVERYONE | {"coordinatorId", "coordinator", "pax",
                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
                             "venue", "venueName", "bookingState"},
     Role.tech: EVERYONE | {"coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"},
     Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"},
 }
+
+
+# The Safety Officer only sees events in a safety check (US44), not this confirmed one: see tests/integration/test_us44_*.
+ROLES_WITH_THE_EVENT = [role for role in Role if role is not Role.safety]
 
 
 def parse(timestamp: str) -> datetime:
@@ -122,12 +126,12 @@ def listed(session, event_id):
 
 # ---------------------------------------------------------------- AC1 / AC2: role-permitted fields
 
-@pytest.mark.parametrize("role", list(Role), ids=lambda r: r.value)
+@pytest.mark.parametrize("role", ROLES_WITH_THE_EVENT, ids=lambda r: r.value)
 def test_each_role_gets_exactly_the_fields_permitted_for_it(signed_in, confirmed_event, role):
     assert set(get_event(signed_in(role), confirmed_event)) == EXPECTED[role]
 
 
-@pytest.mark.parametrize("role", list(Role), ids=lambda r: r.value)
+@pytest.mark.parametrize("role", ROLES_WITH_THE_EVENT, ids=lambda r: r.value)
 def test_the_event_list_gives_the_same_fields(signed_in, confirmed_event, role):
     assert set(listed(signed_in(role), confirmed_event)) == EXPECTED[role]
 
@@ -243,7 +247,7 @@ def test_a_change_saved_elsewhere_shows_on_the_next_view(signed_in, db, confirme
 # ---------------------------------------------------------------- AC4: consistent across users
 
 def test_every_role_sees_the_same_values_for_the_fields_they_share(signed_in, confirmed_event):
-    views = {role: get_event(signed_in(role), confirmed_event) for role in Role}
+    views = {role: get_event(signed_in(role), confirmed_event) for role in ROLES_WITH_THE_EVENT}
     full = views[Role.organiser]
 
     for role, event in views.items():
@@ -272,7 +276,7 @@ def test_after_a_submit_organiser_and_the_lead_see_the_same_saved_request(signed
     assert {name: mine[name] for name in theirs} == theirs
 
 
-@pytest.mark.parametrize("role", list(Role), ids=lambda r: r.value)
+@pytest.mark.parametrize("role", ROLES_WITH_THE_EVENT, ids=lambda r: r.value)
 def test_the_list_and_the_details_view_agree(signed_in, confirmed_event, role):
     session = signed_in(role)
 

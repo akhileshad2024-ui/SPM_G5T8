@@ -9,6 +9,11 @@ export const STATUS: Record<string, { label: string; bg: string; fg: string }> =
   confirmed: { label: "Confirmed", bg: "#0A0E1A", fg: "#FFFFFF" },
   rejected: { label: "Rejected", bg: "#FFE8EA", fg: "#A00E1C" },
   cancelled: { label: "Cancelled", bg: "#EFF0F5", fg: "#4A5169" },
+  // US44: the Operational Safety Check.
+  pending_safety_review: { label: "Pending Safety Review", bg: "#FFF6DB", fg: "#7A5C00" },
+  safety_changes_requested: { label: "Safety Changes Requested", bg: "#FFEBD6", fg: "#8A3F00" },
+  safety_approved: { label: "Safety Approved", bg: "#E0F7F4", fg: "#006B60" },
+  safety_rejected: { label: "Safety Rejected", bg: "#FFE8EA", fg: "#A00E1C" },
 };
 
 export const EQUIP: EquipmentCatalogueItem[] = [

@@ -37,6 +37,7 @@ ACCOUNTS = {
     Role.tech: ("wei.lim@connectsphere.edu", "Wei Lim"),
     Role.attendee: ("sam.adeyemi@student.connectsphere.edu", "Sam Adeyemi"),
     Role.lead: ("grace.ong@connectsphere.edu", "Grace Ong"),  # US43: Event Coordinator Lead
+    Role.safety: ("hannah.lau@connectsphere.edu", "Hannah Lau"),  # US44: Safety Officer
 }
 
 # Argon2 is deliberately slow, so hash the shared password once.

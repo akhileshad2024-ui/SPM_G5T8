@@ -211,10 +211,12 @@ def test_US36_US14_AC4_venue_staff_are_not_told_when_the_event_holds_no_venue(db
 
 # ---------------------------------------------------------------- ready for US44 (safety check, US36-AC7)
 
-def test_US36_AC7_safety_check_ready_sends_nothing_until_the_safety_officer_role_exists(db, event):
-    assert not hasattr(Role, "safety")
+def test_US36_AC7_safety_check_ready_reaches_the_safety_officer_accounts_now_that_the_role_exists(db, event):
+    officer = add_user(db, "safety.officer@connectsphere.edu", Role.safety)  # US44 added the role
+    bystander = add_user(db, "tech.bystander@connectsphere.edu", Role.tech)
     messaging.safety_check_ready(db, event)
-    assert db.query(models.Notification).count() == 0
+    assert [n.title for n in notices(db, officer.id)] == ["Safety check needed"]
+    assert notices(db, bystander.id) == []
 
 
 def test_US36_AC7_safety_check_ready_reaches_every_safety_officer(db, event, monkeypatch):

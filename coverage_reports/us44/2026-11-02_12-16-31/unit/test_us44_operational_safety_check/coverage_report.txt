@@ -1,0 +1,13 @@
+Coverage report for test_us44_operational_safety_check  (unit tests)
+Generated: 2026-11-02 12:16:31
+Test file: tests/unit/safety/test_us44_operational_safety_check.py
+Result: 74 tests, all passed
+Measured code: safety_check.py, main.py:list_safety_checks,request_safety_check,decide_safety_check, schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck
+
+Name                                                                 Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------------------
+safety_check.py                                                        147     0   100%  
+main.py:list_safety_checks,request_safety_check,decide_safety_check     17     0   100%  
+schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck      29     0   100%  
+---------------------------------------------------------------------------------------------------
+TOTAL                                                                  193     0   100%

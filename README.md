@@ -58,6 +58,7 @@ backend/login/
 | Venue Staff | `/bookings` | Booking requests, Venue catalogue |
 | Technical Support | `/equipment` | Equipment |
 | Attendee | `/browse` | Browse events |
+| Safety Officer | `/safety` | Safety checks (US44) |
 
 Opening any other page redirects to the role's home page; signed-out users are
 sent to `/login`. This is `canAccessRoute` in `lib/auth/route-access.ts`, driven by
@@ -284,6 +285,40 @@ bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
   not alter existing tables, so run the US38 step of `backend/schema_changes.sql` once in the Supabase SQL Editor
   before using these features; until then, reading bookings fails on the missing column.
 
+## Operational safety check (US44)
+
+A Safety Officer reviews the safety of an event's arrangements before it goes on to preparation. The rules are in
+`backend/safety_check.py`; the Safety Officer's page is **Safety checks** (`/safety`).
+
+- **Statuses (US13).** Four are added to the set: *Pending Safety Review*, *Safety Changes Requested*, *Safety
+  Approved* and *Safety Rejected* (`backend/event_status.py`). An approved event goes to Pending Safety Review; from
+  there the Safety Officer's decision moves it to one of the other three. Safety Approved is what the coordinator
+  confirms from (US14, not built yet).
+- **Sending an event to the check (AC2).** The assigned coordinator presses **Request safety check**
+  (`POST /events/{id}/safety-check/request`) once every venue booking is approved and any equipment is confirmed by
+  Technical Support. The Safety Officers are told (US36). Until then the server refuses, saying what is missing.
+- **What the officer reviews (AC2, AC3).** `GET /safety-checks` lists the events waiting (longest first) and those
+  already decided, each with seven areas: expected attendance, venue capacity and layout, emergency access,
+  accessibility requirements, equipment placement, crowd movement and known venue restrictions. Concerns are flagged
+  (more people than the capacity, a layout the venue does not list, an accessibility need the venue does not offer,
+  an item with no technical requirements, a closed day or outside opening hours, an unavailable period). The
+  system records no emergency access plan or crowd flow, so those two areas say "Not recorded": the officer asks
+  the coordinator and writes what they found in the comment.
+- **Deciding (AC4, AC5).** **Approve**, **Request changes** or **Reject** (`POST /events/{id}/safety-check`). A comment
+  is mandatory when requesting changes or rejecting. Approving is refused if the venue or equipment stopped being
+  confirmed after the check was requested. The outcome, reviewer, time and comment are saved (`safety_reviews`) and
+  the status change is in the event's history. Two officers deciding at once are handled one after the other.
+- **The coordinator is told (AC6)** with a notification (US36) and sees the outcome and comment on the event's
+  Request tab. The organiser and the Event Coordinator Lead see them too; Venue Staff, Technical Support and
+  attendees do not.
+- **A rejection does not end the event (AC7).** Safety Rejected, like Safety Changes Requested, can go back to Pending
+  Safety Review: the coordinator reworks the arrangements (the rework process is US45, not built yet) and presses
+  **Request safety check again**.
+- **Access (AC1).** The Safety Officer (`safety`) only opens `/safety` and sees only events in the four safety statuses.
+- **Database:** the `users.role` and event status check constraints must allow the new values: run the US44 step at
+  the end of `backend/schema_changes.sql` once. The Safety Officer account is created in the `users` table like the
+  others, then `python -m login.set_password <email>` gives it a password (see the comments in that step).
+
 ## Project structure
 
 ```
@@ -301,6 +336,7 @@ app/
   (dashboard)/bookings/      Venue staff: availability calendar + booking requests
   (dashboard)/catalogue/     Venue staff: venue catalogue
   (dashboard)/equipment/     Technical support: inventory + equipment requests
+  (dashboard)/safety/        Safety Officer: events awaiting an Operational Safety Check (US44)
   (dashboard)/browse/        Attendee: browse & register for events
 
 components/
@@ -338,6 +374,7 @@ backend/
   venue_bookings.py      Saved bookings (US22): what holds a venue, saving a request, Venue Staff's decision (checked again, US46)
   venue_conflicts.py     Booking conflict rules (US46-US48): what is in the way of a booking, and whether it blocks approval
   venue_reassessment.py  Venue setup/turnaround change (US38): re-check future bookings, "Requires Reassessment" flags
+  safety_check.py        Operational Safety Check (US44): ready for the check, the officer's decision, what is reviewed
   database.py      Database connection (reads backend/.env)
   models.py, schemas.py   Venue + venue change-history tables, request/response bodies
   schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns, US38 reassessment, US42 hold expiry)
@@ -374,8 +411,8 @@ Start the backend with `uvicorn main:app --reload` (from `backend/`).
 predates US17, run the steps in `backend/schema_changes.sql` once in the Supabase
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
 column) must wait until every branch uses the new venue model. US42 (tentative
-holds expire) adds two `venue_bookings` columns and US38 (Requires Reassessment) one:
-run each story's step at the end of that file once.
+holds expire) adds two `venue_bookings` columns, US38 (Requires Reassessment) one and US44 (Operational
+Safety Check) the Safety Officer role and four event statuses: run each story's step at the end of that file once.
 
 **Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
 The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues

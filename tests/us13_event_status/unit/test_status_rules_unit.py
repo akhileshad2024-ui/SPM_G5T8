@@ -34,6 +34,8 @@ def event(status):
 def test_statuses_are_exactly_the_defined_set():
     assert [label(s) for s in S] == [
         "Draft", "Submitted", "Under Review", "Pending Clarification", "Approved", "Confirmed", "Rejected", "Cancelled",
+        # US44 adds the Operational Safety Check's four statuses to the set.
+        "Pending Safety Review", "Safety Changes Requested", "Safety Approved", "Safety Rejected",
     ]
 
 

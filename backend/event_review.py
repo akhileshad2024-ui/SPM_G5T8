@@ -25,7 +25,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 import models
-from event_status import change_status
+from event_status import SAFETY_STATUSES, change_status
 from login.models import Role, User
 
 S = models.EventStatus
@@ -34,7 +34,7 @@ MAX_NOTE_LENGTH = 1000
 MIN_REJECTION_REASON_LENGTH = 10
 
 # A coordinator can be assigned while the event is live: submitted and not yet closed.
-ASSIGNABLE_STATUSES = {S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed}
+ASSIGNABLE_STATUSES = {S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed, *SAFETY_STATUSES}
 
 KIND_LABEL = {"clarification": "Clarification", "amendment": "Amendment"}
 

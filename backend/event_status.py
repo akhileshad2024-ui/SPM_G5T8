@@ -18,14 +18,25 @@ from login.models import User
 
 S = models.EventStatus
 
-# Where each status may go next (US04, US07-US10, US14, US37). Draft -> Draft is a re-save,
+# The Operational Safety Check's statuses (US44).
+SAFETY_STATUSES = (S.pending_safety_review, S.safety_changes_requested, S.safety_approved, S.safety_rejected)
+
+# Where each status may go next (US04, US07-US10, US14, US37, US44). Draft -> Draft is a re-save,
 # not a change, so it is not listed and records nothing.
+#
+# US44: once the venue and equipment are confirmed an approved event waits for its safety check. Changes
+# requested or a safety rejection send it back to be reworked (US45) and checked again: neither ends the event.
+# Safety Approved is what the coordinator confirms from (US14).
 TRANSITIONS: dict[S, set[S]] = {
     S.draft: {S.submitted},
     S.submitted: {S.under_review, S.cancelled},
     S.under_review: {S.pending_clarification, S.approved, S.rejected, S.cancelled},
     S.pending_clarification: {S.under_review, S.cancelled},
-    S.approved: {S.confirmed, S.cancelled},
+    S.approved: {S.pending_safety_review, S.confirmed, S.cancelled},
+    S.pending_safety_review: {S.safety_approved, S.safety_changes_requested, S.safety_rejected, S.cancelled},
+    S.safety_changes_requested: {S.pending_safety_review, S.cancelled},
+    S.safety_rejected: {S.pending_safety_review, S.cancelled},
+    S.safety_approved: {S.confirmed, S.cancelled},
     S.confirmed: {S.cancelled},
     S.rejected: set(),
     S.cancelled: set(),

@@ -57,6 +57,8 @@ import type {
   NewRequestForm,
   QueueFilter,
   Role,
+  SafetyCheck,
+  SafetyOutcome,
   ToastKind,
   Venue,
   VenueFilter,
@@ -141,6 +143,8 @@ interface AppState {
   registrations: RegistrationRecord[];
   /** US11: the Event Coordinator accounts an event can be assigned to (loaded for the Lead). */
   coordinators: Coordinator[];
+  /** US44: the events waiting for, or through, a safety check, with what to review (loaded for the Safety Officer). */
+  safetyChecks: SafetyCheck[];
   /** The venue catalogue from the backend (deactivated venues included for Venue Staff and Coordinators). */
   venues: Venue[];
   /** US42: tentative holds that lapsed, for Venue Staff (their events no longer hold a venue, so aren't listed). */
@@ -221,6 +225,7 @@ function initialState(): AppState {
     events: [],
     registrations: [],
     coordinators: [],
+    safetyChecks: [],
     expiredHolds: [],
     venues: [],
     notifs: [],
@@ -320,6 +325,10 @@ export interface AppApi {
   startReview: (id: string) => void;
   saveClarificationReply: (backendId: number, message: string) => Promise<boolean>;
   resumeReview: (backendId: number) => Promise<boolean>;
+  /** US44: the coordinator sends an event whose venue and equipment are confirmed to its safety check. */
+  requestSafetyCheck: (backendId: number) => Promise<boolean>;
+  /** US44: the Safety Officer approves, requests changes or rejects (a comment is mandatory unless approving). */
+  decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string) => Promise<boolean>;
   saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
   confirmEvent: (id: string) => void;
   openModal: (kind: ModalKind, id: string, bookingId?: number) => void;
@@ -492,7 +501,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const endSession = (signInNotice: string | null = null) =>
     // Events and notifications belong to the user who was signed in, so they go too.
-    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], coordinators: [], expiredHolds: [], notifs: [], signInNotice });
+    patch({ ...sessionUiState(), authChecked: true, authed: false, user: null, venues: [], events: [], registrations: [], coordinators: [], safetyChecks: [], expiredHolds: [], notifs: [], signInNotice });
 
   const expireSession = () => {
     endSession("Your session has expired. Please sign in again.");
@@ -657,6 +666,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state.authed || state.role !== "lead") return;
     apiFetch<Coordinator[]>("/coordinators").then((coordinators) => patch({ coordinators }), () => patch({ coordinators: [] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.authed, state.user?.id]);
+
+  // US44: the Safety Officer reviews the events waiting for a check (the server sends what they may see).
+  const loadSafetyChecks = () =>
+    apiFetch<SafetyCheck[]>("/safety-checks").then((safetyChecks) => patch({ safetyChecks }), handleApiError);
+  useEffect(() => {
+    if (!state.authed || state.role !== "safety") return;
+    void loadSafetyChecks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authed, state.user?.id]);
 
@@ -971,6 +989,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // US09: save through FastAPI; no browser-only reply or notification is created.
       saveClarificationReply: (backendId, message) => saveClarificationStep(backendId, "clarification-response", { message }),
       resumeReview: (backendId) => saveClarificationStep(backendId, "resume-review", {}),
+      requestSafetyCheck: async (backendId) => {
+        try {
+          const saved = eventFromApi(await apiFetch<StoredEvent>(`/events/${backendId}/safety-check/request`, { method: "POST" }));
+          // The server moved the event to Pending Safety Review; keep its bookings and the rest of what the page holds.
+          patch((s) => ({ events: s.events.map((e) => (e.backendId === backendId ? { ...e, status: saved.status, safetyReview: saved.safetyReview, updatedAt: saved.updatedAt } : e)) }));
+          flash("Sent for a safety check. The Safety Officers have been told.");
+          return true;
+        } catch (err) {
+          handleApiError(err);
+          return false;
+        }
+      },
+      decideSafetyCheck: async (backendId, outcome, comment) => {
+        try {
+          await apiFetch<SafetyCheck>(`/events/${backendId}/safety-check`, { method: "POST", body: JSON.stringify({ outcome, comment }) });
+          await loadSafetyChecks();
+          flash(outcome === "approved" ? "Safety check approved. The coordinator has been told." : outcome === "rejected"
+            ? "Safety arrangement rejected. The coordinator has been told." : "Changes requested. The coordinator has been told.");
+          return true;
+        } catch (err) {
+          handleApiError(err);
+          return false;
+        }
+      },
       saveEventDetails: async (backendId, values) => {
         try {
           const saved = eventFromApi(await apiFetch<StoredEvent>(`/events/${backendId}/details`, {

@@ -47,6 +47,8 @@ VISIBLE_TO = {
     Role.venue:       {"approved_booked", "confirmed_open", "confirmed_closed", "cancelled_booked"},
     Role.tech:        {"submitted_mine", "review_unassigned", "approved_booked", "cancelled_booked"},
     Role.attendee:    {"confirmed_open"},
+    # US44: only events in the Operational Safety Check; none of these is (see tests/integration/test_us44_*).
+    Role.safety:      set(),
 }
 
 
