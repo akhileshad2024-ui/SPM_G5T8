@@ -1,7 +1,63 @@
 # US16 — Update Event Details
 
-Status: AC1/AC2/AC4 implemented and verified; AC3 notification delivery pending US36.
+Status: all approved US16 AC have implementation and test evidence, including shared TC01/TC02. This follow-up awaits peer review, merge, green merge-commit CI and final DoD.
 Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
+
+## Notification verification follow-up — 29 Oct 2026 (SGT)
+
+- Current base: main `cae5273`, including US36 PR #39. Its backend already calls
+  `messaging.details_changed` when an important detail changes; no new business
+  module, table or AC is needed. Older pending notes below describe earlier work.
+- Added blue US16-TC02 in the existing shared test record (sheet 600017), before
+  its automation: Maya UI submission, Jordan assignment, Priya attendance 85→90,
+  then Maya reads the notification across refresh/new login and opens its event.
+  Every setup step is UI-driven. The run-start Singapore date and unique event
+  name are recorded; shared IDs and catalogue size are not hard-coded.
+- Extended the existing US16 Playwright file. TC01 remains a separate unchanged
+  workflow; TC02 adds AC3 coverage. `TC_CASE=US16-TC02` selects it for explicit
+  shared acceptance and requires Maya/Priya/Jordan credential variables.
+- Type check passed. Isolated TC02 passed (10.3s; total 15.5s). An earlier command
+  failed before test execution because a relative Python path was resolved from
+  backend; the absolute interpreter path fixed that environment issue.
+- Live DB read-only checks confirmed existing notifications, event_detail_changes
+  and email_outbox columns, plus the three active/unlocked test accounts. No SQL
+  setup, seed, reset or shared cleanup is required. Shared acceptance and full
+  regression are pending; no new yellow execution or overall Done is claimed yet.
+- Unit/API integration evidence already covers recipient selection and ordinary
+  edits. This UI TC proves the organiser journey; it does not claim every staff
+  recipient/arrangement scenario was exercised through a browser.
+- Follow-up review found TC01's blue setup still described coordinator self-
+  assignment. Its steps 8–10 now match Lead assignment and both US16 tests use
+  Jordan's existing reusable account. Prior yellow records remain unchanged;
+  the revised shared procedure is not treated as already executed. Equipment
+  checks now cover every displayed catalogue item rather than assuming five.
+- Added one real-route integration case for affected organiser/assigned technician/
+  Venue Staff recipients, exclusion of unrelated users and no duplicate notice
+  on an identical save. All ten US16 integration tests passed.
+- PR checkpoint: unittest discovery 449; final full backend 1518 passed + 609
+  subtests, one disposable-PostgreSQL-only case skipped; frontend 361 passed.
+  Full Playwright 194 passed, one HTTPS-only case skipped (6.2m). After the final
+  TC01 setup correction both US16 tests passed again (19.7s); unchanged journeys
+  reuse that full run. Type check and production build passed.
+- Scoped event_updates coverage remains 100%: 17 statements and six branch
+  outcomes. Overall measured backend coverage is about 98%; frontend statement
+  17.34% and branch 19.64%. These are separate scopes, not project-wide 100%.
+  Existing coverage exclusions/skips still need release-level review.
+- Shared TC01 passed on `fad45fe`: event 42, 29 Oct 2026 11:05:06.971–
+  11:05:21.534 SGT. It executed the revised 22-step Lead-assignment procedure,
+  saved purpose/attendance/history, verified refresh and Maya's read-only view.
+- Shared TC02 passed on the same code: event 43, EVENT_DATE=2026-10-29,
+  EVENT_NAME=`US16 Notification Test 2026-10-29 11:05:54.254`, Maya count 29→30,
+  11:05:54.114–11:06:04.408 SGT. Maya read exactly one persisted attendance-change
+  notice after refresh/re-login; its link opened event 43 with attendance 90 and
+  Under Review. Read-only DB verification confirmed both events and notices.
+- Actual yellow records were appended to the existing Sheet: TC01 run 2 and
+  TC02 run 1. Earlier records remain unchanged; neither run is labelled manual.
+  Reports/JSON/results are under `coverage/us16/shared-20261029-tc01-run1/` and
+  `coverage/us16/shared-20261029-tc02-run1/`. All shared data remains; no SQL/reset,
+  API fixture or automatic retry was used. Final sign-out completed in both.
+- Remaining: publish this follow-up, teammate review, merge and green CI on the
+  merged SHA, then final Sprint 4 DoD. No unrelated US14/US33/US34 work included.
 
 ## Approved requirements
 

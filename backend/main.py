@@ -749,6 +749,29 @@ def assign_coordinator(event_id: int, body: schemas.AssignCoordinatorIn, db: Ses
     return review_step(event_id, db, user, step)
 
 
+# Fulfills US12: the Lead hands an assigned event to another coordinator, with a reason. Access moves with
+# the assignment (event_access.py); the outgoing and incoming coordinators and the organiser are notified.
+@app.post("/events/{event_id}/reassign", response_model=schemas.EventView, response_model_exclude_unset=True)
+def reassign_coordinator(event_id: int, body: schemas.ReassignCoordinatorIn, db: Session = Depends(get_db),
+                         user: User = Depends(require_roles(*COORDINATOR_ASSIGNERS))):
+    def step(event, now):
+        previous = event_review.reassign(db, event, user, body.coordinatorId, body.reason, now)
+        messaging.coordinator_reassigned(db, event, previous, user)  # US12-AC4, US36-AC6
+    return review_step(event_id, db, user, step)
+
+
+# Fulfills US12-AC5: the event's complete assignment history, oldest first. The Lead sees it for every live
+# event; anyone else only for events they are involved in (so a coordinator who was reassigned away can't).
+@app.get("/events/{event_id}/assignments", response_model=List[schemas.AssignmentHistoryEntry])
+def event_assignment_history(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    return [{**entry, "assignedAt": utc(entry["assignedAt"])} for entry in event_review.assignment_history(db, event)]
+
+
 # Fulfills US07: start reviewing a submitted request.
 @app.post("/events/{event_id}/review", response_model=schemas.EventView, response_model_exclude_unset=True)
 def start_review(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REVIEWERS))):

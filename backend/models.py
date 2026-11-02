@@ -214,7 +214,9 @@ class SafetyReview(Base):
 
 
 class EventAssignment(Base):
-    """US11: one row per coordinator assignment of an event, with who assigned it and when."""
+    """US11/US12: one row per coordinator assignment of an event, with who assigned it and when.
+    A reassignment (US12) also records the coordinator it replaced and the Lead's reason; read in
+    order, the rows are the event's complete assignment history (US12-AC5)."""
     __tablename__ = "event_assignments"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -222,6 +224,9 @@ class EventAssignment(Base):
     coordinator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_at = Column(DateTime(timezone=True), nullable=False)
+    # US12: set only on reassignments (None for a first assignment).
+    previous_coordinator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reason = Column(Text, nullable=True)
 
 
 class EventStatusChange(Base):

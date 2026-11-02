@@ -83,3 +83,7 @@ ALTER TABLE event_status_changes ADD CONSTRAINT event_status_to CHECK (to_status
 -- Example (the password_hash is replaced by set_password):
 -- INSERT INTO users (email, name, role, password_hash, is_active, failed_login_attempts, session_version)
 -- VALUES ('hannah.lau@connectsphere.edu', 'Hannah Lau', 'safety', 'set-with-set_password', true, 0, 0);
+-- US12 (reassign an Event Coordinator, CR-W7-5): a reassignment records the coordinator it replaced and the
+-- Lead's reason, so event_assignments is the event's full assignment history. Safe to run more than once.
+ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS previous_coordinator_id integer REFERENCES users(id);
+ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS reason text;
