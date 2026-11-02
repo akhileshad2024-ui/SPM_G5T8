@@ -49,6 +49,18 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
     }
   } else if (event.status === "rejected" || event.status === "cancelled") {
     // Closed: nothing left for the coordinator to do.
+  } else if (event.status === "pending_safety_review") {
+    // US44: the venue and equipment are confirmed; a Safety Officer is reviewing them.
+    actions.push({ label: "Awaiting safety check", onClick: () => app.flash("A Safety Officer is reviewing this event's arrangements.", "warn"), variant: "muted" });
+  } else if (event.status === "safety_changes_requested" || event.status === "safety_rejected") {
+    // US44: back to rework (US45) and then to the safety check again. Not closed: the event carries on.
+    if (event.backendId !== undefined) {
+      const id = event.backendId;
+      actions.push({ label: "Request safety check again", onClick: () => void app.requestSafetyCheck(id), variant: "primary" });
+    }
+  } else if (event.status === "safety_approved") {
+    // US44: safe to go on; confirming is US14, which isn't built yet.
+    actions.push({ label: "Safety approved: ready to confirm (not available yet)", onClick: () => app.flash("Confirming events isn't available yet.", "warn"), variant: "muted" });
   } else if (event.bookingState === "pending") {
     actions.push({ label: "Awaiting venue decision", onClick: () => app.flash("Venue Staff have this booking request.", "warn"), variant: "muted" });
   } else if (!event.venue) {
@@ -56,12 +68,13 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
   } else if (event.equipState === "requested") {
     actions.push({ label: "Equipment pending with Technical Support", onClick: () => app.setTab("equipment"), variant: "muted" });
   } else if (event.status === "approved" && event.bookingState === "approved") {
-    // Approved with the venue booked and equipment settled: ready to confirm (US14).
-    // Confirming isn't saved yet (US14 is still to be built), so it isn't offered on stored events.
+    // Approved with the venue booked and equipment settled: next is the Operational Safety Check (US44), then
+    // confirming (US14, not built yet). Sample events that were never stored keep the old one-step confirm.
     if (event.backendId === undefined) {
       actions.push({ label: "Confirm event", onClick: () => app.confirmEvent(event.id), variant: "primary" });
     } else {
-      actions.push({ label: "Ready to confirm (not available yet)", onClick: () => app.flash("Confirming events isn't available yet.", "warn"), variant: "muted" });
+      const id = event.backendId;
+      actions.push({ label: "Request safety check", onClick: () => void app.requestSafetyCheck(id), variant: "primary" });
     }
   }
 

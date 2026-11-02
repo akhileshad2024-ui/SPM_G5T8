@@ -14,7 +14,9 @@ import { scenarioNames, seedScenario, type Scenario } from "./support/scenario";
  * clarification), Startup Pitch Night (Approved, venue booking pending), Faculty Networking Mixer
  * (Rejected) and a Submitted request nobody has picked up.
  */
-const STATUSES = ["Draft", "Submitted", "Under Review", "Pending Clarification", "Approved", "Rejected", "Confirmed", "Cancelled"];
+const STATUSES = ["Draft", "Submitted", "Under Review", "Pending Clarification", "Approved", "Rejected", "Confirmed", "Cancelled",
+  // US44 adds the Operational Safety Check's four statuses to the set.
+  "Pending Safety Review", "Safety Changes Requested", "Safety Approved", "Safety Rejected"];
 
 let s: Scenario;
 let names: ReturnType<typeof scenarioNames>;

@@ -108,6 +108,26 @@ export function RequestTab({ event }: { event: EventRecord }) {
           </div>
         )}
 
+        {event.safetyReview && (
+          <div
+            className={`card ${styles.card} ${event.safetyReview.outcome === "approved" ? styles.decisionApproved : styles.decisionRejected}`}
+            aria-label="Safety check outcome"
+          >
+            <div className="eyebrow">
+              {event.safetyReview.outcome === "approved" ? "Safety approved" : event.safetyReview.outcome === "changes_requested" ? "Safety changes requested" : "Safety rejected"}
+            </div>
+            <div className={styles.messageMeta} style={{ marginTop: 8 }}>
+              {event.safetyReview.by} · {formatTimestamp(event.safetyReview.at)}
+            </div>
+            {event.safetyReview.comment && <div className={styles.message}>{event.safetyReview.comment}</div>}
+            {(event.status === "safety_changes_requested" || event.status === "safety_rejected") && (
+              <div className={styles.hint}>
+                This event is not closed. Rework the arrangements (US45), then request the safety check again.
+              </div>
+            )}
+          </div>
+        )}
+
         {checks.length > 0 && (
           <div className={`card ${styles.card} ${styles.checks}`}>
             <div className="eyebrow">Worth clarifying</div>

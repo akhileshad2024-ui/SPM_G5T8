@@ -13,7 +13,8 @@ def prepare_request(event, user, proposed_changes):
         raise ChangeRequestError(403, "Only the event organiser can request changes.")
     # These are the existing submitted/planning stages, including Confirmed.
     # Draft editing and closed requests use their own workflows.
-    if event.status not in {"submitted", "under_review", "pending_clarification", "approved", "confirmed"}:
+    if event.status not in {"submitted", "under_review", "pending_clarification", "approved", "confirmed",
+                            "pending_safety_review", "safety_changes_requested", "safety_approved", "safety_rejected"}:
         raise ChangeRequestError(409, "This event is not open for change requests.")
     text = proposed_changes.strip()
     if not text:

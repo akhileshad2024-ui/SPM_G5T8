@@ -25,7 +25,8 @@ from login.models import Role, User
 from main import app
 
 S = models.EventStatus
-DEFINED_SET = {"draft", "submitted", "under_review", "pending_clarification", "approved", "rejected", "confirmed", "cancelled"}
+DEFINED_SET = {"draft", "submitted", "under_review", "pending_clarification", "approved", "rejected", "confirmed", "cancelled",
+               "pending_safety_review", "safety_changes_requested", "safety_approved", "safety_rejected"}  # US44 adds the last four
 
 
 def request(submit, **overrides):
@@ -186,7 +187,12 @@ def test_the_current_status_matches_the_last_history_entry(signed_in, db):
 def test_every_status_shown_comes_from_the_defined_set(signed_in, db):
     organiser = signed_in(Role.organiser)
     for path in ([], [S.under_review], [S.under_review, S.pending_clarification], [S.under_review, S.approved],
-                 [S.under_review, S.rejected], [S.under_review, S.approved, S.confirmed], [S.cancelled]):
+                 [S.under_review, S.rejected], [S.under_review, S.approved, S.confirmed], [S.cancelled],
+                 # US44: the safety check's four statuses
+                 [S.under_review, S.approved, S.pending_safety_review],
+                 [S.under_review, S.approved, S.pending_safety_review, S.safety_changes_requested],
+                 [S.under_review, S.approved, S.pending_safety_review, S.safety_approved],
+                 [S.under_review, S.approved, S.pending_safety_review, S.safety_rejected]):
         move(db, create(organiser), *path)
     create(organiser, submit=False)
 

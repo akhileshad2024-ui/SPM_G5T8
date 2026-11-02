@@ -53,6 +53,11 @@ class EventStatus(str, enum.Enum):
     confirmed = "confirmed"
     rejected = "rejected"
     cancelled = "cancelled"
+    # US44: the Operational Safety Check, between the arrangements being confirmed and the event being confirmed.
+    pending_safety_review = "pending_safety_review"
+    safety_changes_requested = "safety_changes_requested"
+    safety_approved = "safety_approved"
+    safety_rejected = "safety_rejected"
 
 
 class Event(Base):
@@ -190,6 +195,22 @@ class VenueBooking(Base):
     # the hold no longer blocks the venue and is left out of every conflict check.
     hold_expires_at = Column(DateTime(timezone=True), nullable=True)
     hold_expiry_set_by = Column(String, nullable=True)
+
+
+class SafetyReview(Base):
+    """US44: one row per Operational Safety Check outcome of an event, oldest first. Written only by safety_check.decide().
+
+    outcome: approved | changes_requested | rejected. The comment is mandatory unless approving. The status
+    change itself is also in the US13 history (EventStatusChange), with the comment as its reason.
+    """
+    __tablename__ = "safety_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    outcome = Column(String, nullable=False)
+    comment = Column(Text, nullable=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reviewed_at = Column(DateTime(timezone=True), nullable=False)
 
 
 class EventAssignment(Base):

@@ -24,20 +24,23 @@ VENUE_NAME = {"venueName"}  # where it takes place, without the booking details
 EQUIPMENT = {"equip", "equipState"}
 REGISTRATION = {"reg", "regCap", "regClose", "registered", "withdrawalClose"}
 REVIEW = {"clarification", "decision", "submittedAt", "createdAt"}  # between organiser and coordinator
+SAFETY = {"safetyReview"}  # US44: the latest Operational Safety Check outcome, reviewer, time and comment
 DRAFT = {"draftForm"}  # the organiser's unfinished form values
 
 VISIBLE_FIELDS: dict[Role, frozenset[str]] = {
     Role.organiser: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
-                              | REGISTRATION | REVIEW | DRAFT),
+                              | REGISTRATION | REVIEW | SAFETY | DRAFT),
     Role.coordinator: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
-                                | REGISTRATION | REVIEW),
+                                | REGISTRATION | REVIEW | SAFETY),
     # US43: the Lead oversees the coordinators' events, so sees what a coordinator sees, except the review
     # notes, which stay between organiser and coordinator (US15).
     Role.lead: frozenset(BASICS | STAFF | ASSIGNMENT | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT
-                         | REGISTRATION | (REVIEW - {"clarification", "decision"})),
+                         | REGISTRATION | (REVIEW - {"clarification", "decision"}) | SAFETY),
     Role.venue: frozenset(BASICS | STAFF | VENUE_NEEDS | ACCESSIBILITY | BOOKING),
     Role.tech: frozenset(BASICS | STAFF | VENUE_NAME | EQUIPMENT),
     Role.attendee: frozenset(BASICS | ACCESSIBILITY | VENUE_NAME | REGISTRATION),
+    # US44: what the Safety Officer reviews: attendance, venue needs and booking, accessibility, equipment.
+    Role.safety: frozenset(BASICS | STAFF | VENUE_NEEDS | ACCESSIBILITY | BOOKING | EQUIPMENT | SAFETY),
 }
 
 

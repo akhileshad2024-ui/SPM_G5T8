@@ -37,6 +37,9 @@ def expected(event, user):
         return event.equipment_state is not None and event.equipment_assignment is not None and event.equipment_assignment.tech_id == user.id
     if user.role == Role.attendee:
         return event.status == S.confirmed and event.registration_required
+    if user.role == Role.safety:
+        # US44: events waiting for, or through, an Operational Safety Check
+        return event.status in (S.pending_safety_review, S.safety_changes_requested, S.safety_approved, S.safety_rejected)
     return False
 
 
@@ -82,7 +85,7 @@ def test_list_and_single_event_rules_agree_with_the_documented_rule(db, every_ki
     one_by_one = {e.id for e in events if is_involved(e, user)}
     documented = {e.id for e in events if expected(e, user)}
 
-    assert len(events) == 8 * 2 * 3 * 2 * 2 * 2
+    assert len(events) == 12 * 2 * 3 * 2 * 2 * 2
     assert listed == one_by_one, "GET /events and GET /events/{id}/history would disagree"
     assert listed == documented
 

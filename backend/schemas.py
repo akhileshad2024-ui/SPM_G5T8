@@ -686,6 +686,8 @@ class EventResponse(BaseModel):
     equipState: Optional[str] = None
     clarification: Optional[Dict[str, Any]] = None
     decision: Optional[Dict[str, Any]] = None
+    # US44: the latest Operational Safety Check outcome: {outcome, comment, by, at}.
+    safetyReview: Optional[Dict[str, Any]] = None
     draftForm: Optional[Dict[str, Any]] = None
     submittedAt: Optional[datetime] = None
     createdAt: datetime
@@ -728,6 +730,7 @@ class EventView(BaseModel):
     equipState: Optional[str] = None
     clarification: Optional[Dict[str, Any]] = None
     decision: Optional[Dict[str, Any]] = None
+    safetyReview: Optional[Dict[str, Any]] = None
     draftForm: Optional[Dict[str, Any]] = None
     submittedAt: Optional[datetime] = None
     createdAt: Optional[datetime] = None
@@ -796,6 +799,49 @@ class ClarificationResponseIn(BaseModel):
     """US09 accepts reply text only; identity comes from the authenticated session."""
     model_config = ConfigDict(extra="forbid")
     message: str = ""
+
+
+# ---------------------------------------------------------------- operational safety check (US44)
+
+class SafetyDecisionIn(BaseModel):
+    """A Safety Officer's decision. A comment is mandatory unless approving; the server checks it."""
+    outcome: Literal["approved", "changes_requested", "rejected"]
+    comment: str = ""
+
+
+class SafetyArea(BaseModel):
+    """One thing the Safety Officer reviews, and what looks wrong about it. recorded is False when the system
+    holds nothing about it (emergency access, crowd movement), so the officer has to ask."""
+    key: str
+    label: str
+    details: List[str] = []
+    concerns: List[str] = []
+    recorded: bool = True
+
+
+class SafetyReviewOut(BaseModel):
+    outcome: Literal["approved", "changes_requested", "rejected"]
+    comment: Optional[str] = None
+    reviewer: str
+    reviewedAt: datetime
+
+
+class SafetyCheck(BaseModel):
+    """An event as the Safety Officer reviews it: what to review (US44 AC3) and its safety history (AC5)."""
+    eventId: int
+    name: str
+    status: str
+    date: Optional[Date] = None
+    start: Optional[Time] = None
+    end: Optional[Time] = None
+    eventType: str = ""
+    purpose: str = ""
+    organiser: str
+    coordinator: Optional[str] = None
+    requestedAt: Optional[datetime] = None  # when it began waiting for the check
+    arrangementsIssue: Optional[str] = None  # why the venue and equipment are not confirmed (None when they are)
+    areas: List[SafetyArea]
+    reviews: List[SafetyReviewOut] = []
 
 
 # ---------------------------------------------------------------- event-request drafts (US05)

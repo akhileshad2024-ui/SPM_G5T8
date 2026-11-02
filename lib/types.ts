@@ -5,8 +5,8 @@
  * the in-memory data held in `AppProvider` (see `lib/state/app-context.tsx`).
  */
 
-/** "lead" is the Event Coordinator Lead (US43). Keep in sync with Role in backend/login/models.py. */
-export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee" | "lead";
+/** "lead" is the Event Coordinator Lead (US43), "safety" the Safety Officer (US44). Keep in sync with Role in backend/login/models.py. */
+export type Role = "organiser" | "coordinator" | "venue" | "tech" | "attendee" | "lead" | "safety";
 
 export type EventStatus =
   | "draft"
@@ -16,7 +16,50 @@ export type EventStatus =
   | "approved"
   | "confirmed"
   | "rejected"
-  | "cancelled";
+  | "cancelled"
+  // US44: the Operational Safety Check.
+  | "pending_safety_review"
+  | "safety_changes_requested"
+  | "safety_approved"
+  | "safety_rejected";
+
+/** What a Safety Officer decides (US44). */
+export type SafetyOutcome = "approved" | "changes_requested" | "rejected";
+
+/** The latest Operational Safety Check outcome of an event, as the coordinator sees it (US44). */
+export interface SafetyReviewRecord {
+  outcome: SafetyOutcome;
+  comment: string | null;
+  by: string;
+  at: string;
+}
+
+/** One thing the Safety Officer reviews (backend `SafetyArea`). `recorded` is false when the system holds nothing about it. */
+export interface SafetyArea {
+  key: string;
+  label: string;
+  details: string[];
+  concerns: string[];
+  recorded: boolean;
+}
+
+/** An event as the Safety Officer reviews it (backend `SafetyCheck`, GET /safety-checks). */
+export interface SafetyCheck {
+  eventId: number;
+  name: string;
+  status: EventStatus;
+  date: string | null;
+  start: string | null;
+  end: string | null;
+  eventType: string;
+  purpose: string;
+  organiser: string;
+  coordinator: string | null;
+  requestedAt: string | null;
+  arrangementsIssue: string | null;
+  areas: SafetyArea[];
+  reviews: Array<{ outcome: SafetyOutcome; comment: string | null; reviewer: string; reviewedAt: string }>;
+}
 
 export type BookingState = "pending" | "approved" | "rejected" | null;
 export type EquipmentState = "requested" | "reserved" | null;
@@ -329,6 +372,8 @@ export interface EventRecord {
   clarification?: ClarificationRequest;
   /** US10: the coordinator's final review outcome, visible to the organiser. */
   decision?: ReviewDecision;
+  /** US44: the latest Operational Safety Check outcome (coordinator, Lead and Safety Officer only). */
+  safetyReview?: SafetyReviewRecord;
 }
 
 /** The person performing a review action (taken from the session, never from input). */
