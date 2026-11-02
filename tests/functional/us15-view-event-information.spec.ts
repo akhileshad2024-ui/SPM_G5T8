@@ -26,7 +26,7 @@ const BASICS = ["id", "status", "name", "purpose", "eventType", "date", "start",
 const FIELDS: Record<string, string[]> = {
   organiser: [...BASICS, "coordinatorId", "coordinator", "assignedBy", "assignedAt", "pax", "venueLocation", "venueCapacity", "layout",
     "facilities", "access", "venue", "venueName", "bookingState", "equip", "equipState", "reg", "regCap", "regClose", "registered",
-    "withdrawalClose", "clarification", "decision", "submittedAt", "createdAt", "draftForm"],
+    "withdrawalClose", "clarification", "decision", "submittedAt", "createdAt", "draftForm", "safetyReview"],
   tech: [...BASICS, "coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"],
   attendee: [...BASICS, "access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"],
 };

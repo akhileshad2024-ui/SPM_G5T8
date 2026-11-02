@@ -13,7 +13,7 @@ from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -70,6 +70,9 @@ REGISTRANTS = (Role.attendee,)
 EVENT_REVIEWERS = (Role.coordinator,)
 # Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
 COORDINATOR_ASSIGNERS = (Role.lead,)
+# Who may conduct the Operational Safety Check (US44), and who may send an event to it.
+SAFETY_REVIEWERS = (Role.safety,)
+SAFETY_REQUESTERS = (Role.coordinator,)
 
 EVENT_DRAFT_WRITERS = (Role.organiser,)
 
@@ -545,6 +548,7 @@ def event_response(db: Session, event: models.Event) -> schemas.EventResponse:
         equipState=event.equipment_state,
         clarification=event.clarification,
         decision=event.decision,
+        safetyReview=safety_check.latest_review(db, event),
         draftForm=event.draft_form,
         submittedAt=utc(event.submitted_at),
         createdAt=utc(event.created_at),
@@ -710,9 +714,11 @@ def lead_queue(db: Session = Depends(get_db), user: User = Depends(require_roles
     return [event_view(db, event, user) for event in rows]
 
 
-def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventView:
-    """Run one review step on an event the coordinator can see, and save it (404 / 403 / 409 / 422)."""
-    event = db.get(models.Event, event_id)
+def run_review_step(event_id: int, db: Session, user: User, step, lock: bool = False) -> models.Event:
+    """Run one step on an event the user can see, and save it (404 / 403 / 409 / 422). `lock` takes a row lock on
+    the event (PostgreSQL), so two people deciding at the same moment are handled one after the other."""
+    query = db.query(models.Event).filter(models.Event.id == event_id)
+    event = (query.with_for_update() if lock else query).first()
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")
     if not is_involved(event, user):
@@ -724,7 +730,12 @@ def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventVi
         raise HTTPException(status_code=err.status_code, detail=err.message)
     db.commit()
     db.refresh(event)
-    return event_view(db, event, user)
+    return event
+
+
+def review_step(event_id: int, db: Session, user: User, step) -> schemas.EventView:
+    """Run one review step on an event the coordinator can see, and save it (404 / 403 / 409 / 422)."""
+    return event_view(db, run_review_step(event_id, db, user, step), user)
 
 
 # Fulfills US11: the Lead assigns an Event Coordinator to an unassigned event; who assigned it and
@@ -778,6 +789,40 @@ def decide_request(event_id: int, body: schemas.DecisionIn, db: Session = Depend
         event_review.decide(db, event, user, body.outcome, body.reason, now)
         messaging.request_decided(db, event)  # US10-AC5
     return review_step(event_id, db, user, step)
+
+
+# ---------------------------------------------------------------- operational safety check (US44)
+# The rules are in safety_check.py. Safety Officers see the events waiting for, or through, a check with
+# what they review; coordinators send an event to the check and are told the outcome (US36).
+
+# Fulfills US44 AC2/AC3: the events awaiting a safety check (longest waiting first), then those already decided,
+# each with the venue, equipment, accessibility and restriction details to review.
+@app.get("/safety-checks", response_model=List[schemas.SafetyCheck])
+def list_safety_checks(db: Session = Depends(get_db), user: User = Depends(require_roles(*SAFETY_REVIEWERS))):
+    events = involved_events(db.query(models.Event), user).order_by(models.Event.id).all()
+    return safety_check.packages(db, events)
+
+
+# Fulfills US44 AC2: the assigned coordinator sends an approved event, once its venue and equipment are
+# confirmed, to its safety check; the Safety Officers are told (US36-AC7). Also hands an event back after rework (US45).
+@app.post("/events/{event_id}/safety-check/request", response_model=schemas.EventView, response_model_exclude_unset=True)
+def request_safety_check(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*SAFETY_REQUESTERS))):
+    def step(event, now):
+        safety_check.request_check(db, event, user, now)
+        messaging.safety_check_ready(db, event)  # US44-AC2, US36-AC7
+    return review_step(event_id, db, user, step)
+
+
+# Fulfills US44 AC4-AC7: approve, request changes or reject (a comment is mandatory unless approving). The outcome,
+# reviewer and time are saved, the status updated and the coordinator told. Returns the event as the officer reviews it.
+@app.post("/events/{event_id}/safety-check", response_model=schemas.SafetyCheck)
+def decide_safety_check(event_id: int, body: schemas.SafetyDecisionIn, db: Session = Depends(get_db),
+                        user: User = Depends(require_roles(*SAFETY_REVIEWERS))):
+    def step(event, now):
+        safety_check.decide(db, event, user, body.outcome, body.comment, now)
+        messaging.safety_check_decided(db, event, body.outcome, body.comment)  # US44-AC6, US36-AC7
+    event = run_review_step(event_id, db, user, step, lock=True)
+    return safety_check.packages(db, [event])[0]
 
 
 # US16: details and important-change history are committed atomically.

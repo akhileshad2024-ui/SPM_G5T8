@@ -12,5 +12,6 @@ export const PEOPLE: Record<Role, Person> = {
   tech: { person: "Wei Lim", label: "Technical Support", email: "wei.lim@connectsphere.edu" },
   attendee: { person: "Sam Adeyemi", label: "Attendee", email: "sam.adeyemi@student.connectsphere.edu" },
   lead: { person: "Grace Ong", label: "Event Coordinator Lead", email: "grace.ong@connectsphere.edu" },
+  safety: { person: "Hannah Lau", label: "Safety Officer", email: "hannah.lau@connectsphere.edu" },
 };
 

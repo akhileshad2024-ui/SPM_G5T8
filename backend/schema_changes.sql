@@ -58,3 +58,28 @@ WHERE status = 'pending' AND hold_expires_at IS NULL;
 -- marked "Requires Reassessment". reassessment holds the reason, the bookings it clashes with and when it was
 -- flagged (NULL when nothing needs reassessing). Safe to run more than once.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS reassessment json;
+
+-- US44 (Week 7 change CR-W7-6): the Operational Safety Check. Safe to run more than once.
+-- (The safety_reviews table is created by the backend on start-up.)
+-- The Safety Officer role: the users.role check constraint must allow 'safety'.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS user_role;
+ALTER TABLE users ADD CONSTRAINT user_role
+  CHECK (role IN ('organiser', 'coordinator', 'venue', 'tech', 'attendee', 'lead', 'safety'));
+-- The four safety statuses: the event status check constraints must allow them.
+ALTER TABLE events DROP CONSTRAINT IF EXISTS event_status;
+ALTER TABLE events ADD CONSTRAINT event_status CHECK (status IN (
+    'draft', 'submitted', 'under_review', 'pending_clarification', 'approved', 'confirmed', 'rejected', 'cancelled',
+    'pending_safety_review', 'safety_changes_requested', 'safety_approved', 'safety_rejected'));
+ALTER TABLE event_status_changes DROP CONSTRAINT IF EXISTS event_status_from;
+ALTER TABLE event_status_changes ADD CONSTRAINT event_status_from CHECK (from_status IN (
+    'draft', 'submitted', 'under_review', 'pending_clarification', 'approved', 'confirmed', 'rejected', 'cancelled',
+    'pending_safety_review', 'safety_changes_requested', 'safety_approved', 'safety_rejected'));
+ALTER TABLE event_status_changes DROP CONSTRAINT IF EXISTS event_status_to;
+ALTER TABLE event_status_changes ADD CONSTRAINT event_status_to CHECK (to_status IN (
+    'draft', 'submitted', 'under_review', 'pending_clarification', 'approved', 'confirmed', 'rejected', 'cancelled',
+    'pending_safety_review', 'safety_changes_requested', 'safety_approved', 'safety_rejected'));
+-- A Safety Officer account is created like the others, in the users table; then give it a password with
+--   python -m login.set_password <email>      (run from backend/)
+-- Example (the password_hash is replaced by set_password):
+-- INSERT INTO users (email, name, role, password_hash, is_active, failed_login_attempts, session_version)
+-- VALUES ('hannah.lau@connectsphere.edu', 'Hannah Lau', 'safety', 'set-with-set_password', true, 0, 0);

@@ -117,6 +117,12 @@ TARGETS = {
         "venue_availability.py:overlapping_periods,unavailability_text",
         "venue_bookings.py:held_periods",
     ],
+    # US44 Operational Safety Check: its rules, its three endpoints and their bodies.
+    "test_us44_operational_safety_check": [
+        "safety_check.py",
+        "main.py:list_safety_checks,request_safety_check,decide_safety_check",
+        "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
+    ],
 }
 
 # ---------------------------------------------------------------- mode 2: one report per story folder

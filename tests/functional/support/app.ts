@@ -18,8 +18,10 @@ export const WEI = { email: "wei.lim@connectsphere.edu", name: "Wei Lim" }; // T
 export const SAM = { email: "sam.adeyemi@student.connectsphere.edu", name: "Sam Adeyemi" }; // Attendee
 export const GRACE = { email: "grace.ong@connectsphere.edu", name: "Grace Ong" }; // Event Coordinator Lead (US43)
 export const JORDAN = { email: "jordan.lee@connectsphere.edu", name: "Jordan Lee" }; // Reusable coursework Lead
+export const HANNAH = { email: "hannah.lau@connectsphere.edu", name: "Hannah Lau" }; // Safety Officer (US44)
+export const RAVI = { email: "ravi.menon@connectsphere.edu", name: "Ravi Menon" }; // Safety Officer (US44)
 
-type Account = typeof MAYA;
+export type Account = typeof MAYA;
 
 /** An API session signed in as `who`, talking to the app through its /api proxy. */
 export async function apiAs(baseURL: string, who: Account): Promise<APIRequestContext> {

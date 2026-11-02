@@ -8,6 +8,7 @@ export const DEFAULT_ROUTE: Record<Role, string> = {
   tech: "/equipment",
   attendee: "/browse",
   lead: "/assignments",
+  safety: "/safety",
 };
 
 /** Sidebar navigation, per role: [route, label]. */
@@ -31,6 +32,8 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   attendee: [["/browse", "Browse events"]],
   // US43: the Event Coordinator Lead's unassigned queue and coordinators' assignments.
   lead: [["/assignments", "Assignments"]],
+  // US44: the Safety Officer's events awaiting an Operational Safety Check.
+  safety: [["/safety", "Safety checks"]],
 };
 
 /**

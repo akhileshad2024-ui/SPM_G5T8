@@ -29,6 +29,10 @@ EXPECTED = {
                             "venue", "venueName", "bookingState"},
     Role.tech: EVERYONE | {"coordinatorId", "coordinator", "pax", "venueName", "equip", "equipState"},
     Role.attendee: EVERYONE | {"access", "venueName", "reg", "regCap", "regClose", "registered", "withdrawalClose"},
+    # US44: what the Safety Officer reviews, and the outcome they record.
+    Role.safety: EVERYONE | {"coordinatorId", "coordinator", "pax",
+                             "venueLocation", "venueCapacity", "layout", "facilities", "access",
+                             "venue", "venueName", "bookingState", "equip", "equipState", "safetyReview"},
 }
 
 
@@ -75,6 +79,10 @@ def test_review_notes_stay_between_organiser_and_coordinator():
     # The Lead also sees when a request was submitted and created, to oversee the queue (US43).
     for field in ("submittedAt", "createdAt"):
         assert {r for r in Role if field in visible_fields(user(r))} == {Role.organiser, Role.coordinator, Role.lead}, field
+
+
+def test_the_safety_outcome_is_seen_by_the_organiser_coordinator_lead_and_safety_officer_only():
+    assert {r for r in Role if "safetyReview" in visible_fields(user(r))} == {Role.organiser, Role.coordinator, Role.lead, Role.safety}
 
 
 def test_assignment_details_are_seen_by_those_working_on_the_request():
