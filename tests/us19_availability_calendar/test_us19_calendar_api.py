@@ -225,8 +225,8 @@ class TestAC5DetailsOnlyForAuthorisedViewers:
         assert res.status_code == 200, res.text
         assert "Secret Summit" not in res.text
 
-    @pytest.mark.parametrize("role", [Role.organiser, Role.attendee])
-    def test_US19_AC5_organisers_and_attendees_can_not_read_the_calendar(self, signed_in, role):
+    @pytest.mark.parametrize("role", [Role.organiser, Role.attendee, Role.safety])
+    def test_US19_AC5_organisers_attendees_and_safety_officers_can_not_read_the_calendar(self, signed_in, role):
         res = signed_in(role).get("/venues/availability", params={"start": MON, "end": WEEK_END})
         assert res.status_code == 403
 

@@ -13,7 +13,7 @@ from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -70,6 +70,8 @@ REGISTRANTS = (Role.attendee,)
 EVENT_REVIEWERS = (Role.coordinator,)
 # Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
 COORDINATOR_ASSIGNERS = (Role.lead,)
+# Who may view the venue availability calendar (US19): the internal staff.
+CALENDAR_VIEWERS = (Role.coordinator, Role.lead, Role.venue, Role.tech)
 # Who may conduct the Operational Safety Check (US44), and who may send an event to it.
 SAFETY_REVIEWERS = (Role.safety,)
 SAFETY_REQUESTERS = (Role.coordinator,)

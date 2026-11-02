@@ -35,7 +35,10 @@ export const NAV_FOR: Record<Role, Array<[string, string]>> = {
   ],
   attendee: [["/browse", "Browse events"]],
   // US43: the Event Coordinator Lead's unassigned queue and coordinators' assignments.
-  lead: [["/assignments", "Assignments"]],
+  lead: [
+    ["/assignments", "Assignments"],
+    ["/calendar", "Venue calendar"],
+  ],
   // US44: the Safety Officer's events awaiting an Operational Safety Check.
   safety: [["/safety", "Safety checks"]],
 };

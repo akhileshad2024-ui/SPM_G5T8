@@ -23,6 +23,6 @@ An expired hold shown as released (AC6) needs a hold's expiry to pass, so it is 
 | Event Coordinator | Venue calendar | Their own events; others show as "Booked" or "Tentative hold" |
 | Event Coordinator Lead | Venue calendar | Live events |
 | Technical Support | Venue calendar | Events whose equipment is assigned to them |
-| Event Organiser, Attendee | No access (403 from the API) | — |
+| Event Organiser, Attendee, Safety Officer | No access (403 from the API) | — |
 
 The server leaves the event's name and id out of its reply for a viewer who may not see that event (`backend/venue_calendar.py`), so the page has nothing to hide. Times are still sent: showing when a venue is busy is what the calendar is for.
