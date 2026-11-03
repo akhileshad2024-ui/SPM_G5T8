@@ -46,3 +46,6 @@ coverage_reports/**/.coverage
 
 # Local transfer artifacts
 *.bundle
+
+# Local/CI evidence archives are shared separately, not committed as generated files.
+/test-reports/

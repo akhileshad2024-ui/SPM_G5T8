@@ -600,3 +600,64 @@ new GitHub Actions run has already uploaded the reports. No 100% claim is made.
 The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**: Next.js / React, a Python monolith, and Supabase DB. Today the backend serves sign-in and the venue catalogue; the other data is still held in the browser.
 The Python framework, Supabase Auth usage, database connection method, and email provider remain TBD. Component boundaries and API connections are proposed and should be aligned with the implementation as it develops.
 To edit, download the file and open it in draw.io / diagrams.net using **File > Open From > Device**. Use this `.drawio` file as the primary editable source.
+
+
+### Traceable automated test evidence
+
+Activate the project's Python virtual environment first. Record a real run with
+one of these commands (replace Sprint and executor with the actual values):
+
+```bash
+python scripts/test_evidence.py run --kind backend --sprint SP4 --executor "Wen Yuetong"
+python scripts/test_evidence.py run --kind frontend --sprint SP4 --executor "Wen Yuetong"
+python scripts/test_evidence.py run --kind functional --sprint SP4 --executor "Wen Yuetong"
+```
+
+`backend` runs the existing complete Python suite with statement/branch coverage;
+`frontend` runs Vitest with coverage; `functional` runs the isolated Playwright
+suite. These commands do not execute shared-database acceptance cases. To record
+just one module's existing test command, specify its real scope and command:
+
+```bash
+python scripts/test_evidence.py run --kind integration --scope US05 --sprint SP4 --executor "Wen Yuetong" -- python -m pytest tests/integration/test_us05_save_event_draft_integration.py
+```
+
+Check that the test path exists; substitute your actual module's path. Custom
+commands record logs/results but do not automatically measure coverage. Unknown
+counts and coverage remain blank. Backend coverage combines unit/integration;
+functional results are not code-coverage percentages.
+
+Local executions save unique logs, run metadata and available complete report ZIPs
+under `test-reports/local/history/<execution-id>/`. Existing `coverage/` and
+`coverage_reports/` output paths are preserved. Every run refreshes
+`test-reports/test-run-history.csv`. The manifest records UTC timestamps (SGT is
+UTC+8), executor, scope, actual commit, dirty working-tree flag, command and result.
+The commit alone does not identify uncommitted changes: archive/review the patch
+separately when `dirty` is true. Do not put passwords or secrets into recorded
+commands. A functional fixture may differ from the shared TC credentials.
+
+CI automatically records the same evidence, including failures, in a separate
+`test-history-<job>-<run>-<attempt>` artifact. Existing coverage/functional artifacts
+remain the canonical full reports; history records name them without duplicating
+the ZIP. Download artifacts before the configured 90-day expiry. A cancelled or
+force-killed job may not produce/upload a complete record. Missing evidence is
+not a passing result. CI does not currently infer Sprint from dates.
+
+To assemble team history, each member shares their execution folders through the
+team's agreed shared storage; do not send only the summary CSV. Put those folders
+and downloaded CI history artifacts in `test-reports/imports/<member-or-run>/`,
+then run:
+
+```bash
+python scripts/test_evidence.py export
+```
+
+The exporter combines saved manifests and existing `coverage_reports/us*/history*.csv`
+without rerunning tests. Identical record IDs are counted once. Historical missing
+Sprint/owner/commit/timezone stays unrecorded; old coverage percentages are labelled
+legacy because their measurement type is not known. A historical source path does
+not guarantee its report still exists; verify links before submission. Import the
+CSV into the general test workbook's Automated Test Runs sheet at milestones.
+Generated evidence stays Git-ignored; `git pull` distributes this tool, not team
+reports. This cannot recover unrecorded historical runs or automatically collect
+other members' computers. Downloaded reports still require retention/backups.

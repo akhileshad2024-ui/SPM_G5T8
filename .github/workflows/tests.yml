@@ -1,7 +1,7 @@
 # Runs the backend and frontend tests automatically.
 #
 # The log of each run is the evidence of testing:
-# GitHub repo -> Actions tab -> the run -> the "test" (backend) and "frontend" jobs.
+# GitHub repo -> Actions -> run -> "Unit / Integration Tests" or "frontend".
 name: Tests
 
 on:
@@ -11,6 +11,7 @@ on:
 
 jobs:
   test:
+    name: Unit / Integration Tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
@@ -30,7 +31,7 @@ jobs:
       # so no secrets or .env file are needed. "-s tests/unit" is needed because plain
       # "python -m unittest discover" finds nothing: the tests live in tests/unit/.
       - name: Run unit tests
-        run: python -m unittest discover -s tests/unit -v
+        run: python scripts/test_evidence.py run --kind unit --scope backend -- python -m unittest discover -s tests/unit -v
 
       # Every Python test: the per-story folders (tests/us01_secure_login, tests/us02_rbac,
       # tests/us03_us04_event_request, tests/us13_event_status), tests/unit and tests/integration.
@@ -38,18 +39,9 @@ jobs:
       - name: Run all backend tests with statement and branch coverage
         run: |
           mkdir -p coverage/backend
-          python -m coverage run --branch --source=backend --data-file=coverage/backend/.coverage -m pytest tests -v -p no:cacheprovider
+          python scripts/test_evidence.py run --kind backend
 
-      # Report even after a failing test, without changing that test's failure status.
-      # Measurement only: a green job does not mean 100% coverage.
-      - name: Generate backend coverage reports
-        if: ${{ !cancelled() && hashFiles('coverage/backend/.coverage') != '' }}
-        run: |
-          python -m coverage report --data-file=coverage/backend/.coverage --show-missing | tee coverage/backend/coverage.txt
-          python -m coverage json --data-file=coverage/backend/.coverage -o coverage/backend/coverage.json
-          python -m coverage xml --data-file=coverage/backend/.coverage -o coverage/backend/coverage.xml
-          python -m coverage html --data-file=coverage/backend/.coverage -d coverage/backend/html
-
+      # The recording wrapper generates coverage reports even after a test failure.
       - name: Upload backend coverage evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -59,11 +51,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
+      - name: Upload test execution history
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-reports/
+          if-no-files-found: warn
+          retention-days: 90
+
   frontend:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 for execution records
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -79,7 +85,7 @@ jobs:
 
       # Vitest unit tests for every story (tests/**/*.unit.test.ts).
       - name: Run frontend unit tests with coverage
-        run: npm run test:coverage
+        run: python scripts/test_evidence.py run --kind frontend
 
       - name: Upload frontend coverage evidence
         if: ${{ !cancelled() }}
@@ -92,6 +98,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Upload test execution history
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-reports/
+          if-no-files-found: warn
+          retention-days: 90
 
   # Functional (end-to-end) tests: a real browser drives the real app (playwright.config.ts).
   # Playwright starts FastAPI on a throwaway SQLite database and Next.js itself; no secrets needed.
@@ -119,7 +134,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Run functional tests
-        run: npm run test:functional
+        run: python scripts/test_evidence.py run --kind functional
 
       - name: Upload functional test report
         if: ${{ !cancelled() }}
@@ -127,5 +142,14 @@ jobs:
         with:
           name: functional-report-${{ github.sha }}
           path: coverage/functional/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload test execution history
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-reports/
           if-no-files-found: warn
           retention-days: 90
