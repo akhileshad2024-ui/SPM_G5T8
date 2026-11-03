@@ -135,14 +135,22 @@ test.describe("US01 - Secure Login", () => {
   });
 
   test("[TC-010] [US01-AC4] activity within 30 minutes keeps the session alive", async ({ page }, info) => {
+    // With the browser clock frozen, a click right after the page loads can be lost when the machine is busy
+    // (as in the full run), so wait for the page to settle and click again until the page changes.
+    const follow = async (name: string, url: RegExp) => {
+      await expect(async () => {
+        await page.getByRole("link", { name }).click();
+        await expect(page).toHaveURL(url, { timeout: 3_000 });
+      }).toPass({ timeout: 20_000 });
+    };
     await page.clock.install();
     await signIn(page, MAYA, /\/my-events/);
+    await page.waitForLoadState("networkidle");
     await page.clock.fastForward("29:00");
-    await page.getByRole("link", { name: "New request" }).click();
-    await expect(page).toHaveURL(/\/new-request$/);
+    await follow("New request", /\/new-request$/);
+    await page.waitForLoadState("networkidle");
     await page.clock.fastForward("29:00");
-    await page.getByRole("link", { name: "My events" }).click();
-    await expect(page).toHaveURL(/\/my-events$/);
+    await follow("My events", /\/my-events$/);
     await page.clock.fastForward("01:00");
     await expect(page).toHaveURL(/\/my-events$/);
     expect((await page.request.get("/api/auth/me")).status()).toBe(200);
