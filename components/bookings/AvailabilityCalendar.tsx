@@ -21,7 +21,10 @@ import {
 } from "@/lib/venues/calendar";
 import styles from "./AvailabilityCalendar.module.css";
 
-const VIEWS: Array<[CalendarView, string]> = [
+/** How often the shown range is fetched again, the same pace as the page's notifications. */
+const REFRESH_MS = 15_000;
+
+const VIEWS:Array<[CalendarView, string]> = [
   ["day", "Day"],
   ["week", "Week"],
   ["month", "Month"],
@@ -113,12 +116,21 @@ export function AvailabilityCalendar() {
   const [view, setView] = useState<CalendarView>("week");
   const [anchor, setAnchor] = useState(() => campusToday());
   const [venueId, setVenueId] = useState("all");
-  const [venues, setVenues] = useState<CalendarVenue[] | null>(null);
-  const [error, setError] = useState("");
+  // Every reply is kept with the range it was asked for, so days that haven't loaded are never drawn from another range's data.
+  const [loaded, setLoaded] = useState<{ range: string; venues: CalendarVenue[] } | null>(null);
+  const [failed, setFailed] = useState<{ range: string; message: string } | null>(null);
+  const [tick, setTick] = useState(0);
 
   const days = visibleDays(view, anchor);
   const first = days[0];
   const last = days[days.length - 1];
+  const range = `${first}..${last}`;
+
+  // A hold that runs out is released by the server without the page being told, so ask again now and then.
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), REFRESH_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   // Asked for again when the page's events or venues change, so a decision made here shows straight away.
   useEffect(() => {
@@ -126,17 +138,19 @@ export function AvailabilityCalendar() {
     apiFetch<CalendarVenue[]>(`/venues/availability?start=${first}&end=${last}`)
       .then((found) => {
         if (!current) return;
-        setVenues(found);
-        setError("");
+        setLoaded({ range, venues: found });
+        setFailed(null);
       })
       .catch((err) => {
-        if (current) setError(err instanceof ApiError ? err.message : "The calendar could not be loaded. Try again.");
+        if (current) setFailed({ range, message: err instanceof ApiError ? err.message : "The calendar could not be loaded. Try again." });
       });
     return () => {
       current = false;
     };
-  }, [first, last, events, catalogue]);
+  }, [first, last, range, events, catalogue, tick]);
 
+  const venues = loaded?.range === range ? loaded.venues : null;
+  const error = failed?.range === range ? failed.message : "";
   const shown = (venues ?? []).filter((v) => venueId === "all" || String(v.id) === venueId);
 
   return (
@@ -180,7 +194,7 @@ export function AvailabilityCalendar() {
         </div>
         <select className={`select-input ${styles.toolInput}`} aria-label="Venue" value={venueId} onChange={(e) => setVenueId(e.target.value)}>
           <option value="all">All venues</option>
-          {(venues ?? []).map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
+          {(loaded?.venues ?? []).map((v) => <option key={v.id} value={String(v.id)}>{v.name}</option>)}
         </select>
       </div>
 

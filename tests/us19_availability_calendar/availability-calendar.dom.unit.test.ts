@@ -152,6 +152,51 @@ describe("US19 loading the calendar", () => {
   });
 });
 
+describe("US19 changing the days shown", () => {
+  it("US19 shows Loading, not the last range's data, while the next range loads", async () => {
+    show();
+    await screen.findByText("Gala");
+    const slow = deferred<CalendarVenue[]>();
+    apiFetch.mockReturnValueOnce(slow.promise);
+    press("Next week");
+    expect(screen.getByText("Loading the calendar…")).toBeTruthy();
+    expect(screen.queryByText("Gala")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Lecture Theatre 1 on 2027-01-11" })).toBeNull();
+
+    await act(async () => slow.resolve([nextWeek("Later")]));
+    expect(screen.getByText("Later")).toBeTruthy();
+  });
+
+  it("US19 shows the error, not an empty grid, when the next range fails", async () => {
+    show();
+    await screen.findByText("Gala");
+    apiFetch.mockRejectedValueOnce(new Error("Network down"));
+    press("Next week");
+    expect((await screen.findByRole("alert")).textContent).toBe("The calendar could not be loaded. Try again.");
+    expect(screen.queryByRole("group", { name: "Lecture Theatre 1 on 2027-01-11" })).toBeNull();
+  });
+});
+
+describe("US19 holds that expire while the page stays open", () => {
+  it("US19 asks again every 15 seconds and shows the hold as released", async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(new Date(`${MON}T02:00:00Z`));
+    apiFetch.mockResolvedValueOnce([venue(1, "Lecture Theatre 1", [period({ kind: "pending", event_name: "Hold", hold_expires_at: `${MON}T10:30` })])]);
+    apiFetch.mockResolvedValue([venue(1, "Lecture Theatre 1", [period({ kind: "expired", event_name: "Hold" })])]);
+    show();
+    expect(await screen.findByLabelText("Pending: Hold")).toBeTruthy();
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(await screen.findByLabelText("Released: Hold")).toBeTruthy();
+    expect(screen.queryByLabelText("Pending: Hold")).toBeNull();
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("US19-AC2 moving around the calendar", () => {
   it("US19-AC2 opens on the week, and switches to the day and the month", async () => {
     show();
