@@ -23,7 +23,7 @@ export function EventDetailsEditor({ event }: { event: EventRecord }) {
   const pending = useRef(false);
   const [error, setError] = useState("");
   const allowed = app.state.role === "coordinator" && event.coordinator === app.me.person
-    && ["submitted", "under_review", "pending_clarification", "approved"].includes(event.status);
+    && ["submitted", "under_review", "pending_clarification", "approved", "safety_changes_requested", "safety_rejected"].includes(event.status);
   if (!allowed || event.backendId === undefined) return null;
 
   async function open() {

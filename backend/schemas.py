@@ -845,10 +845,18 @@ class ClarificationResponseIn(BaseModel):
 
 # ---------------------------------------------------------------- operational safety check (US44)
 
+class ArrangementTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["venue", "equipment"]
+    id: PositiveInt
+
+
 class SafetyDecisionIn(BaseModel):
     """A Safety Officer's decision. A comment is mandatory unless approving; the server checks it."""
+    model_config = ConfigDict(extra="forbid")
     outcome: Literal["approved", "changes_requested", "rejected"]
     comment: str = ""
+    targets: List[ArrangementTarget] = []
 
 
 class SafetyArea(BaseModel):
@@ -884,6 +892,8 @@ class SafetyCheck(BaseModel):
     arrangementsIssue: Optional[str] = None  # why the venue and equipment are not confirmed (None when they are)
     areas: List[SafetyArea]
     reviews: List[SafetyReviewOut] = []
+    targets: List[Dict[str, Any]] = []
+    planningStage: Optional[str] = None
 
 
 # ---------------------------------------------------------------- event-request drafts (US05)
@@ -916,6 +926,12 @@ class EventChangeDecisionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     outcome: Literal["accepted", "rejected"]
     reason: str = ""
+    effective_changes: Optional[EventDetailsUpdate] = None
+
+
+class ReassessmentResolutionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    note: str = Field(min_length=1, max_length=2000)
 
 
 class EventDraftSave(BaseModel):

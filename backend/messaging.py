@@ -278,11 +278,11 @@ def safety_check_decided(db, event, outcome, comment=""):
     notify(db, event.coordinator_id, event, title, f"{event.name} {text}{note}")
 
 
-def venue_booking_reassess(db, booking):
+def venue_booking_reassess(db, booking, cause="an accepted change"):
     """US49-AC3: Venue Staff are told a booking needs reassessing after an accepted change."""
     event = booking_event(db, booking)
     notify_all(db, venue_staff(db), event, "Booking requires reassessment",
-               f"{event.name}: an accepted change means the {booking.venue_name} booking for {booking.date} "
+               f"{event.name}: {cause} means the {booking.venue_name} booking for {booking.date} "
                "needs reassessing. Review it in Bookings.")
 
 
@@ -293,8 +293,17 @@ def equipment_reassess(db, event):
 
 
 def attendees_affected(db, event, what_changed):
-    """US51-AC3: registered and waitlisted attendees are told how an accepted change affects them."""
-    notify_all(db, attendees(db, event), event, "Event changed", f"{event.name}: {what_changed}")
+    """US51-AC3: notify registered attendees after the caller establishes an impact.
+
+    This helper neither determines impact nor commits. The accepted-change workflow
+    must call it in its own transaction. Other stories still use attendees(), which
+    includes the waitlist; US51 does not implicitly expand to that audience.
+    """
+    recipients = [r.attendee_id for r in db.query(models.Registration).filter(
+        models.Registration.event_id == event.id,
+        models.Registration.status == models.RegistrationStatus.registered,
+    ).order_by(models.Registration.id)]
+    notify_all(db, recipients, event, "Event changed", f"{event.name}: {what_changed}")
 
 
 # ---------------------------------------------------------------- registration (US29)

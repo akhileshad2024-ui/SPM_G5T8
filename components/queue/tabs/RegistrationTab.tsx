@@ -5,6 +5,7 @@ import { Tag } from "@/components/ui/Pill";
 import { formatChangedAt } from "@/lib/events/status-history";
 import { useEventRegistrations } from "@/components/registrations/useEventRegistrations";
 import type { EventRecord } from "@/lib/types";
+import { ReassessmentPanel } from "../ReassessmentPanel";
 
 /** The event's places taken and its saved registrations (US32). */
 export function RegistrationTab({ event }: { event: EventRecord }) {
@@ -13,6 +14,7 @@ export function RegistrationTab({ event }: { event: EventRecord }) {
 
   return (
     <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+      {event.backendId !== undefined && <ReassessmentPanel eventId={event.backendId} kind="registration" />}
       <div className="card" style={{ padding: "20px 22px", minWidth: 260 }}>
         <div className="eyebrow">Registered</div>
         <div className="display-number" style={{ fontSize: 58, marginTop: 6 }}>

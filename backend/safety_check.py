@@ -78,11 +78,25 @@ def request_check(db: Session, event: models.Event, user: User, now: datetime) -
     if issue:
         raise not_allowed(f"{issue} The safety check starts once the venue and equipment are confirmed.")
     reworked = event.status != S.approved
+    from arrangement_reassessment import outstanding
+    shared_issues = outstanding(db, event)
+    if shared_issues:
+        raise not_allowed("Resolve Requires Reassessment before requesting a safety check. " + " ".join(shared_issues))
+    if reworked:
+        # US45-AC3: the existing venue reassessment flag must be resolved before
+        # another check. Do not clear flags or infer targets from review comments.
+        # Equipment/registration/safety flags were checked by the shared service.
+        bookings = db.query(models.VenueBooking).filter(
+            models.VenueBooking.event_id == event.id,
+            models.VenueBooking.status == "approved",
+        ).all()
+        if any(booking.reassessment for booking in bookings):
+            raise not_allowed("Resolve the venue bookings marked Requires Reassessment before resubmitting for a safety check.")
     change_status(db, event, S.pending_safety_review, user, now,
                   reason="Resubmitted for safety review after rework." if reworked else None)
 
 
-def decide(db: Session, event: models.Event, user: User, outcome: str, comment: str, now: datetime) -> None:
+def decide(db: Session, event: models.Event, user: User, outcome: str, comment: str, now: datetime, targets=None) -> None:
     """A Safety Officer approves, requests changes or rejects (US44 AC4, AC5)."""
     if user.role != Role.safety:
         raise ReviewError(403, "Only a Safety Officer can conduct a safety check.")
@@ -93,13 +107,26 @@ def decide(db: Session, event: models.Event, user: User, outcome: str, comment: 
     if event.status != S.pending_safety_review:
         raise not_allowed(f"This event is not waiting for a safety check (it is {label(event.status)}).")
     text = check_note(comment, "Comment", required=outcome in NEEDS_COMMENT)
+    from arrangement_reassessment import target_rows, outstanding, safety_rework
+    targets = targets or []
+    if targets and outcome == "approved":
+        raise ReviewError(422, "An approval cannot request arrangement rework.")
+    target_rows(db, event, targets)
     if outcome == "approved":
         # Checked again here: Technical Support or Venue Staff may have changed something since it was requested.
         issue = arrangements_issue(event)
         if issue:
             raise not_allowed(f"Can't approve: {issue} The arrangements changed after the safety check was requested.")
+        if outstanding(db, event):
+            raise not_allowed("Resolve Requires Reassessment before approving safety.")
     change_status(db, event, OUTCOME_STATUS[outcome], user, now, reason=text or None)
-    db.add(models.SafetyReview(event_id=event.id, outcome=outcome, comment=text or None, reviewer_id=user.id, reviewed_at=now))
+    review = models.SafetyReview(event_id=event.id, outcome=outcome, comment=text or None, reviewer_id=user.id, reviewed_at=now)
+    db.add(review)
+    db.flush()
+    if targets:
+        safety_rework(db, event, review, targets, now)
+        change_status(db, event, S.approved, user, now,
+                      reason="Returned to arrangement planning for the named safety revisions.", rework=True)
 
 
 # ---------------------------------------------------------------- what the Safety Officer reviews
@@ -231,6 +258,7 @@ def latest_review(db: Session, event: models.Event) -> Optional[dict]:
 def packages(db: Session, events: list) -> list:
     """The Safety Officer's list (US44 AC2, AC3): each event with what to review and its safety history.
     Events waiting for a check come first, the longest waiting first; the rest follow, newest first."""
+    from arrangement_reassessment import planning_stage
     ids = [event.id for event in events]
     if not ids:
         return []
@@ -263,6 +291,10 @@ def packages(db: Session, events: list) -> list:
             "arrangementsIssue": arrangements_issue(event),
             "areas": build_areas(event.expected_attendance, event.accessibility or [], facts, event.equipment or []),
             "reviews": [review_out(review, names) for review in reviews[event.id]],
+            "targets": ([{"type": "venue", "id": b.id, "label": f"{b.venue_name} booking #{b.id}"} for b in bookings[event.id]]
+                        + [{"type": "equipment", "id": r.id, "label": f"{r.item_id} reservation #{r.id}"}
+                           for r in db.query(models.EquipmentReservation).filter_by(event_id=event.id)]),
+            "planningStage": planning_stage(db, event),
         })
     waiting = sorted((p for p in out if p["status"] == S.pending_safety_review.value), key=lambda p: (p["requestedAt"] is None, p["requestedAt"], p["eventId"]))
     done = sorted((p for p in out if p["status"] != S.pending_safety_review.value), key=lambda p: -p["eventId"])

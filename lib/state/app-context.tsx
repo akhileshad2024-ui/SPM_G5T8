@@ -329,7 +329,7 @@ export interface AppApi {
   /** US44: the coordinator sends an event whose venue and equipment are confirmed to its safety check. */
   requestSafetyCheck: (backendId: number) => Promise<boolean>;
   /** US44: the Safety Officer approves, requests changes or rejects (a comment is mandatory unless approving). */
-  decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string) => Promise<boolean>;
+  decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string, targets?: Array<{type: "venue" | "equipment"; id: number}>) => Promise<boolean>;
   saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
   /** US14: the assigned coordinator confirms the event; the server refuses (listing what is outstanding) until it is ready. */
   confirmEvent: (id: string) => Promise<boolean>;
@@ -1021,9 +1021,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return false;
         }
       },
-      decideSafetyCheck: async (backendId, outcome, comment) => {
+      decideSafetyCheck: async (backendId, outcome, comment, targets = []) => {
         try {
-          await apiFetch<SafetyCheck>(`/events/${backendId}/safety-check`, { method: "POST", body: JSON.stringify({ outcome, comment }) });
+          await apiFetch<SafetyCheck>(`/events/${backendId}/safety-check`, { method: "POST", body: JSON.stringify({ outcome, comment, targets }) });
           await loadSafetyChecks();
           flash(outcome === "approved" ? "Safety check approved. The coordinator has been told." : outcome === "rejected"
             ? "Safety arrangement rejected. The coordinator has been told." : "Changes requested. The coordinator has been told.");

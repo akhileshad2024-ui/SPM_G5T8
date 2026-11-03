@@ -51,7 +51,8 @@ LOCKED_AFTER_CONFIRMATION = (*DETAIL_FIELDS, "equipment")
 def outstanding(db: Session, event: models.Event, now: datetime) -> List[str]:
     """Every arrangement still in the way of confirming the event, in the order the coordinator works through
     them: venues, then equipment, then the safety check. An empty list means it can be confirmed."""
-    items: List[str] = []
+    from arrangement_reassessment import outstanding as reassessment_outstanding
+    items: List[str] = reassessment_outstanding(db, event)
 
     # AC1 (CR-W7-3) + AC6 (CR-W7-2): each venue booking that holds a venue, on its own.
     holding = [b for b in event_bookings(db, event.id) if b.status in HOLDING and not hold_expiry.is_lapsed(b, now)]
