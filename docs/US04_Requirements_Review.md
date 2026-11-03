@@ -8,8 +8,8 @@ No shared database changes have been executed.
 Current handover update: the organiser submission producer is implemented and
 its existing manual cases passed. The original gaps below describe the review
 baseline, not all remaining work. Lead consumer integration remains pending.
-See [US04/US11 integration handover](US04_US11_Integration_Handover.md) for the
-implemented data contract and unexecuted cross-story test design. The Lead AC
+The cross-story test design (INT01-INT04) is in
+`tests/integration/test_us04_us11_lead_queue_integration.py`. The Lead AC
 is unchanged; do not mark the Story Done on the basis of producer tests alone.
 
 ## Evidence
