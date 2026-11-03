@@ -133,6 +133,19 @@ TARGETS = {
         "main.py:list_safety_checks,request_safety_check,decide_safety_check",
         "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
     ],
+    # US39 Mark Venue Temporarily Unavailable: validating a period, finding and flagging the bookings it overlaps.
+    "test_us39_mark_venue_unavailable": [
+        "venue_unavailability.py",
+        "schemas.py:UnavailabilityPeriod",
+    ],
+    # US41 Manage Multiple Venue Bookings for an Event: each venue once per event, a booking's own needs, changing
+    # or cancelling one booking (or all of them). Requesting a booking is shared with US22, so it is not measured here.
+    "test_us41_multiple_venue_bookings": [
+        "booking_request.py:needs_from_event,require_new_venue_for_event",
+        "venue_bookings.py:event_bookings,summarise,save_request,require_holding,change,cancel",
+        "main.py:coordinators_event,coordinators_booking,change_booking,cancel_booking,cancel_all_bookings",
+        "schemas.py:BookingChange",
+    ],
     # US40 Request Replacement Venue: the replacement rules, releasing the original, and the approval notice.
     "test_us40_request_replacement_venue": [
         "booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification",
@@ -150,7 +163,9 @@ STORY_DIRS = {
     "us03": "tests/us03_us04_event_request",
     "us13": "tests/us13_event_status",
     "us15": "tests/us15_event_information",
+    "us19": "tests/us19_availability_calendar",
     "us29": "tests/us29_us32_registration",
+    "us36": "tests/us36_notifications",
 }
 
 # Backend files each of those stories' tests are meant to cover. "main.py:a,b" measures only those top-level
@@ -163,7 +178,9 @@ STORY_FILES = {
     "us13": ["event_status.py", "event_access.py", "main.py:event_view,list_events,get_event,get_event_history",
              "schemas.py:StatusChangeResponse", "models.py:EventStatusChange"],
     "us15": ["event_fields.py", "main.py:event_view,event_response,list_events,get_event", "schemas.py:EventResponse,EventView"],
+    "us19": ["venue_calendar.py"],
     "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
+    "us36": ["messaging.py"],
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.
@@ -174,7 +191,9 @@ STORY_FRONTEND = {
              "lib/events/request/form-adapter.ts", "lib/events/request/submission.ts"],
     "us13": ["lib/events/status-history.ts"],
     "us15": ["lib/events/details.ts"],
+    "us19": ["lib/venues/calendar.ts", "components/bookings/AvailabilityCalendar.tsx"],
     "us29": ["lib/registration.ts"],
+    "us36": ["lib/notifications.ts"],
     "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
     "us12": ["lib/events/review/reassignment.ts"],
     "us14": ["lib/events/confirmation.ts"],

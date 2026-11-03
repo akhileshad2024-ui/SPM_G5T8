@@ -1,0 +1,27 @@
+Frontend coverage for US19
+Measured files: lib/venues/calendar.ts, components/bookings/AvailabilityCalendar.tsx
+Tests  67 passed (67)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  3 passed (3)
+      Tests  67 passed (67)
+   Start at  19:34:22
+   Duration  3.77s (environment 35%, tests 34%, import 16%, transform 12%, worker 3%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 129/129 )
+Branches     : 100% ( 77/77 )
+Functions    : 100% ( 53/53 )
+Lines        : 100% ( 109/109 )
+================================================================================
