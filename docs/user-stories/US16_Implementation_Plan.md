@@ -53,8 +53,8 @@ Reviewed: 2026-10-23, Asia/Singapore. Owner: Wen Yuetong.
   Under Review. Read-only DB verification confirmed both events and notices.
 - Actual yellow records were appended to the existing Sheet: TC01 run 2 and
   TC02 run 1. Earlier records remain unchanged; neither run is labelled manual.
-  Reports/JSON/results are under `coverage/us16/shared-20261029-tc01-run1/` and
-  `coverage/us16/shared-20261029-tc02-run1/`. All shared data remains; no SQL/reset,
+  Reports/JSON/results are under `coverage_reports/us16/archived/shared-20261029-tc01-run1/` and
+  `coverage_reports/us16/archived/shared-20261029-tc02-run1/`. All shared data remains; no SQL/reset,
   API fixture or automatic retry was used. Final sign-out completed in both.
 - Remaining: publish this follow-up, teammate review, merge and green CI on the
   merged SHA, then final Sprint 4 DoD. No unrelated US14/US33/US34 work included.
@@ -156,7 +156,7 @@ contract is available; do not mark all US16 AC complete before that verification
   file; corrected it. Next run found nested optional equipment defaults omitted
   by recursive exclude_unset; fixed input serialisation without weakening the test.
 - Scoped `backend/event_updates.py`: 19 statements and 6 branch outcomes, 100%
-  measured coverage; not project-wide coverage. HTML: coverage/us16/html/index.html.
+  measured coverage; not project-wide coverage. HTML: coverage_reports/us16/archived/html/index.html.
 - TypeScript type check passed after editor/history/API wiring.
 - Playwright US16-TC01 created; acceptance config selects it with TC_STORY=US16.
 - Blue shared TC revised to the implemented labels and exact sequence before
@@ -172,12 +172,12 @@ contract is available; do not mark all US16 AC complete before that verification
   correction, attendance 85→90 with impact warning, persistent actor/value/time
   history, refresh, organiser re-login/read-only verification, final sign-out.
   No API fixture, seed, reset, cleanup or automatic retry. Shared record preserved.
-- Archived browser evidence: `coverage/us16/acceptance-run1/report/index.html`
-  and `coverage/us16/acceptance-run1/results`. Actual result appended to the
+- Archived browser evidence: `coverage_reports/us16/archived/acceptance-run1/report/index.html`
+  and `coverage_reports/us16/archived/acceptance-run1/results`. Actual result appended to the
   existing yellow US16-TC01 record; no prior record overwritten.
 - Scoped backend tests: 29 unit cases + 9 integration cases passed.
 - Scoped coverage: 19 statements, 6 branch outcomes, all covered (100%);
-  HTML `coverage/us16/html/index.html`, JSON `coverage/us16/coverage.json`.
+  HTML `coverage_reports/us16/archived/html/index.html`, JSON `coverage_reports/us16/archived/coverage.json`.
   This is NOT 100% repository, API-file or frontend coverage.
 - Frontend regression: 296 tests / 18 files passed.
 - TypeScript `npx tsc --noEmit` passed; `npm run build` passed. Existing multiple

@@ -15,7 +15,7 @@ export default defineConfig({
       include: ["lib/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
       reporter: ["text", "html", "json-summary", "lcov"],
       reportOnFailure: true,
-      reportsDirectory: "coverage/frontend", // per-story CLI runs may override this path
+      reportsDirectory: "coverage_reports/project/latest/frontend", // per-story CLI runs may override this path
     },
   },
 });

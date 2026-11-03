@@ -114,7 +114,7 @@ Verification:
   text-only proposals, persistence, unchanged event, strict session identity,
   existing review-outcome serialization and import without database env.
 - Scoped `backend/event_changes.py`: 13 statements, 6 branch outcomes, 100%.
-  Reports: `coverage/us33/coverage.json` and `coverage/us33/html/index.html`.
+  Reports: `coverage_reports/us33/archived/coverage.json` and `coverage_reports/us33/archived/html/index.html`.
   This is not whole-project, API-route or frontend 100% coverage.
 - First coverage command used an incorrect source path and collected no data;
   rerun with `--source=event_changes` produced the valid report above. The
@@ -129,7 +129,7 @@ Verification:
 - Matching Playwright file created; normal functional CI discovers it. Isolated
   UI regression passed in 22.7 seconds (browser case 8.6 seconds), EVENT_ID=1,
   Request #1 in the throwaway SQLite DB, not the shared Supabase DB.
-  Report: `coverage/functional/report/index.html`. Initial sandbox port binding
+  Report: `coverage_reports/project/latest/functional/report/index.html`. Initial sandbox port binding
   failed before test execution; authorised local-port rerun passed.
 - Shared acceptance config supports `TC_STORY=US33`, one worker/no retries,
   TC_SHARED_DB=1 and locally supplied TC_MAYA_PASSWORD. It does not seed/reset.
@@ -154,8 +154,8 @@ unlocked. No credentials were added to repository files.
 
 | Execution | SGT end time | Actual result | Evidence |
 | --- | --- | --- | --- |
-| Run 1 | 10:31:42 | Blocked at login; Playwright failed after 120 seconds waiting for the email input. Blank page; trace shows Next JavaScript/CSS404. No credentials entered or records created; read-only counts remained21/0. | `coverage/us33/acceptance-run1/report/index.html`, results trace/screenshot |
-| Run 2 | 10:34:53 | Pass, about1.3min; EVENT_ID=35, CHANGE_REQUEST_ID=1. Same request after refresh/new login, event Submitted/attendance85 unchanged, date/time/name/purpose unchanged; signed out. | `coverage/us33/acceptance-run2/report/index.html`, result attachment |
+| Run 1 | 10:31:42 | Blocked at login; Playwright failed after 120 seconds waiting for the email input. Blank page; trace shows Next JavaScript/CSS404. No credentials entered or records created; read-only counts remained21/0. | `coverage_reports/us33/archived/acceptance-run1/report/index.html`, results trace/screenshot |
+| Run 2 | 10:34:53 | Pass, about1.3min; EVENT_ID=35, CHANGE_REQUEST_ID=1. Same request after refresh/new login, event Submitted/attendance85 unchanged, date/time/name/purpose unchanged; signed out. | `coverage_reports/us33/archived/acceptance-run2/report/index.html`, result attachment |
 
 Diagnosed the missing development assets after earlier build/test runs shared
 the active development server's `.next` directory. Restarted only this project's
@@ -247,8 +247,8 @@ Full local regression also exposed US15 TC-058 saving twice within the same
 SQLite timestamp second. Wait for the next second before the second UI save;
 retain the strict later-timestamp assertion. No business rule or TC input changes.
 Run 1: 131 passed, 1 failed (TC-058), 1 skipped; archived under
-coverage/us33/pr29-regression-run1/. Run 2 on the corrected test: 132 passed,
-1 skipped, no failures (4.1m); coverage/functional/report/index.html. The existing
+coverage_reports/us33/archived/pr29-regression-run1/. Run 2 on the corrected test: 132 passed,
+1 skipped, no failures (4.1m); coverage_reports/project/latest/functional/report/index.html. The existing
 HTTPS-only browser case is skipped on local HTTP; it requires deployed TLS.
 US33 isolated regression event69/request1 is not a new shared acceptance run.
 Other verification: CI unit discovery289, full backend1116 plus488subtests,

@@ -14,7 +14,7 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORTS = ROOT / 'test-reports'
+REPORTS = ROOT / 'coverage_reports'
 FIELDS = ['record_id', 'sprint', 'scope', 'kind', 'executor', 'started_at', 'timezone',
           'commit', 'dirty', 'result', 'passed', 'failed', 'skipped', 'statement_percent',
           'branch_percent', 'legacy_coverage_percent', 'tests_run', 'test_file', 'subtests_passed', 'command', 'evidence', 'source']
@@ -64,7 +64,7 @@ def run(args):
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
     preset = {
         'backend': [sys.executable, '-m', 'coverage', 'run', '--branch', '--source=backend',
-                    '--data-file=coverage/backend/.coverage', '-m', 'pytest', 'tests', '-v', '-p', 'no:cacheprovider'],
+                    '--data-file=coverage_reports/project/latest/backend/.coverage', '-m', 'pytest', 'tests', '-v', '-p', 'no:cacheprovider'],
         'frontend': ['npm', 'run', 'test:coverage'],
         'functional': ['npm', 'run', 'test:functional'],
     }
@@ -72,10 +72,12 @@ def run(args):
         command = preset.get(args.kind)
     if not command:
         raise SystemExit('Provide the actual command after -- for unit/integration/custom runs.')
+    if args.kind == 'backend' and not args.command:
+        (ROOT / 'coverage_reports/project/latest/backend').mkdir(parents=True, exist_ok=True)
     started = dt.datetime.now(dt.timezone.utc)
     record_id = f"{started.strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
     ci = os.getenv('GITHUB_ACTIONS') == 'true'
-    base = REPORTS / 'ci' / f"run-{os.getenv('GITHUB_RUN_ID')}-attempt-{os.getenv('GITHUB_RUN_ATTEMPT')}" if ci else REPORTS / 'local' / 'history'
+    base = REPORTS / 'ci' / f"run-{os.getenv('GITHUB_RUN_ID')}-attempt-{os.getenv('GITHUB_RUN_ATTEMPT')}" if ci else REPORTS / (args.scope.lower() if re.fullmatch(r'US\d+', args.scope, re.I) else 'project') / 'history'
     folder = base / record_id
     folder.mkdir(parents=True)
     record = dict(record_id=record_id, sprint=args.sprint, scope=args.scope, kind=args.kind,
@@ -119,29 +121,29 @@ def run(args):
         report = None
         if args.kind == 'backend' and not args.command:
             # Generate reports even on test failure, from this run's fresh coverage data only.
-            data = ROOT / 'coverage/backend/.coverage'
+            data = ROOT / 'coverage_reports/project/latest/backend/.coverage'
             if data.exists() and data.stat().st_mtime >= started.timestamp():
-                for options in [['json', '-o', 'coverage/backend/coverage.json'], ['html', '-d', 'coverage/backend/html'], ['xml', '-o', 'coverage/backend/coverage.xml']]:
-                    subprocess.run([sys.executable, '-m', 'coverage', options[0], '--data-file=coverage/backend/.coverage', *options[1:]], cwd=ROOT, check=True)
+                for options in [['json', '-o', 'coverage_reports/project/latest/backend/coverage.json'], ['html', '-d', 'coverage_reports/project/latest/backend/html'], ['xml', '-o', 'coverage_reports/project/latest/backend/coverage.xml']]:
+                    subprocess.run([sys.executable, '-m', 'coverage', options[0], '--data-file=coverage_reports/project/latest/backend/.coverage', *options[1:]], cwd=ROOT, check=True)
                 totals = json.loads((data.parent / 'coverage.json').read_text())['totals']
                 record['statement_percent'] = round(100 * totals['covered_lines'] / totals['num_statements'], 2) if totals['num_statements'] else ''
                 record['branch_percent'] = round(100 * totals['covered_branches'] / totals['num_branches'], 2) if totals['num_branches'] else ''
                 with (data.parent / 'coverage.txt').open('w') as summary:
-                    subprocess.run([sys.executable, '-m', 'coverage', 'report', '--data-file=coverage/backend/.coverage', '--show-missing'], cwd=ROOT, check=True, stdout=summary)
+                    subprocess.run([sys.executable, '-m', 'coverage', 'report', '--data-file=coverage_reports/project/latest/backend/.coverage', '--show-missing'], cwd=ROOT, check=True, stdout=summary)
                 report = data.parent
         elif args.kind == 'frontend' and not args.command:
-            summary = ROOT / 'coverage/frontend/coverage-summary.json'
+            summary = ROOT / 'coverage_reports/project/latest/frontend/coverage-summary.json'
             if summary.exists() and summary.stat().st_mtime >= started.timestamp():
                 totals = json.loads(summary.read_text())['total']
                 record['statement_percent'] = totals['statements']['pct']
                 record['branch_percent'] = totals['branches']['pct']
                 report = summary.parent
         elif args.kind == 'functional' and not args.command:
-            marker = ROOT / 'coverage/functional/report/index.html'
+            marker = ROOT / 'coverage_reports/project/latest/functional/report/index.html'
             if marker.exists() and marker.stat().st_mtime >= started.timestamp():
                 report = marker.parent.parent
         if report and ci:
-            # CI already uploads this report in its existing coverage/functional artifact.
+            # CI already uploads this report in its existing coverage_reports/project/latest/functional artifact.
             # History artifacts keep logs/manifests only, avoiding a second report ZIP.
             prefix = {'backend': 'backend-coverage', 'frontend': 'frontend-coverage', 'functional': 'functional-report'}[args.kind]
             record['report_artifact'] = f"{prefix}-{os.getenv('GITHUB_SHA')}"

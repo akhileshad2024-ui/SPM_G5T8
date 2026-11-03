@@ -16,7 +16,7 @@ in the authorised test record/process environment, never in Git.
 UI submission, exact generated ID, unassigned Lead queue, refresh and new login.
 One isolated regression passed after correcting the test's ID selector and
 matching the UI's formatted date; the first failure report is preserved under
-`coverage/functional/us04-initial-failure/`. No production code/AC changed.
+`coverage_reports/project/latest/functional/us04-initial-failure/`. No production code/AC changed.
 Shared TC03 passed on 25 Oct 2026, 13:57:38–13:57:58 SGT: event 41,
 EVENT_DATE 2026-10-25, Maya count 27 to 28; Jordan saw the same Submitted,
 unassigned event after refresh and a fresh login. The shared event is retained.

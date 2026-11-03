@@ -112,8 +112,8 @@ Verified on 23 October 2026 (SGT):
 - Shared `backend/event_review.py`: 96/96 statements, 40/40 branch outcomes,
   measured using combined backend regression and final US09 focused coverage.
   This is module coverage, not entire-backend or frontend 100% coverage.
-- Reports: `coverage/us09-backend/index.html` and
-  `coverage/us09-backend/coverage.json` (generated/ignored artifacts).
+- Reports: `coverage_reports/us09/archived/backend/index.html` and
+  `coverage_reports/us09/archived/backend/coverage.json` (generated/ignored artifacts).
 - Earlier browser regression: two API-prepared clarification/amendment cases
   passed in 18.6 seconds on disposable SQLite. This measured the old test
   version, not the subsequently expanded full-UI TC.
@@ -128,8 +128,8 @@ Verified on 23 October 2026 (SGT):
 - Latest aligned TC: run 7, EVENT_ID=33, 1 passed in 26.6 seconds (test 26.1
   seconds), approximately 22:32 SGT. Same written accounts, inputs, ordered UI
   actions and visible checkpoints; no API fixture replaces TC steps.
-- Acceptance evidence: `coverage/acceptance-2026-10-23-run1/` through `run7/`.
-  Latest HTML: `coverage/acceptance-2026-10-23-run7/report/index.html`.
+- Acceptance evidence: `coverage_reports/us09/archived/acceptance-2026-10-23-run1/` through `run7/`.
+  Latest HTML: `coverage_reports/us09/archived/acceptance-2026-10-23-run7/report/index.html`.
   All seven yellow execution groups are retained in the shared TC Sheet.
 - Existing environment warnings: npm reported 8 dependency vulnerabilities
   (3 moderate, 4 high, 1 critical); dependencies were installed from the existing
@@ -145,7 +145,7 @@ From the project root, using the existing virtual environment:
 .venv/bin/python -m pytest tests/us09_clarification -q
 TZ=UTC .venv/bin/python -m coverage run --branch --source=backend -m pytest tests -q
 .venv/bin/python -m coverage report --include='backend/event_review.py' --show-missing
-.venv/bin/python -m coverage html -d coverage/us09-backend
+.venv/bin/python -m coverage html -d coverage_reports/us09/archived/backend
 npm test
 npx tsc --noEmit
 npm run build
@@ -165,7 +165,7 @@ project 100%. Identify automated TC results by their actual automated executor.
 The Playwright file is added to the existing functional-test discovery pattern.
 The current `.github/workflows/tests.yml` already has a `functional` job that
 installs Chromium, runs `npm run test:functional`, and uploads
-`coverage/functional/` reports. The two new cases will be included when this
+`coverage_reports/project/latest/functional/` reports. The two new cases will be included when this
 branch is pushed and that workflow is triggered; no CI configuration was changed.
 
 Additional validation: TypeScript and `git diff --check` passed after expanding

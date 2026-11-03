@@ -533,7 +533,7 @@ anyway: two Next.js dev servers can't share the `.next` folder.
 npx playwright install chromium     # once
 npm run test:functional             # all functional tests
 npx playwright test -g "US10-AC2"   # one acceptance criterion
-npx playwright show-report coverage/functional/report   # results, with screenshots/traces of failures
+npx playwright show-report coverage_reports/project/latest/functional/report   # results, with screenshots/traces of failures
 ```
 
 The backend's Python packages must be installed. If `python` isn't the interpreter
@@ -628,16 +628,19 @@ counts and coverage remain blank. Backend coverage combines unit/integration;
 functional results are not code-coverage percentages.
 
 Local executions save unique logs, run metadata and available complete report ZIPs
-under `test-reports/local/history/<execution-id>/`. Existing `coverage/` and
-`coverage_reports/` output paths are preserved. Every run refreshes
-`test-reports/test-run-history.csv`. The manifest records UTC timestamps (SGT is
+under `coverage_reports/usXX/history/<execution-id>/` for a single-US scope, or
+`coverage_reports/project/history/<execution-id>/` for a project/multi-US scope.
+Latest full-suite outputs are in `coverage_reports/project/latest/`; shared acceptance
+outputs are in `coverage_reports/usXX/latest/acceptance/`. Older US reports retain
+their existing structure. `coverage_reports/migration-paths.csv` maps old locations. Every run refreshes
+`coverage_reports/test-run-history.csv`. The manifest records UTC timestamps (SGT is
 UTC+8), executor, scope, actual commit, dirty working-tree flag, command and result.
 The commit alone does not identify uncommitted changes: archive/review the patch
 separately when `dirty` is true. Do not put passwords or secrets into recorded
 commands. A functional fixture may differ from the shared TC credentials.
 
 CI automatically records the same evidence, including failures, in a separate
-`test-history-<job>-<run>-<attempt>` artifact. Existing coverage/functional artifacts
+`test-history-<job>-<run>-<attempt>` artifact. Existing coverage and functional artifacts
 remain the canonical full reports; history records name them without duplicating
 the ZIP. Download artifacts before the configured 90-day expiry. A cancelled or
 force-killed job may not produce/upload a complete record. Missing evidence is
@@ -645,7 +648,7 @@ not a passing result. CI does not currently infer Sprint from dates.
 
 To assemble team history, each member shares their execution folders through the
 team's agreed shared storage; do not send only the summary CSV. Put those folders
-and downloaded CI history artifacts in `test-reports/imports/<member-or-run>/`,
+and downloaded CI history artifacts in `coverage_reports/imports/<member-or-run>/`,
 then run:
 
 ```bash

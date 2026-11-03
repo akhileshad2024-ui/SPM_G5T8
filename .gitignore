@@ -48,4 +48,10 @@ coverage_reports/**/.coverage
 *.bundle
 
 # Local/CI evidence archives are shared separately, not committed as generated files.
-/test-reports/
+/coverage_reports/project/
+/coverage_reports/ci/
+/coverage_reports/imports/
+/coverage_reports/**/archived/
+/coverage_reports/**/latest/
+/coverage_reports/**/history/
+/coverage_reports/test-run-history.csv
