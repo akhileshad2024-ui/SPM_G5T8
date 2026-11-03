@@ -797,6 +797,17 @@ class AssignCoordinatorIn(BaseModel):
     coordinatorId: int
 
 
+class ConfirmationResponse(BaseModel):
+    """US14: whether the event can be confirmed, every outstanding item if not (AC2), when and by whom it
+    was confirmed (AC3), and the fields locked once it is (AC5)."""
+    ready: bool
+    confirmed: bool
+    outstanding: List[str]
+    confirmedAt: Optional[datetime] = None
+    confirmedBy: Optional[str] = None
+    lockedFields: List[str]
+
+
 class ReassignCoordinatorIn(BaseModel):
     """US12: the coordinator to hand the event to, and why (required, 1-1000 characters)."""
     coordinatorId: int
