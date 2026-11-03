@@ -1,0 +1,11 @@
+Coverage report for test_us49_reassess_venue_bookings  (unit tests)
+Generated: 2026-11-03 20:36:17
+Test file: tests/unit/accepted_change/test_us49_reassess_venue_bookings.py
+Result: 26 tests, all passed
+Measured code: change_reassessment.py
+
+Name                    Stmts  Miss  Cover  Missing
+------------------------------------------------------
+change_reassessment.py     33     0   100%  
+------------------------------------------------------
+TOTAL                      33     0   100%

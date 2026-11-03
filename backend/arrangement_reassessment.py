@@ -118,14 +118,19 @@ def accepted(db, event, request, changes, now):
             flagged.append(flag)
             messaging.notify(db, messaging.assigned_tech(event), event, "Equipment requires reassessment",
                 f"{event.name}: reservation #{reservation.id} ({reservation.item_id}) Requires Reassessment. {' '.join(reasons)}")
-    # The explicit apply action must not leave old venue dates looking valid.
-    # This is a period-consistency extension of the same shared flag service,
-    # not a parallel venue approval/allocation workflow (US49/US14).
+    # US49: each venue booking is re-checked against the reviewed values (period, capacity, layout, accessibility,
+    # opening, unavailability, clashes; change_reassessment.py) and flagged in this same shared service, not in a
+    # parallel venue workflow. The explicit apply action must not leave old venue dates looking valid.
+    import change_reassessment
+    venue_checked = 0
     for booking in db.query(models.VenueBooking).filter(
-            models.VenueBooking.event_id == event.id, models.VenueBooking.status.in_(("pending", "approved"))):
-        if not venue_period_matches(booking, values):
+            models.VenueBooking.event_id == event.id, models.VenueBooking.status.in_(("pending", "approved"))
+            ).order_by(models.VenueBooking.id):
+        venue_checked += 1
+        problems = change_reassessment.booking_problems(db, event, booking, facts(event), values, now)
+        if problems:
             flagged.append(add_flag(db, event, "change_request", request.id, "venue", booking.id,
-                ["Venue booking period differs from the reviewed event period."], {"effective": values}, now))
+                problems, {"effective": values, "venue_name": booking.venue_name}, now))
             messaging.venue_booking_reassess(db, booking)
     registered = registrations.registered_count(db, event.id)
     reasons = registration_reasons(values, registered)
@@ -139,7 +144,7 @@ def accepted(db, event, request, changes, now):
         messaging.attendees_affected(db, event, f"An accepted change affects {details}. Your registration is retained; review the updated arrangements.")
     db.flush()
     return {"basis": "reviewed_values" if changes else "saved_details", "before": jsonable_encoder(facts(event)), "effective_changes": jsonable_encoder(changes),
-            "effective": jsonable_encoder(values), "equipment_checked": checked,
+            "effective": jsonable_encoder(values), "equipment_checked": checked, "venue_checked": venue_checked,
             "registration_checked": True, "flag_ids": [flag.id for flag in flagged], "attendees_affected": bool(changed and registered)}
 
 
