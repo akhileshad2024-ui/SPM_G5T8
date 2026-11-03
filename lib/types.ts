@@ -59,6 +59,8 @@ export interface SafetyCheck {
   arrangementsIssue: string | null;
   areas: SafetyArea[];
   reviews: Array<{ outcome: SafetyOutcome; comment: string | null; reviewer: string; reviewedAt: string }>;
+  targets?: Array<{ type: "venue" | "equipment"; id: number; label: string }>;
+  planningStage?: string | null;
 }
 
 export type BookingState = "pending" | "approved" | "rejected" | null;

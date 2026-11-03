@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { apiFetch } from "@/lib/api/client";
 import { EQUIP } from "@/lib/data/options";
+import { ReassessmentPanel } from "@/components/queue/ReassessmentPanel";
 
 type Line = { id: string; qty: number; technicalRequirements: string; status?: string; notes?: string; alternative?: string };
 type Snapshot = {
@@ -47,6 +48,7 @@ export function EquipmentManager({ eventId, coordinator = false }: { eventId: nu
   }
   if (!data) return <div role="status">{message || "Loading equipment…"}</div>;
   return <section style={{ display: "grid", gap: 16 }} aria-label="Equipment request">
+    <ReassessmentPanel eventId={eventId} kind="equipment" />
     <p>Record equipment and assign Technical Support. Availability is checked for this event’s date and time.</p>
     {message && <div role="status" className="callout">{message}</div>}
     <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: 14 }}>

@@ -275,11 +275,11 @@ def safety_check_decided(db, event, outcome, comment=""):
     notify(db, event.coordinator_id, event, title, f"{event.name} {text}{note}")
 
 
-def venue_booking_reassess(db, booking):
+def venue_booking_reassess(db, booking, cause="an accepted change"):
     """US49-AC3: Venue Staff are told a booking needs reassessing after an accepted change."""
     event = booking_event(db, booking)
     notify_all(db, venue_staff(db), event, "Booking requires reassessment",
-               f"{event.name}: an accepted change means the {booking.venue_name} booking for {booking.date} "
+               f"{event.name}: {cause} means the {booking.venue_name} booking for {booking.date} "
                "needs reassessing. Review it in Bookings.")
 
 

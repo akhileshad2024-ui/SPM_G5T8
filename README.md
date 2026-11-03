@@ -1,5 +1,7 @@
 # ConnectSphere — Event Operations Platform
 
+Sprint 4 US50/US51/US45: see [implementation, migration and run instructions](docs/SPRINT4-YANGBO-delivery.md) before running the new shared reassessment and preparation workflows against an existing database.
+
 A Next.js (App Router + TypeScript) rebuild of the ConnectSphere event-operations
 prototype: one request moving through review, venue booking, equipment
 reservation, and registration, with a different view per role.

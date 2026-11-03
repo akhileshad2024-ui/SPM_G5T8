@@ -12,7 +12,7 @@ from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
-import event_drafts, event_submission, event_changes, event_updates
+import event_drafts, event_submission, event_changes, event_updates, arrangement_reassessment
 import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
@@ -48,6 +48,8 @@ app.middleware("http")(enforce_https)
 app.include_router(auth.router)
 app.include_router(equipment.router)
 app.include_router(messaging.router)
+from reassessment_routes import router as reassessment_router
+app.include_router(reassessment_router)
 with Session(engine) as equipment_db:
     equipment.seed_catalogue(equipment_db)
 
@@ -654,7 +656,7 @@ def list_event_change_requests(event_id: int, db: Session = Depends(get_db),
 def review_event_change(event_id: int, request_id: int, body: schemas.EventChangeDecisionIn,
                         db: Session = Depends(get_db),
                         user: User = Depends(require_roles(Role.coordinator))):
-    event = db.get(models.Event, event_id)
+    event = db.query(models.Event).filter_by(id=event_id).with_for_update().first()
     if event is None:
         raise HTTPException(404, "Event not found")
     # Serialize competing reviews of this request on Postgres. No event edits occur.
@@ -669,6 +671,12 @@ def review_event_change(event_id: int, request_id: int, body: schemas.EventChang
         raise HTTPException(exc.status_code, str(exc)) from exc
     saved.status = prepared["status"]
     saved.decision = prepared["decision"]
+    if body.outcome == "rejected" and body.effective_changes is not None:
+        raise HTTPException(422, "Reviewed changes belong only to an accepted decision.")
+    if body.outcome == "accepted":
+        changes = body.effective_changes.model_dump(exclude_unset=True) if body.effective_changes else {}
+        evaluation = arrangement_reassessment.accepted(db, event, saved, changes, datetime.now(timezone.utc))
+        saved.decision = {**saved.decision, "reassessment": evaluation}
     messaging.change_decided(db, event, saved)  # US34-AC5
     db.commit()
     db.refresh(saved)
@@ -876,7 +884,7 @@ def request_safety_check(event_id: int, db: Session = Depends(get_db), user: Use
     def step(event, now):
         safety_check.request_check(db, event, user, now)
         messaging.safety_check_ready(db, event)  # US44-AC2, US36-AC7
-    return review_step(event_id, db, user, step)
+    return event_view(db, run_review_step(event_id, db, user, step, lock=True), user)
 
 
 # Fulfills US44 AC4-AC7: approve, request changes or reject (a comment is mandatory unless approving). The outcome,
@@ -885,7 +893,8 @@ def request_safety_check(event_id: int, db: Session = Depends(get_db), user: Use
 def decide_safety_check(event_id: int, body: schemas.SafetyDecisionIn, db: Session = Depends(get_db),
                         user: User = Depends(require_roles(*SAFETY_REVIEWERS))):
     def step(event, now):
-        safety_check.decide(db, event, user, body.outcome, body.comment, now)
+        safety_check.decide(db, event, user, body.outcome, body.comment, now,
+                            targets=[target.model_dump() for target in body.targets])
         messaging.safety_check_decided(db, event, body.outcome, body.comment)  # US44-AC6, US36-AC7
     event = run_review_step(event_id, db, user, step, lock=True)
     return safety_check.packages(db, [event])[0]

@@ -5,7 +5,7 @@
 ## 范围与执行约定
 
 本文件完成确定性验收场景的设计；依赖业务规则的具体测试数据、接口路径和阶段枚举明确留待确认，不能称为可直接自动运行的完整测试套件。
-所有 FT 场景当前均 **NOT RUN / BLOCKED**，没有浏览器截图、生产数据库、端到端或团队联调通过记录。
+最新 T8 已在隔离环境执行三条故事的真实浏览器／API 场景，下方初版 BLOCKED 列是设计时快照，具体规则现见 `SPRINT4-YANGBO-delivery.md`。T5/T6 历史局部结果保留，不能代替 T8；共享生产数据库未执行，也没有预先宣称非作者批准或 main 合并。
 条件式前置数据“已确认无效／受影响”必须由正式规则和真实服务判断建立，不能靠 mock 评估器或在数据库直接写标记代替自动触发验收。
 
 执行环境：隔离测试数据库及真实 API／UI；不能修改共享生产数据。记录应用和队友模块提交、schema 版本、执行时间、操作者、测试 ID、请求／响应、前后状态及必要截图，隐藏凭据。
@@ -52,5 +52,22 @@
 | FT50/FT51/FT45/FTX 全部 | 上述真实业务流程 | NOT RUN / BLOCKED；未以 mock 替代 | 本文件仅规格；无故事集成提交 |
 | T1 | 历史基础回归 | 见进度表 T1；不是本轮执行 | HEAD cae5273，无故事实现 |
 | T2 | 本轮 US51 收件人辅助函数及既有通知／US34 回归 | 见进度表 T2 的实际命令与结果；不作为上述 FT 通过 | cae5273 + 本轮未提交补丁 |
+| T5 / FT45-03 部分 | 两类安全返工→US38 真实场地修改标记→重送审 409→真实场地恢复清标→重送审成功；另测权限、隔离及无副作用 | 新文件 4 passed、7 subtests；先前通知／US34／US44 合并回归 178 passed、330 subtests，二者不累加 | 438c581 + 未提交补丁；`tests/integration/test_us45_existing_venue_reassessment.py`；隔离 SQLite／FastAPI，不是安全点名流程 |
+| T6 / FT45-04 确认部分、FT45-05 现有场地部分 | 直接 POST confirm 检查两类非批准结果／待审核；无副作用；新批准后确认成功；实际 US38 标记阻止确认、恢复后允许 | 后端测试集 230 passed、356 subtests；前端 34 passed、TypeScript 通过，浏览器结果见进度表 T6；不是 preparation 验收 | c2c4c17 + 未提交补丁；`tests/integration/test_us45_confirmation_gate.py`；真实 API，无 mock |
 
 后续逐案例追加实测记录：`时间 | FT ID | 构建/提交与 schema | 操作者 | 实际输入 | 实际结果 | PASS/FAIL/BLOCKED | 证据路径 | 缺陷`。
+
+## T8 — 实施后真实执行（2026-11-03）
+
+构建：最新 main d993a41 已合入本地（基线 dafea69）+ 本轮未提交实现；正式源码 SHA 在进度表交付记录中补齐。操作者：Codex；隔离 SQLite、真实 FastAPI／Next.js、Chromium；不是共享数据库手工验收。
+
+| FT / AC | 真实输入和操作 | 实际结果与证据 |
+|---|---|---|
+| FT50-01/03，US50-AC1/2/3 | 真 API 建立一件已预留 Wireless microphone；协调员 UI 提供 qty=2 并接受；技术员查看通知；独立释放／应用／预留／UI 解决 | PASS。接受后 qty 仍为 1；重评 1 个预留、标记持久化并通知负责技术员；显式应用后 qty=2，技术员记录证据解决。Playwright 同名测试 observed 附件 |
+| FT51-01/03，US51-AC1/2/3 | 真注册 attendee；协调员 UI 接受 reg=false；检查通知／设置，独立应用、恢复报名并 UI 解决 | PASS。接受后原 reg=true；报名标记、registered 收到通知；没有取消报名；修复后解决。Playwright observed 附件 |
+| FT45-01R/03/04，US45-AC1..4 | 安全员 UI rejection 点名 venue booking；协调员查看 venue planning、编辑资格；直接 API 测三门禁；UI 解决、重送、批准、准备、确认 | PASS。仅点名项标记；未批准直接请求 409；新批准后 UI 准备／确认成功。Playwright observed 附件 |
+| FT45-01C/03/04，US45-AC1..4 | 同上，outcome=changes_requested | PASS。相同完整流程，不能用 rejection 单例代替本例 |
+| FT50-02、FT51-02/04、FT45-02、FTX 权限／事务 | 见 `test_sprint4_reassessment_workflows.py`：有效／无效混合、通知与设置失效独立、registered/waitlisted、只点名、跨活动／重复目标、权限／重复决定／失败回滚 | API 测试 12 passed、2 subtests；纯规则单测 8 项先前同轮 16 项集合通过；最终全量结果见 T8，不重复累加 |
+
+本轮浏览器命令包含新文件和旧 US34/US44：**15 passed (2.8m)**，其中新流程 4 例。`--reporter list` 未生成新 HTML；输出目录 `coverage/functional/sprint4-final`，测试运行时 `observed` 生成真实文本附件。没有截图成功记录时不虚构截图。
+两次开发中问题已修正：单测导入路径导致收集失败；释放预留后的 status/notes 被误判为需求漂移导致 apply 409。修正后重跑新流程通过。实施选择仍需评审，不能以自动化测试代替客户批准。

@@ -10,6 +10,7 @@ import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { EventDetailsEditor } from "../EventDetailsEditor";
 import { ChangeRequests } from "@/components/my-events/ChangeRequests";
+import { ReassessmentPanel } from "../ReassessmentPanel";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -122,6 +123,7 @@ export function RequestTab({ event }: { event: EventRecord }) {
   return (
     <div className={styles.layout}>
       <div className={styles.main}>
+        {event.backendId !== undefined && <ReassessmentPanel eventId={event.backendId} preparation />}
         <EventDetailsEditor key={event.id} event={event} />
         {event.backendId !== undefined && event.coordinator === app.me.person && app.state.role === "coordinator" && (
           <div className={`card ${styles.card}`}>
