@@ -159,6 +159,9 @@ Under Review) and confirming an event (US14, Approved → Confirmed).
   (e.g. 10:00–12:00 with 30 + 45 min occupies 09:30–12:45). This window is used
   for suitability, the availability calendar and conflict detection
   (`lib/venues/rules.ts`). Venue Staff can't approve a booking that clashes.
+- The availability calendar (US19, [test cases](docs/US19-functional-tests.md)) shows each
+  venue by day, week or month. Everyone who can open it sees when a venue is busy; the
+  server only names an event to someone who may see that event (`backend/venue_calendar.py`).
 - When a venue edit (longer setup/turnaround, a new unavailable period,
   deactivation) puts existing bookings in trouble, they are **kept** and
   flagged: the coordinator gets a notification, the event's activity log and
@@ -351,6 +354,7 @@ app/
   (dashboard)/queue/         Coordinator: review queue + event workspace (tabs)
   (dashboard)/board/         Coordinator: pipeline board
   (dashboard)/venues/        Coordinator: venue search + read-only details (US18, US20)
+  (dashboard)/calendar/      Coordinator, Lead, Technical support: venue availability calendar (US19)
   (dashboard)/my-events/     Organiser: my requests + stats
   (dashboard)/new-request/   Organiser: 3-step new request wizard
   (dashboard)/bookings/      Venue staff: availability calendar + booking requests
@@ -501,6 +505,7 @@ python -m pytest tests/us03_us04_event_request   # US03/US04 backend
 python -m pytest tests/us13_event_status     # US13 backend
 python -m pytest tests/us23_booking_approval # US23 backend: approve/reject rules + API (docs/user-stories/US23_booking_approval.md)
 python -m pytest tests/us12_reassign_coordinator tests/unit/lead_assignment/test_us12_reassign_coordinator.py  # US12 backend: reassign rules + API (docs/user-stories/US12_reassign_coordinator.md)
+python -m pytest tests/us14_confirm_event tests/unit/safety/test_us14_confirm_event.py  # US14 backend: confirm rules + API (docs/user-stories/US14_confirm_event.md)
 python -m pytest tests/us42_hold_expiry      # US42 backend: hold expiry rules + API (docs/user-stories/US42_hold_expiry.md)
 npm run test:us01       # US01 frontend unit tests (idle sign-out)
 npm run test:us02       # US02 frontend unit tests (page access, who sees which events)

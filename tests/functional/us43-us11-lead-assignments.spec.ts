@@ -26,10 +26,10 @@ test.describe("US43 - Event Coordinator Lead Oversight", () => {
     await createRequest(await apiAs(baseURL!, MAYA), name);
 
     await signIn(page, GRACE, /\/assignments$/);
-    await expect(page.locator('a[class*="navItem"] [class*="navLabel"]')).toHaveText(["Assignments"]);
+    await expect(page.locator('a[class*="navItem"] [class*="navLabel"]')).toHaveText(["Assignments", "Venue calendar"]);
     await expect(page.getByText("Event Coordinator Lead", { exact: true })).toBeVisible();  // the sidebar role label, not the sign-in toast
     await expect(request(page, name).locator(".pill")).toHaveText("Submitted");
-    observed(info, `Grace Ong signed in as Event Coordinator Lead to /assignments (navigation: Assignments only); the new request "${name}" was listed as Submitted under Unassigned requests.`);
+    observed(info, `Grace Ong signed in as Event Coordinator Lead to /assignments (navigation: Assignments and Venue calendar); the new request "${name}" was listed as Submitted under Unassigned requests.`);
   });
 
   test("[TC-US43-02] [US43-AC2] the Lead sees each coordinator's current assignments", async ({ page, baseURL }, info) => {

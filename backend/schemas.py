@@ -226,6 +226,33 @@ class BookedPeriod(BaseModel):
     event_name: Optional[str] = None
 
 
+class CalendarPeriod(BaseModel):
+    """US19: one stretch of a venue's time on the calendar. `start` and `end` are local wall-clock
+    times; for a booking they are the occupied window, setup and turnaround included. The event is
+    only named to someone who may see it (US19-AC5)."""
+    kind: Literal["confirmed", "pending", "expired", "unavailable"]
+    start: str
+    end: str
+    event_start: Optional[str] = None
+    event_end: Optional[str] = None
+    setup_minutes: Optional[int] = None
+    turnaround_minutes: Optional[int] = None
+    hold_expires_at: Optional[datetime] = None
+    event_id: Optional[int] = None
+    event_name: Optional[str] = None
+    reason: Optional[str] = None
+    note: Optional[str] = None
+
+
+class CalendarVenue(BaseModel):
+    """US19: an active venue and its periods over the days asked for."""
+    id: int
+    name: str
+    setup_minutes: int
+    turnaround_minutes: int
+    periods: List[CalendarPeriod]
+
+
 class TimingFields(BaseModel):
     """An optional period (date, start and end go together) plus the bookings that could be in the way of it."""
     date: Optional[DateOnly] = None
@@ -772,6 +799,17 @@ class CoordinatorResponse(BaseModel):
 
 class AssignCoordinatorIn(BaseModel):
     coordinatorId: int
+
+
+class ConfirmationResponse(BaseModel):
+    """US14: whether the event can be confirmed, every outstanding item if not (AC2), when and by whom it
+    was confirmed (AC3), and the fields locked once it is (AC5)."""
+    ready: bool
+    confirmed: bool
+    outstanding: List[str]
+    confirmedAt: Optional[datetime] = None
+    confirmedBy: Optional[str] = None
+    lockedFields: List[str]
 
 
 class ReassignCoordinatorIn(BaseModel):

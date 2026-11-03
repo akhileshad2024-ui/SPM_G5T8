@@ -88,6 +88,11 @@ TARGETS = {
         "main.py:utc,event_response,list_coordinators,review_step,assign_coordinator",
         "models.py:EventAssignment",
     ],
+    "test_us14_confirm_event": [
+        "event_confirmation.py",
+        "main.py:confirm_event,event_confirmation_status",
+        "schemas.py:ConfirmationResponse",
+    ],
     "test_us12_reassign_coordinator": [
         "event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
         "main.py:reassign_coordinator,event_assignment_history",
@@ -169,6 +174,7 @@ STORY_FRONTEND = {
     "us29": ["lib/registration.ts"],
     "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
     "us12": ["lib/events/review/reassignment.ts"],
+    "us14": ["lib/events/confirmation.ts"],
     "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
@@ -177,6 +183,7 @@ STORY_FRONTEND_TESTS = {
     "us03": "tests/unit/event-request",
     "us11": "tests/unit/event-review",
     "us12": "tests/unit/event-review/reassignment",
+    "us14": "tests/unit/event-review/confirmation",
     "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 

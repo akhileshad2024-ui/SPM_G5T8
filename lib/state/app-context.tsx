@@ -30,6 +30,7 @@ import { createPendingRequestGuard } from "../events/request/pending-request";
 import { canDirectlyEditEventRequest } from "../events/request/submission";
 import { assignCoordinator } from "../events/review/assignment";
 import { reassignCoordinator, type AssignmentHistoryEntry } from "../events/review/reassignment";
+import type { ConfirmationStatus } from "../events/confirmation";
 import { coordinatorId, reviewRequest, withSavedReview, type Coordinator, type ReviewStep } from "../events/review/api";
 import { requestClarification } from "../events/review/clarification";
 import { approveRequest, rejectRequest } from "../events/review/decision";
@@ -330,7 +331,10 @@ export interface AppApi {
   /** US44: the Safety Officer approves, requests changes or rejects (a comment is mandatory unless approving). */
   decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string) => Promise<boolean>;
   saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
-  confirmEvent: (id: string) => void;
+  /** US14: the assigned coordinator confirms the event; the server refuses (listing what is outstanding) until it is ready. */
+  confirmEvent: (id: string) => Promise<boolean>;
+  /** US14: whether the event can be confirmed, what is outstanding, and when it was confirmed. Throws ApiError. */
+  loadConfirmation: (backendId: number) => Promise<ConfirmationStatus>;
   openModal: (kind: ModalKind, id: string, bookingId?: number) => void;
   closeModal: () => void;
   setModalText: (text: string) => void;
@@ -909,13 +913,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!e) return;
         void saveReviewStep(startReview(e, actor), { step: "review" }, `Reviewing ${e.name}.`);
       },
-      confirmEvent: (id) => {
+      confirmEvent: async (id) => {
         const e = getEvent(state.events, id);
-        if (!e) return;
-        patchEvent(id, { status: "confirmed" }, { title: "Event confirmed", body: "All arrangements in place." });
-        // US14-AC4: the confirm endpoint (US14) sends the notifications with messaging.event_confirmed.
-        flash(`${e.name} confirmed.`);
+        if (!e) return false;
+        if (e.backendId === undefined) {
+          // A sample event that was never stored: confirmed on this page only.
+          patchEvent(id, { status: "confirmed" }, { title: "Event confirmed", body: "All arrangements in place." });
+          flash(`${e.name} confirmed.`);
+          return true;
+        }
+        try {
+          // US14: the server checks every arrangement and the safety check, records when, and notifies (AC4).
+          const saved = eventFromApi(await apiFetch<StoredEvent>(`/events/${e.backendId}/confirm`, { method: "POST" }));
+          patchEvent(id, { status: saved.status, updatedAt: saved.updatedAt },
+            { title: "Event confirmed", body: "All arrangements in place. The organiser and involved staff have been told." });
+          flash(`${e.name} confirmed. The organiser and involved staff have been told.`);
+          return true;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) flash(err.message, "warn"); // lists what is outstanding (AC2)
+          else handleApiError(err);
+          return false;
+        }
       },
+      loadConfirmation: (backendId) => apiFetch<ConfirmationStatus>(`/events/${backendId}/confirmation`),
 
       openModal: (kind, id, bookingId) => patch({ modal: { ...MODAL_CONTENT[kind], id, bookingId }, modalText: "" }),
       closeModal: () => { if (!changeRequestLock.current) patch({ modal: null, modalText: "" }); },

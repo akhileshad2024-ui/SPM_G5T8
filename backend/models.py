@@ -105,6 +105,9 @@ class Event(Base):
     venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True, index=True)
     booking_state = Column(String, nullable=True)    # pending | approved | rejected
     equipment_state = Column(String, nullable=True)  # requested | reserved
+    # US14-AC3: when the event was confirmed, and by which coordinator (None until then).
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    confirmed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Optional JSON values below use none_as_null, so None is stored as SQL NULL
     # (not the JSON value null) and `IS NULL` queries find them.

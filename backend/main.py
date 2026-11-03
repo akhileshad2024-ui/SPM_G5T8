@@ -6,14 +6,14 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timezone
+from datetime import date as Date, datetime, timezone
 from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -70,6 +70,8 @@ REGISTRANTS = (Role.attendee,)
 EVENT_REVIEWERS = (Role.coordinator,)
 # Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
 COORDINATOR_ASSIGNERS = (Role.lead,)
+# Who may view the venue availability calendar (US19): the internal staff.
+CALENDAR_VIEWERS = (Role.coordinator, Role.lead, Role.venue, Role.tech)
 # Who may conduct the Operational Safety Check (US44), and who may send an event to it.
 SAFETY_REVIEWERS = (Role.safety,)
 SAFETY_REQUESTERS = (Role.coordinator,)
@@ -218,6 +220,17 @@ def get_venues(include_inactive: bool = Query(False), db: Session = Depends(get_
     else:
         query = query.filter(models.Venue.is_active == True)
     return query.order_by(models.Venue.id).all()
+
+# Fulfills US19: each active venue's bookings, holds and unavailable periods from `start` to `end`, for the
+# page to show by day, week or month. Declared before /venues/{venue_id} so that route doesn't catch it.
+@app.get("/venues/availability", response_model=List[schemas.CalendarVenue])
+def get_venue_availability(start: Date, end: Date, db: Session = Depends(get_db),
+                           user: User = Depends(require_roles(*CALENDAR_VIEWERS))):
+    problem = venue_calendar.range_error(start, end)
+    if problem:
+        raise HTTPException(status_code=422, detail=problem)
+    expire_lapsed_holds(db)
+    return venue_calendar.calendar(db, user, start, end, datetime.now(timezone.utc))
 
 # Fulfills US20: search and filter active venues. Every filter given must match; when a date and time
 # are given, only venues free for that period (setup and turnaround included) are returned.
@@ -778,6 +791,36 @@ def event_assignment_history(event_id: int, db: Session = Depends(get_db), user:
     if not is_involved(event, user):
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
     return [{**entry, "assignedAt": utc(entry["assignedAt"])} for entry in event_review.assignment_history(db, event)]
+
+
+# Fulfills US14 AC1-AC4, AC6, AC7: the assigned coordinator confirms the event once every venue booking is
+# approved and unflagged, all equipment is reserved and the Safety Officer has approved it. Refused (409) with
+# every outstanding item listed; on success the organiser and involved staff are notified (US36).
+@app.post("/events/{event_id}/confirm", response_model=schemas.EventView, response_model_exclude_unset=True)
+def confirm_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    def step(event, now):
+        event_confirmation.confirm(db, event, user, now)
+        messaging.event_confirmed(db, event, user)  # US14-AC4, US36
+    return review_step(event_id, db, user, step)
+
+
+# Fulfills US14 AC2, AC3, AC5: what still stands in the way of confirming the event (listed one by one), or
+# when and by whom it was confirmed, and which fields are locked once it is. Anyone involved in the event.
+@app.get("/events/{event_id}/confirmation", response_model=schemas.ConfirmationResponse)
+def event_confirmation_status(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    confirmed = event.status == models.EventStatus.confirmed
+    items = [] if confirmed else event_confirmation.outstanding(db, event, datetime.now(timezone.utc))
+    by = db.get(User, event.confirmed_by_id) if event.confirmed_by_id else None
+    return schemas.ConfirmationResponse(
+        ready=not confirmed and not items, confirmed=confirmed, outstanding=items,
+        confirmedAt=utc(event.confirmed_at), confirmedBy=by.name if by else None,
+        lockedFields=list(event_confirmation.LOCKED_AFTER_CONFIRMATION),
+    )
 
 
 # Fulfills US07: start reviewing a submitted request.

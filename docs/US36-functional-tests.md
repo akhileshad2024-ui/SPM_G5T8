@@ -11,7 +11,7 @@ Automated in `tests/functional/us36-notifications.spec.ts` (browser, run by CI o
 | TC-US36-03 | AC1 | Priya rejects Maya's request with a reason | Sign in as Maya; open Notifications | "Event request rejected" is listed with the event name and the reason |
 | TC-US36-04 | AC4 | Grace assigns Maya's request to Priya | Sign in as Maya; open Notifications | Maya has no "Event assigned to you" notice: only the assigned coordinator gets it |
 | TC-US36-05 | AC5 | Priya is signed in with the page open | Grace assigns a new request to Priya; open Notifications without reloading | The notice appears within one minute (the page checks every 15 seconds) |
-| TC-US36-06 | AC7 | — | — | **Blocked by US44**: there is no Safety Officer role yet. `messaging.safety_check_ready` / `safety_check_decided` are ready and unit tested; this case is run once US44 calls them |
+| TC-US36-06 | AC7 | An active Safety Officer account exists; an event's venue and equipment are confirmed | As the assigned coordinator, press "Request safety check"; sign in as the Safety Officer and open Notifications; approve, request changes or reject with a comment; sign in as the coordinator and open Notifications | The Safety Officer has "Safety check needed"; the coordinator has the matching outcome notice (with the comment). US44 now calls `safety_check_ready` / `safety_check_decided`; **not yet run end to end** |
 | TC-US36-07 | AC1 | Priya has approved Maya's request | As Priya, select "Open event" on "Event assigned to you"; then as Maya, on "Event request approved" | Priya lands on the event in her queue (shown even though it no longer needs action) and the notice is marked read; Maya lands on `/my-events/<id>` |
 | TC-US36-08 | AC1 | Maya submits a request | Sign in as Grace (Lead); open Notifications | "New request to assign" is listed for the request, saying to assign a coordinator from Assignments |
 
@@ -36,4 +36,4 @@ Every notification is saved on the server in the same transaction as the step th
 | US34-AC5 | Change request decided | Requesting organiser | Change request accepted / rejected |
 | US25-AC4, US26-AC4, US29-AC5 | Equipment request / status; registration (built in Sprint 3) | Technician / coordinator / attendee | (unchanged) |
 
-Ready for stories still being built (see [the handover](US36_Notifications_Handover.md)): US12 reassignment, US14 confirmation, US44 safety check (US36-AC7), US49–US51 reassessment.
+US12 reassignment and the US44 safety check (US36-AC7) are sent too. Ready for stories still being built (see [the handover](US36_Notifications_Handover.md)): US14 confirmation, US49–US51 reassessment.
