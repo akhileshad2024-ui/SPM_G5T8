@@ -11,8 +11,7 @@ notices and registration confirmations are recipient-scoped and persist across r
 Registration confirmation emails use a transactional SMTP outbox; configure delivery and
 run the retry worker as described in [US25–US32 delivery](docs/US25-US32-delivery.md).
 Notifications (US36) are saved on the server for the person involved, with the step that causes them,
-and the page checks for new ones every 15 seconds: see [US36 test cases](docs/US36-functional-tests.md)
-and, for stories still being built, the [handover](docs/US36_Notifications_Handover.md).
+and the page checks for new ones every 15 seconds: see [US36 test cases](docs/US36-functional-tests.md).
 
 ## Login & role-based access control (RBAC)
 

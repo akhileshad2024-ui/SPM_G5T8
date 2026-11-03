@@ -8,8 +8,7 @@ is saved exactly when the change it reports is saved. Every notice names the eve
 and what to do next, if anything (US36-AC2). The page polls GET /notifications every 15 seconds,
 well inside the one-minute delivery limit (US36-AC5).
 
-Functions for stories still being built (US14, US49-US51) are ready to call (US12 and US44 already do); see
-docs/US36_Notifications_Handover.md.
+Functions for stories still being built (US14, US49-US51) are ready to call (US12 and US44 already do).
 """
 import logging
 import threading
