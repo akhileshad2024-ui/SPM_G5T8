@@ -71,3 +71,5 @@
 
 本轮浏览器命令包含新文件和旧 US34/US44：**15 passed (2.8m)**，其中新流程 4 例。`--reporter list` 未生成新 HTML；输出目录 `coverage/functional/sprint4-final`，测试运行时 `observed` 生成真实文本附件。没有截图成功记录时不虚构截图。
 两次开发中问题已修正：单测导入路径导致收集失败；释放预留后的 status/notes 被误判为需求漂移导致 apply 409。修正后重跑新流程通过。实施选择仍需评审，不能以自动化测试代替客户批准。
+
+最终时段一致性补充：`test_reviewed_period_change_cannot_bypass_the_shared_venue_gate` 通过原有取消／换订／批准 API 验证旧场地时段不能绕过新的申请时段；对应 33 项回归及 24 子测试通过（11.86s，见进度表）。这项新增场景是实际 API 集成，不宣称另外执行了浏览器换订场景。

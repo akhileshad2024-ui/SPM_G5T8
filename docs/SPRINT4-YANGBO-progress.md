@@ -438,10 +438,16 @@ $env:TEMP = (Get-Location).Path
 ### PR 交付及可核查证据
 
 - [PR #43](https://github.com/akhileshad2024-ui/SPM_G5T8/pull/43)：标题已改为 `US50/US51/US45: reassess accepted changes and rework safety arrangements`，已从 Draft 转 Ready for review，尚未合并。
-- 本轮源码 561b70d 的 [PR CI run 41620715184](https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/41620715184)：已核实 backend `test` 和 `frontend` 成功；全套 functional 的最终状态应读取该运行，不能用本地四例替代整仓库结果。最终 PR head 的全部检查以 [PR Checks](https://github.com/akhileshad2024-ui/SPM_G5T8/pull/43/checks) 为准，文档记录提交也会触发新的 run。
+- 本轮初版源码 561b70d 的 [PR CI run 41620715184](https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/41620715184)：backend、frontend、functional 三项已核实全部 success。远端实际记录：645 unittest；2056 pytest passed／1 skipped／1022 subtests；467 frontend passed；231 browser passed／1 skipped（US01 的本地 HTTP 环境 HTTPS 场景）。PR 测试用合并模拟 SHA eb5f69ae5fcb4364481cb80d47dec979b6a8f179，不是正式 main 合并。最后 PR head 的全部检查以 [PR Checks](https://github.com/akhileshad2024-ui/SPM_G5T8/pull/43/checks) 为准，不能用旧 head 结果替代。
 - 实际 GraphQL 核查：source head 561b70d，base d993a41，`isDraft=false`、`merged=false`、`mergeable=true`，`reviewDecision=REVIEW_REQUIRED`，reviews=[]。这是代码无冲突，不是已经满足非作者评审；不会自己批准或合并。
 - 连接器修改 PR 返回 403，因此使用已成功推送仓库的本地 Git 身份执行同一授权的 GitHub API 更新；凭据仅在进程内存，不打印、不保存、不纳入任何提交。CI／PR 元数据以实际 API 查询为证据。
 - PostgreSQL 行锁专项未运行，共享 Supabase 迁移／部署 smoke 未执行。SQL 文件和步骤已交付；部署前由授权管理员执行。没有修改 Notion／旧 Sprint，也没有自行勾 Done。
+
+### T8 最终一致性补充 — 场地时段
+
+最终自查补充了 `venue_period_matches`：已接受日期／时间变更后，旧时段的场地预订也通过同一共享机制标记、通知，不让新 apply 路径保留“旧预订仍有效”的假象。保持原预订／活动在 acceptance 时不变；应用之后必须使用原有 cancel／request／approve 换订，再解决对应标记。没有另建 US49 审批流程或自动重新预订。
+
+在 364999c + 此补丁上实测：`pytest test_sprint4_reassessment_workflows.py test_us45_existing_venue_reassessment.py test_us45_confirmation_gate.py test_event_changes_integration.py -q`，**33 passed、24 subtests passed，11.86s**。新增 `test_reviewed_period_change_cannot_bypass_the_shared_venue_gate` 真实覆盖接受→应用新时段→旧订不能解决／送审→取消／换订／批准→解决→送审；“报名设置有效但时间影响参会者”测试明确允许 venue 标记、仍不误标 registration。最终补充的提交 SHA 见 PR head／Git 日志和 Checks，旧 561b70d 全绿只作为前一版证据。
 
 ### 最新 Notion Pending 英文草案（未写入 Notion）
 

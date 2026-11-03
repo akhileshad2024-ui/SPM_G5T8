@@ -220,7 +220,8 @@ class TestReassessmentWorkflows(base.US44TestCase):
         event_id, attendees = self.registered_event()
         response = self.decision(event_id, self.proposal(event_id), {"start": "11:00", "end": "13:00"})
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(self.flags(event_id), [])
+        self.assertFalse([flag for flag in self.flags(event_id) if flag["targetType"] == "registration"])
+        self.assertEqual([flag["targetType"] for flag in self.flags(event_id)], ["venue"])
         for index, attendee in enumerate(attendees):
             self.assertEqual(len([n for n in self.notices(attendee) if n[0] == "Event changed"]), 1 if index < 2 else 0)
 
@@ -249,3 +250,24 @@ class TestReassessmentWorkflows(base.US44TestCase):
             self.assertEqual(response.status_code, 422, response.text)
         self.assertEqual(self.status_of(event_id), "pending_safety_review")
         self.assertEqual(self.flags(event_id), [])
+
+    def test_reviewed_period_change_cannot_bypass_the_shared_venue_gate(self):
+        booking = self.ready_event("Revised venue period")
+        event_id = booking["event_id"]
+        request_id = self.proposal(event_id)
+        response = self.decision(event_id, request_id, {"start": "11:00", "end": "13:00"})
+        self.assertEqual(response.status_code, 200, response.text)
+        flag = self.flags(event_id)[0]
+        self.assertEqual(flag["targetType"], "venue")
+        self.assertEqual(self.coordinator.post(f"/events/{event_id}/change-requests/{request_id}/apply").status_code, 200)
+        self.assertEqual(self.resolve(event_id, flag["id"]).status_code, 409)
+        self.assertEqual(self.send(event_id).status_code, 409)
+        # Use the existing venue cancellation/rebooking workflow, not a new one.
+        cancelled = self.coordinator.post(f"/bookings/{booking['id']}/cancel")
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        replacement = self.submit(event_id, venue_id=booking["venue_id"])
+        self.assertEqual(replacement.status_code, 200, replacement.text)
+        new_id = replacement.json()["booking"]["id"]
+        self.assertEqual(self.decide(new_id, "approved").status_code, 200)
+        self.assertEqual(self.resolve(event_id, flag["id"]).status_code, 200)
+        self.assertEqual(self.send(event_id).status_code, 200)

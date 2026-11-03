@@ -5,7 +5,7 @@ Legacy text-only decisions recheck saved facts without interpreting prose. Flags
 never release reservations or cancel registrations. Existing US38 JSON flags are
 read by the same gates and are never overwritten by these records.
 """
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 import models
@@ -64,6 +64,14 @@ def registration_reasons(values, registered):
     return reasons
 
 
+def venue_period_matches(booking, values):
+    if not all(values[key] is not None for key in ("date", "start", "end")):
+        return True  # legacy incomplete facts cannot establish a new period
+    return (booking.date == values["date"]
+            and time.fromisoformat(booking.start_time) == values["start"]
+            and time.fromisoformat(booking.end_time) == values["end"])
+
+
 def open_flags(db, event_id):
     db.flush()
     return db.query(models.ArrangementReassessment).filter_by(
@@ -110,6 +118,15 @@ def accepted(db, event, request, changes, now):
             flagged.append(flag)
             messaging.notify(db, messaging.assigned_tech(event), event, "Equipment requires reassessment",
                 f"{event.name}: reservation #{reservation.id} ({reservation.item_id}) Requires Reassessment. {' '.join(reasons)}")
+    # The explicit apply action must not leave old venue dates looking valid.
+    # This is a period-consistency extension of the same shared flag service,
+    # not a parallel venue approval/allocation workflow (US49/US14).
+    for booking in db.query(models.VenueBooking).filter(
+            models.VenueBooking.event_id == event.id, models.VenueBooking.status.in_(("pending", "approved"))):
+        if not venue_period_matches(booking, values):
+            flagged.append(add_flag(db, event, "change_request", request.id, "venue", booking.id,
+                ["Venue booking period differs from the reviewed event period."], {"effective": values}, now))
+            messaging.venue_booking_reassess(db, booking)
     registered = registrations.registered_count(db, event.id)
     reasons = registration_reasons(values, registered)
     if reasons:
@@ -203,6 +220,8 @@ def resolve(db, event, flag, user, note, now):
         row = db.get(models.VenueBooking, flag.target_id)
         if row and row.status not in ("cancelled", "rejected", "expired") and (row.status != "approved" or row.flag or row.reassessment):
             raise HTTPException(409, "Approve or replace the venue and resolve its existing flags first.")
+        if row and row.status in ("pending", "approved") and not venue_period_matches(row, facts(event)):
+            raise HTTPException(409, "Replace the venue booking with one for the revised event period first.")
     flag.resolved_at, flag.resolved_by_id, flag.resolution = now, user.id, note.strip()
 
 
