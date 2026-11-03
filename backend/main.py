@@ -13,7 +13,7 @@ from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -770,6 +770,36 @@ def event_assignment_history(event_id: int, db: Session = Depends(get_db), user:
     if not is_involved(event, user):
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
     return [{**entry, "assignedAt": utc(entry["assignedAt"])} for entry in event_review.assignment_history(db, event)]
+
+
+# Fulfills US14 AC1-AC4, AC6, AC7: the assigned coordinator confirms the event once every venue booking is
+# approved and unflagged, all equipment is reserved and the Safety Officer has approved it. Refused (409) with
+# every outstanding item listed; on success the organiser and involved staff are notified (US36).
+@app.post("/events/{event_id}/confirm", response_model=schemas.EventView, response_model_exclude_unset=True)
+def confirm_event(event_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles(*EVENT_REVIEWERS))):
+    def step(event, now):
+        event_confirmation.confirm(db, event, user, now)
+        messaging.event_confirmed(db, event, user)  # US14-AC4, US36
+    return review_step(event_id, db, user, step)
+
+
+# Fulfills US14 AC2, AC3, AC5: what still stands in the way of confirming the event (listed one by one), or
+# when and by whom it was confirmed, and which fields are locked once it is. Anyone involved in the event.
+@app.get("/events/{event_id}/confirmation", response_model=schemas.ConfirmationResponse)
+def event_confirmation_status(event_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not is_involved(event, user):
+        raise HTTPException(status_code=403, detail="You don't have permission to do that")
+    confirmed = event.status == models.EventStatus.confirmed
+    items = [] if confirmed else event_confirmation.outstanding(db, event, datetime.now(timezone.utc))
+    by = db.get(User, event.confirmed_by_id) if event.confirmed_by_id else None
+    return schemas.ConfirmationResponse(
+        ready=not confirmed and not items, confirmed=confirmed, outstanding=items,
+        confirmedAt=utc(event.confirmed_at), confirmedBy=by.name if by else None,
+        lockedFields=list(event_confirmation.LOCKED_AFTER_CONFIRMATION),
+    )
 
 
 # Fulfills US07: start reviewing a submitted request.

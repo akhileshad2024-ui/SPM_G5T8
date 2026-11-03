@@ -87,3 +87,8 @@ ALTER TABLE event_status_changes ADD CONSTRAINT event_status_to CHECK (to_status
 -- Lead's reason, so event_assignments is the event's full assignment history. Safe to run more than once.
 ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS previous_coordinator_id integer REFERENCES users(id);
 ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS reason text;
+
+-- US14 (confirm an event, CR-W7-2/3/6): when the event was confirmed and by which coordinator. Safe to run more
+-- than once. Events confirmed before this step stay valid (their confirmation is still in the US13 status history).
+ALTER TABLE events ADD COLUMN IF NOT EXISTS confirmed_at timestamptz;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS confirmed_by_id integer REFERENCES users(id);
