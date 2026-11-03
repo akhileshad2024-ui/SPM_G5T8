@@ -97,8 +97,14 @@ describe("US36 - Open event", () => {
     expect(notificationTarget({ eventId: 8 }, "coordinator", events)).toEqual({ route: "/queue", select: "EVT-2" });
   });
 
-  it("takes a coordinator to their queue when the event is no longer theirs", () => {
-    expect(notificationTarget({ eventId: 99 }, "coordinator", events)).toEqual({ route: "/queue" });
+  it("preserves the target when it is absent from the authorised list, without loading or granting access", () => {
+    expect(notificationTarget({ eventId: 99 }, "coordinator", events)).toEqual({ route: "/queue", select: "EVT-99" });
+  });
+
+  it("[US33-TC02] keeps the coordinator's notification target before events finish loading", () => {
+    // Given: the saved notice arrived first after sign-in; the event list is still empty.
+    // Then: opening it selects its real ID and the queue can reveal it once loaded.
+    expect(notificationTarget({ eventId: 8 }, "coordinator", [])).toEqual({ route: "/queue", select: "EVT-8" });
   });
 
   it.each([
