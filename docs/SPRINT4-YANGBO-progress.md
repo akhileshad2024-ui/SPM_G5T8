@@ -4,7 +4,7 @@
 
 最后更新：2026-11-03（Asia/Shanghai）。范围：US50（3 点）、US51（3 点）、US45（5 点），共 11 点。
 
-当前分支：`yangbo-sprint4-us50-us51`。最新基线 `dafea6948c5b68619fecb745c39d56270839ad66`，包含 origin/main d993a41 和 US14，之前的本地改动已保留。本轮实现提交及 PR CI 在 T8 交付记录中补齐。
+当前分支：`yangbo-sprint4-us50-us51`。最新源码提交 `2bb5aa6861947faf7539167393ccc74dec75620b`（初版 561b70d，基线 dafea69，包含 main d993a41 和 US14）。后续仅更新记录时，源码证据仍绑定此 SHA，最新 PR head／检查以 Checks 为准。
 US50／51／45 现已接入实际流程；早期 handoff、T1–T7 和初版 DoD 审核均是历史快照，不得据旧“仍待接口”描述断言最终实现缺失。用户本轮要求推进至可合并 PR，取代早先仅测试不 push 的阶段安排；不会代替非作者批准或执行 main 合并。共享数据库 DDL 仍未执行。
 
 ## 记录规则与需求来源
@@ -206,7 +206,7 @@ US34 接受案例 EVENT_ID=7、Request #1，拒绝案例 EVENT_ID=8、Request #2
 - 没做什么：未解析自由文本猜新值，未自动释放库存／取消报名，未伪造客户规则批准、非作者评审或 main 合并；未执行共享库 DDL，未修改 Notion。
 - 验证了什么：T8 中的真实 API／浏览器流程；原 US34 接受不改活动字段的兼容测试保持通过。新测试中的一次通知异常注入只用于失败回滚，其他流程不 mock 成功服务。
 - 下一步：完成全量检查后提交并更新现有 PR #43，核对其精确 head CI；非作者 review 后由用户合并。main 实际合并 SHA 的 CI 必须合并后再核对。
-- 对应提交：源码提交后补齐；本轮测试先以 dafea69 + 实现补丁记录。
+- 对应提交：初版 561b70d；最终时段一致性补充 2bb5aa6；各轮测试保留实际执行时基线／补丁，不把前一轮执行当作最新 revision 全套验证。
 
 ### 2026-11-03 — 合并 US14 并复用确认门禁
 
@@ -401,7 +401,7 @@ $env:TEMP = (Get-Location).Path
 
 ## T8 — 完整实施后的验证与最新 DoD（2026-11-03）
 
-本节取代前面实现前审核的当前结论，不删除历史证据。源码提交 **561b70d8a57217c35b9d6ff015064c9f4895cf00**（基线 dafea69，含 main d993a41），已推送现有 PR #43。规则、兼容取舍、迁移、回滚和运行方法见 `SPRINT4-YANGBO-delivery.md`；当前十条 AC 表已逐行映射实现和测试。后续只有交付记录文档更新，不把文档记录提交误写为源代码变化。
+本节取代前面实现前审核的当前结论，不删除历史证据。初版源码 **561b70d8a57217c35b9d6ff015064c9f4895cf00**，最终时段一致性补充 **2bb5aa6861947faf7539167393ccc74dec75620b**（基线 dafea69，含 main d993a41），均已推送现有 PR #43。规则、兼容取舍、迁移、回滚和运行方法见 `SPRINT4-YANGBO-delivery.md`；当前十条 AC 表已逐行映射实现和测试。增量修正和各自实测分开记录；仅改文档的记录提交不等同新源码版本。
 
 ### 已实际执行
 
@@ -447,7 +447,7 @@ $env:TEMP = (Get-Location).Path
 
 最终自查补充了 `venue_period_matches`：已接受日期／时间变更后，旧时段的场地预订也通过同一共享机制标记、通知，不让新 apply 路径保留“旧预订仍有效”的假象。保持原预订／活动在 acceptance 时不变；应用之后必须使用原有 cancel／request／approve 换订，再解决对应标记。没有另建 US49 审批流程或自动重新预订。
 
-在 364999c + 此补丁上实测：`pytest test_sprint4_reassessment_workflows.py test_us45_existing_venue_reassessment.py test_us45_confirmation_gate.py test_event_changes_integration.py -q`，**33 passed、24 subtests passed，11.86s**。新增 `test_reviewed_period_change_cannot_bypass_the_shared_venue_gate` 真实覆盖接受→应用新时段→旧订不能解决／送审→取消／换订／批准→解决→送审；“报名设置有效但时间影响参会者”测试明确允许 venue 标记、仍不误标 registration。最终补充的提交 SHA 见 PR head／Git 日志和 Checks，旧 561b70d 全绿只作为前一版证据。
+在 364999c + 此补丁上实测：`pytest test_sprint4_reassessment_workflows.py test_us45_existing_venue_reassessment.py test_us45_confirmation_gate.py test_event_changes_integration.py -q`，**33 passed、24 subtests passed，11.86s**；相同源码随后提交为 **2bb5aa6**。新增 `test_reviewed_period_change_cannot_bypass_the_shared_venue_gate` 真实覆盖接受→应用新时段→旧订不能解决／送审→取消／换订／批准→解决→送审；“报名设置有效但时间影响参会者”测试明确允许 venue 标记、仍不误标 registration。[该版全量 PR CI](https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/41624901570) 与最新文档 head 的 Checks 分开核查，旧 561b70d 全绿只作为前一版证据。
 
 ### 最新 Notion Pending 英文草案（未写入 Notion）
 
