@@ -109,6 +109,35 @@ test.describe("US36 - Receive Notifications", () => {
     observed(info, `Priya's "Open event" opened ${name} in her queue and marked the notice read; Maya's opened /my-events/${eventId}.`);
   });
 
+  test("[US33-TC02 regression][US36-AC1] Open event keeps its target when notifications arrive before events", async ({ page, baseURL }) => {
+    // Isolated regression setup, distinct from the full UI/shared US33-TC02.
+    const name = unique("Notification loading order");
+    const eventId = await createRequest(await apiAs(baseURL!, MAYA), name);
+    await assignTo(await apiAs(baseURL!, GRACE), eventId, PRIYA);
+    const priya = await apiAs(baseURL!, PRIYA);
+    await startReviewVia(priya, eventId);
+    expect((await priya.post(`/api/events/${eventId}/decision`, { data: { outcome: "approved", reason: "" } })).ok()).toBeTruthy();
+
+    // Hold the real event-list response until after the click; no arbitrary sleep
+    // or fabricated event data. This recreates the shared DB failure deterministically.
+    let releaseEvents!: () => void;
+    const eventsMayArrive = new Promise<void>(resolve => { releaseEvents = resolve; });
+    await page.route("**/api/events", async route => {
+      const response = await route.fetch();
+      await eventsMayArrive;
+      await route.fulfill({ response });
+    });
+    try {
+      await signIn(page, PRIYA, /\/queue/);
+      await bell(page).click();
+      await notice(page, name, "Event assigned to you").getByRole("button", { name: "Open event" }).click();
+      releaseEvents();
+      await expect(workspaceTitle(page, name)).toBeVisible();
+    } finally {
+      releaseEvents();
+    }
+  });
+
   test("[TC-US36-08] [US36-AC1] the Lead is told a new request is waiting to be assigned", async ({ page, baseURL }, info) => {
     const name = unique("Coding Bootcamp");
     await createRequest(await apiAs(baseURL!, MAYA), name);
