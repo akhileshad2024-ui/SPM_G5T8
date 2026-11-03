@@ -8,7 +8,7 @@ is saved exactly when the change it reports is saved. Every notice names the eve
 and what to do next, if anything (US36-AC2). The page polls GET /notifications every 15 seconds,
 well inside the one-minute delivery limit (US36-AC5).
 
-Functions for stories still being built (US12, US14, US44, US49-US51) are ready to call; see
+Functions for stories still being built (US14, US49-US51) are ready to call (US12 and US44 already do); see
 docs/US36_Notifications_Handover.md.
 """
 import logging
@@ -256,7 +256,7 @@ def event_confirmed(db, event, coordinator):
 
 def safety_check_ready(db, event):
     """US36-AC7, US44-AC2: every Safety Officer, once the event's venue and technical arrangements are confirmed.
-    Sends nothing until US44 adds the Safety Officer role (Role.safety)."""
+    Nobody is told if no active account has the Safety Officer role (Role.safety)."""
     notify_all(db, staff_with_role(db, getattr(Role, "safety", None)), event, "Safety check needed",
                f"{event.name} on {event.date} is ready for its Operational Safety Check. Review it under Safety checks.")
 
