@@ -12,16 +12,19 @@ import type { Role } from "../../lib/types";
 const ROLES: Role[] = ["organiser", "coordinator", "venue", "tech", "attendee", "lead"];
 const ALL_PAGES = ROLES.flatMap((r) => NAV_FOR[r].map(([route]) => route));
 // Pages deliberately in more than one role's navigation (each role sees its own events there).
-const SHARED_PAGES: Record<string, Role[]> = { "/registrations": ["organiser", "coordinator"] }; // US32
+const SHARED_PAGES: Record<string, Role[]> = {
+  "/registrations": ["organiser", "coordinator"], // US32
+  "/calendar": ["coordinator", "tech", "lead"], // US19; Venue Staff have it on Booking requests
+};
 
 describe("sidebar per role", () => {
   it.each<[Role, string[]]>([
     ["organiser", ["My events", "New request", "Event registrations"]],
-    ["coordinator", ["Review queue", "Pipeline", "Venues", "Event registrations"]],
+    ["coordinator", ["Review queue", "Pipeline", "Venues", "Venue calendar", "Event registrations"]],
     ["venue", ["Booking requests", "Venue catalogue"]],
-    ["tech", ["Equipment"]],
+    ["tech", ["Equipment", "Venue calendar"]],
     ["attendee", ["Browse events"]],
-    ["lead", ["Assignments"]], // US43
+    ["lead", ["Assignments", "Venue calendar"]], // US43, US19
   ])("%s sees only their own pages", (role, labels) => {
     expect(NAV_FOR[role].map(([, label]) => label)).toEqual(labels);
   });

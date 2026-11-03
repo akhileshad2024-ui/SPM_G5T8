@@ -6,14 +6,14 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timezone
+from datetime import date as Date, datetime, timezone
 from database import engine, Base, get_db
 from login import auth
 from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -70,6 +70,8 @@ REGISTRANTS = (Role.attendee,)
 EVENT_REVIEWERS = (Role.coordinator,)
 # Who may see the unassigned queue and assign coordinators (US43, US11): the Event Coordinator Lead.
 COORDINATOR_ASSIGNERS = (Role.lead,)
+# Who may view the venue availability calendar (US19): the internal staff.
+CALENDAR_VIEWERS = (Role.coordinator, Role.lead, Role.venue, Role.tech)
 # Who may conduct the Operational Safety Check (US44), and who may send an event to it.
 SAFETY_REVIEWERS = (Role.safety,)
 SAFETY_REQUESTERS = (Role.coordinator,)
@@ -218,6 +220,17 @@ def get_venues(include_inactive: bool = Query(False), db: Session = Depends(get_
     else:
         query = query.filter(models.Venue.is_active == True)
     return query.order_by(models.Venue.id).all()
+
+# Fulfills US19: each active venue's bookings, holds and unavailable periods from `start` to `end`, for the
+# page to show by day, week or month. Declared before /venues/{venue_id} so that route doesn't catch it.
+@app.get("/venues/availability", response_model=List[schemas.CalendarVenue])
+def get_venue_availability(start: Date, end: Date, db: Session = Depends(get_db),
+                           user: User = Depends(require_roles(*CALENDAR_VIEWERS))):
+    problem = venue_calendar.range_error(start, end)
+    if problem:
+        raise HTTPException(status_code=422, detail=problem)
+    expire_lapsed_holds(db)
+    return venue_calendar.calendar(db, user, start, end, datetime.now(timezone.utc))
 
 # Fulfills US20: search and filter active venues. Every filter given must match; when a date and time
 # are given, only venues free for that period (setup and turnaround included) are returned.
