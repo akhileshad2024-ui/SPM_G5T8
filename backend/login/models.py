@@ -12,6 +12,7 @@ class Role(str, enum.Enum):
     tech = "tech"
     attendee = "attendee"
     lead = "lead"  # US43: Event Coordinator Lead
+    safety = "safety"  # US44: Safety Officer
 
 
 class User(Base):

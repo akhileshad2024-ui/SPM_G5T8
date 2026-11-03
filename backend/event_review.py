@@ -25,7 +25,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 import models
-from event_status import change_status
+from event_status import SAFETY_STATUSES, change_status
 from login.models import Role, User
 
 S = models.EventStatus
@@ -34,7 +34,7 @@ MAX_NOTE_LENGTH = 1000
 MIN_REJECTION_REASON_LENGTH = 10
 
 # A coordinator can be assigned while the event is live: submitted and not yet closed.
-ASSIGNABLE_STATUSES = {S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed}
+ASSIGNABLE_STATUSES = {S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed, *SAFETY_STATUSES}
 
 KIND_LABEL = {"clarification": "Clarification", "amendment": "Amendment"}
 
@@ -100,7 +100,7 @@ def active_coordinators(db: Session) -> list[User]:
 
 def assign(db: Session, event: models.Event, user: User, coordinator_id: int, now: datetime) -> None:
     """US11: the Lead assigns a coordinator; who assigned it and when is recorded.
-    Changing an existing coordinator is reassignment (US12), not done here."""
+    Changing an existing coordinator is reassignment (US12, reassign() below)."""
     coordinator = db.get(User, coordinator_id)
     if coordinator is None or coordinator.role != Role.coordinator or not coordinator.is_active:
         raise ReviewError(422, f"{coordinator.name if coordinator else 'That person'} is not an Event Coordinator.")
@@ -110,6 +110,48 @@ def assign(db: Session, event: models.Event, user: User, coordinator_id: int, no
         raise not_allowed(f"{coordinator_name(db, event)} is already coordinating this event.")
     event.coordinator_id = coordinator.id
     db.add(models.EventAssignment(event_id=event.id, coordinator_id=coordinator.id, assigned_by_id=user.id, assigned_at=now))
+
+
+def reassign(db: Session, event: models.Event, user: User, coordinator_id: int, reason: str, now: datetime) -> int:
+    """US12: the Lead moves an assigned event to another coordinator, with a reason.
+
+    Access follows event.coordinator_id (event_access.py), so changing it removes the previous
+    coordinator's access and grants the new one's in the same step (AC3). The reassignment is
+    added to the assignment history with the reason and the coordinator it replaced (AC2, AC5).
+    Returns the previous coordinator's id, so the caller can notify them (AC4).
+    """
+    if user.role != Role.lead:  # also checked by the route; kept here so the rule can't be bypassed
+        raise ReviewError(403, "Only the Event Coordinator Lead can reassign coordinators.")
+    coordinator = db.get(User, coordinator_id)
+    if coordinator is None or coordinator.role != Role.coordinator or not coordinator.is_active:
+        raise ReviewError(422, f"{coordinator.name if coordinator else 'That person'} is not an Event Coordinator.")
+    if event.status not in ASSIGNABLE_STATUSES:
+        raise not_allowed(f"A coordinator can't be reassigned while the event is {event.status.value.replace('_', ' ')}.")
+    if event.coordinator_id is None:
+        raise not_allowed("This event has no coordinator yet. Assign one instead.")
+    if event.coordinator_id == coordinator.id:
+        raise not_allowed(f"{coordinator.name} is already coordinating this event.")
+    text = check_note(reason, "Reassignment reason")
+    previous = event.coordinator_id
+    event.coordinator_id = coordinator.id
+    db.add(models.EventAssignment(event_id=event.id, coordinator_id=coordinator.id, assigned_by_id=user.id,
+                                  assigned_at=now, previous_coordinator_id=previous, reason=text))
+    return previous
+
+
+def assignment_history(db: Session, event: models.Event) -> list:
+    """US12-AC5: every assignment and reassignment of the event, oldest first, with names looked up."""
+    rows = (db.query(models.EventAssignment).filter(models.EventAssignment.event_id == event.id)
+            .order_by(models.EventAssignment.assigned_at, models.EventAssignment.id).all())
+    def name(user_id):
+        user = db.get(User, user_id) if user_id else None
+        return user.name if user else None
+
+    return [
+        {"coordinator": name(r.coordinator_id), "previousCoordinator": name(r.previous_coordinator_id),
+         "assignedBy": name(r.assigned_by_id), "assignedAt": r.assigned_at, "reason": r.reason}
+        for r in rows
+    ]
 
 
 def start_review(db: Session, event: models.Event, user: User, now: datetime) -> None:

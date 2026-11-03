@@ -1,5 +1,5 @@
 """
-The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US38, US39, US41, US46, US47, US48):
+The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US38, US39, US41, US44, US46, US47, US48):
 the "written once" half of the test-case template. The Playwright specs in tests/functional/ carry
 the same IDs in their titles, e.g. "[TC-US18-01]".
 
@@ -476,3 +476,64 @@ case("TC-US48-03", "US48", "AC2", "Check expired tentative holds are excluded fr
      "The second request is not refused as a duplicate and is Suitable; neither request is flagged as conflicting with the other. A confirmed booking never expires.",
      blocked="Blocked by US42 (Expire Tentative Venue Holds), which is not built: nothing in the app sets a hold's expiry time, so an expired hold can't be made through the "
              "app. The rule is covered by unit and integration tests, which save an expired hold directly (tests/unit/venue/test_us48_*.py, tests/integration/test_us48_*.py).")
+
+
+# ------------------------------------------------------------------ US44 Conduct Operational Safety Check
+SAFETY = "Signed in as a Safety Officer (hannah.lau@connectsphere.edu)."
+SAFETY_DATA = f"Email=hannah.lau@connectsphere.edu; {PASSWORD}"
+READY = ("An approved event of Priya Tan's whose venue booking Venue Staff have approved (no equipment asked for), "
+         "so its venue and technical arrangements are confirmed.")
+OPEN_SAFETY = ["Sign in as the Safety Officer and open Safety checks"]
+case("TC-US44-01", "US44", "AC1", "Check a Safety Officer can sign in, lands on Safety checks and can open no other page",
+     f"{ENV} A Safety Officer account exists (hannah.lau@connectsphere.edu).",
+     ["Sign in as the Safety Officer", "Read the sidebar", "Type /queue, /bookings, /assignments and /equipment in the address bar, one after the other"],
+     SAFETY_DATA,
+     "The Safety checks page opens and the sidebar holds only \"Safety checks\". Each other address returns to /safety with \"You don't have permission to view that page.\".")
+case("TC-US44-02", "US44", "AC2", "Check an event whose venue is confirmed is sent to the safety check and then appears for the Safety Officer",
+     f"{ENV} {COORD} {READY} A second approved event has no venue yet.",
+     ["Sign in as the Safety Officer and open Safety checks: the ready event is not listed",
+      "In another browser, sign in as the Event Coordinator, open the ready event in the Review queue and select Request safety check",
+      "Open the event without a venue", "As the Safety Officer, reload Safety checks"],
+     f"{COORD_DATA}\n{SAFETY_DATA}",
+     "A message says the Safety Officers have been told and the event's status is Pending Safety Review. The event without a venue offers only Find a venue. "
+     "The ready event now appears under \"Awaiting a safety check\"; the event without a venue does not.")
+case("TC-US44-03", "US44", "AC3", "Check the Safety Officer can review attendance, capacity and layout, emergency access, accessibility, equipment placement, crowd movement and venue restrictions",
+     f"{ENV} {SAFETY} Two events sent to the safety check: 120 people at a 100-seat venue, and an event needing Special Physical Seating at a venue that offers only Wheelchair Access.",
+     OPEN_SAFETY + ["Read the first event's card, its seven areas and the concern count", "Read the second event's Accessibility requirements"],
+     SAFETY_DATA,
+     "Each card shows seven areas: Expected attendance, Venue capacity and layout, Emergency access, Accessibility requirements, Equipment placement, Crowd movement and Known venue restrictions. "
+     "The first card shows \"120 people is more than its capacity of 100.\" and \"1 concern flagged\"; Emergency access and Crowd movement are marked \"Not recorded\"; "
+     "Equipment placement says none is requested; the restrictions list the venue's opening days, hours, setup and turnaround. The second card says the venue does not offer Special Physical Seating.")
+case("TC-US44-04", "US44", "AC4", "Check a comment is mandatory to reject or request changes",
+     f"{ENV} {SAFETY} An event waiting for its safety check.",
+     OPEN_SAFETY + ["Select Reject with the Comment box empty", "Enter only spaces and select Request changes", "Enter a comment and select Reject"],
+     f"{SAFETY_DATA}\nComment=The emergency exits are blocked by the stage.",
+     "Reject and Request changes with no comment (or only spaces) show \"A comment is required when rejecting or requesting changes.\" and the event stays under Awaiting a safety check. "
+     "With a comment, Reject works (\"Safety arrangement rejected. The coordinator has been told.\") and the event moves to Already reviewed as Safety Rejected.")
+case("TC-US44-05", "US44", "AC4", "Check the Safety Officer can approve without a comment and request changes with one",
+     f"{ENV} {SAFETY} Two events waiting for their safety check.",
+     OPEN_SAFETY + ["Select Approve on the first event with the Comment box empty", "Enter a comment on the second event and select Request changes"],
+     f"{SAFETY_DATA}\nComment=Widen the aisle between rows.",
+     "The first event is approved (\"Safety check approved. The coordinator has been told.\") and shows Safety Approved. "
+     "The second shows \"Changes requested. The coordinator has been told.\" and Safety Changes Requested. No event is left under Awaiting a safety check.")
+case("TC-US44-06", "US44", "AC5", "Check the outcome, reviewer and time are recorded and the event's status is updated",
+     f"{ENV} {SAFETY} {COORD} An event waiting for its safety check; a second Safety Officer (ravi.menon@connectsphere.edu).",
+     OPEN_SAFETY + ["Enter a comment and select Reject", "Read the event's Safety history",
+                    "In another browser, sign in as the second Safety Officer and read the same event",
+                    "In another browser, sign in as the Event Coordinator, open the event and read its status and the Request tab"],
+     f"{SAFETY_DATA}\nComment=Exits are blocked.",
+     "The Safety history reads \"Rejected · Hannah Lau · <date and time>\" with the comment. The second officer sees the same. "
+     "The coordinator's workspace shows the status Safety Rejected and a \"Safety rejected\" card naming Hannah Lau, the time and the comment.")
+case("TC-US44-07", "US44", "AC6", "Check the Safety Officers are told when an event is ready and the Event Coordinator is told the outcome",
+     f"{ENV} {READY} Two Safety Officers. The event was sent to the safety check, then the first officer requested changes with the comment \"Widen the aisle between rows.\".",
+     ["Sign in as each Safety Officer and open Notifications", "Sign in as the Event Coordinator and open Notifications"],
+     f"{SAFETY_DATA}\n{COORD_DATA}",
+     "Each Safety Officer has \"Safety check needed\" saying the event is ready for its Operational Safety Check. "
+     "The coordinator has \"Safety changes requested\" saying it needs changes, with \"Comment: Widen the aisle between rows.\".")
+case("TC-US44-08", "US44", "AC7", "Check a rejected safety arrangement returns the event to rework instead of ending it",
+     f"{ENV} {COORD} {READY} It was sent to the safety check and the Safety Officer rejected it with the comment \"Exits are blocked.\".",
+     ["Sign in as the Event Coordinator and open the event", "Read its status and the Request tab", "Select Request safety check again",
+      "As a Safety Officer, open the event and read its history, then select Approve", "As the coordinator, reload and open the event"],
+     f"{COORD_DATA}\n{SAFETY_DATA}",
+     "The status is Safety Rejected, not Rejected, and the Request tab says \"This event is not closed. Rework the arrangements (US45), then request the safety check again.\". "
+     "Requesting again sets Pending Safety Review. The officer sees the first round's rejection kept in the history and approves; the event is then Safety Approved.")

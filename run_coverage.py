@@ -88,6 +88,11 @@ TARGETS = {
         "main.py:utc,event_response,list_coordinators,review_step,assign_coordinator",
         "models.py:EventAssignment",
     ],
+    "test_us12_reassign_coordinator": [
+        "event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
+        "main.py:reassign_coordinator,event_assignment_history",
+        "schemas.py:ReassignCoordinatorIn,AssignmentHistoryEntry",
+    ],
     "test_us43_lead_oversight": [
         "event_access.py",
         "event_fields.py",
@@ -116,6 +121,12 @@ TARGETS = {
         "venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts",
         "venue_availability.py:overlapping_periods,unavailability_text",
         "venue_bookings.py:held_periods",
+    ],
+    # US44 Operational Safety Check: its rules, its three endpoints and their bodies.
+    "test_us44_operational_safety_check": [
+        "safety_check.py",
+        "main.py:list_safety_checks,request_safety_check,decide_safety_check",
+        "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
     ],
 }
 
@@ -151,6 +162,7 @@ STORY_FRONTEND = {
     "us15": ["lib/events/details.ts"],
     "us29": ["lib/registration.ts"],
     "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
+    "us12": ["lib/events/review/reassignment.ts"],
     "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
@@ -158,6 +170,7 @@ STORY_FRONTEND = {
 STORY_FRONTEND_TESTS = {
     "us03": "tests/unit/event-request",
     "us11": "tests/unit/event-review",
+    "us12": "tests/unit/event-review/reassignment",
     "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 
