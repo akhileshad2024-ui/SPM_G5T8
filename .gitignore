@@ -47,11 +47,9 @@ coverage_reports/**/.coverage
 # Local transfer artifacts
 *.bundle
 
-# Local/CI evidence archives are shared separately, not committed as generated files.
-/coverage_reports/project/
-/coverage_reports/ci/
-/coverage_reports/imports/
-/coverage_reports/**/archived/
+# Keep only replaceable working outputs out of Git; timestamped reports are versioned.
+/coverage_reports/project/latest/
 /coverage_reports/**/latest/
+# Preserve the previous Git policy for older local-only archives and diagnostic runs.
+/coverage_reports/**/archived/
 /coverage_reports/**/history/
-/coverage_reports/test-run-history.csv

@@ -51,14 +51,13 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Upload test execution history
+      - name: Upload test execution records
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            coverage_reports/ci/
-            coverage_reports/test-run-history.csv
+            coverage_reports/project/ci/
           if-no-files-found: warn
           retention-days: 90
 
@@ -101,14 +100,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload test execution history
+      - name: Upload test execution records
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            coverage_reports/ci/
-            coverage_reports/test-run-history.csv
+            coverage_reports/project/ci/
           if-no-files-found: warn
           retention-days: 90
 
@@ -149,13 +147,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Upload test execution history
+      - name: Upload test execution records
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-history-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            coverage_reports/ci/
-            coverage_reports/test-run-history.csv
+            coverage_reports/project/ci/
           if-no-files-found: warn
           retention-days: 90

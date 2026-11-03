@@ -602,65 +602,47 @@ The Python framework, Supabase Auth usage, database connection method, and email
 To edit, download the file and open it in draw.io / diagrams.net using **File > Open From > Device**. Use this `.drawio` file as the primary editable source.
 
 
-### Traceable automated test evidence
+### Test execution evidence
 
-Activate the project's Python virtual environment first. Record a real run with
-one of these commands (replace Sprint and executor with the actual values):
-
-```bash
-python scripts/test_evidence.py run --kind backend --sprint SP4 --executor "Wen Yuetong"
-python scripts/test_evidence.py run --kind frontend --sprint SP4 --executor "Wen Yuetong"
-python scripts/test_evidence.py run --kind functional --sprint SP4 --executor "Wen Yuetong"
-```
-
-`backend` runs the existing complete Python suite with statement/branch coverage;
-`frontend` runs Vitest with coverage; `functional` runs the isolated Playwright
-suite. These commands do not execute shared-database acceptance cases. To record
-just one module's existing test command, specify its real scope and command:
+Activate the project Python virtual environment, install the existing dependencies
+and Playwright browser, and stop local dev/test servers. Run the complete suites:
 
 ```bash
-python scripts/test_evidence.py run --kind integration --scope US05 --sprint SP4 --executor "Wen Yuetong" -- python -m pytest tests/integration/test_us05_save_event_draft_integration.py
+python scripts/test_evidence.py
 ```
 
-Check that the test path exists; substitute your actual module's path. Custom
-commands record logs/results but do not automatically measure coverage. Unknown
-counts and coverage remain blank. Backend coverage combines unit/integration;
-functional results are not code-coverage percentages.
+The command runs backend unit/integration with coverage, frontend with coverage,
+and isolated Playwright functional tests, retaining each result under:
 
-Local executions save unique logs, run metadata and available complete report ZIPs
-under `coverage_reports/usXX/history/<execution-id>/` for a single-US scope, or
-`coverage_reports/project/history/<execution-id>/` for a project/multi-US scope.
-Latest full-suite outputs are in `coverage_reports/project/latest/`; shared acceptance
-outputs are in `coverage_reports/usXX/latest/acceptance/`. Older US reports retain
-their existing structure. `coverage_reports/migration-paths.csv` maps old locations. Every run refreshes
-`coverage_reports/test-run-history.csv`. The manifest records UTC timestamps (SGT is
-UTC+8), executor, scope, actual commit, dirty working-tree flag, command and result.
-The commit alone does not identify uncommitted changes: archive/review the patch
-separately when `dirty` is true. Do not put passwords or secrets into recorded
-commands. A functional fixture may differ from the shared TC credentials.
-
-CI automatically records the same evidence, including failures, in a separate
-`test-history-<job>-<run>-<attempt>` artifact. Existing coverage and functional artifacts
-remain the canonical full reports; history records name them without duplicating
-the ZIP. Download artifacts before the configured 90-day expiry. A cancelled or
-force-killed job may not produce/upload a complete record. Missing evidence is
-not a passing result. CI does not currently infer Sprint from dates.
-
-To assemble team history, each member shares their execution folders through the
-team's agreed shared storage; do not send only the summary CSV. Put those folders
-and downloaded CI history artifacts in `coverage_reports/imports/<member-or-run>/`,
-then run:
-
-```bash
-python scripts/test_evidence.py export
+```text
+coverage_reports/project/YYYY-MM-DD_HH-MM-SS_SGT_<unique-id>/
+  backend/     # test_output.txt, summary.txt, run-info.json, available coverage report.zip
+  frontend/    # test_output.txt, summary.txt, run-info.json, available coverage report.zip
+  functional/  # test_output.txt, summary.txt, run-info.json, available Playwright report.zip
 ```
 
-The exporter combines saved manifests and existing `coverage_reports/us*/history*.csv`
-without rerunning tests. Identical record IDs are counted once. Historical missing
-Sprint/owner/commit/timezone stays unrecorded; old coverage percentages are labelled
-legacy because their measurement type is not known. A historical source path does
-not guarantee its report still exists; verify links before submission. Import the
-CSV into the general test workbook's Automated Test Runs sheet at milestones.
-Generated evidence stays Git-ignored; `git pull` distributes this tool, not team
-reports. This cannot recover unrecorded historical runs or automatically collect
-other members' computers. Downloaded reports still require retention/backups.
+Failures remain saved; the command fails if any suite/recording fails. Other
+suites still run after a failure. Ctrl+C stops further suites; force termination
+can prevent complete recording. Functional results are not code coverage. Tests
+use isolated fixtures, not the shared-database acceptance configuration.
+
+Each member reviews and commits their timestamped execution directory with their
+work. Other members pull it from Git; do not overwrite or delete earlier runs.
+No summary CSV is generated. Old US report folders and their existing history
+files are retained as historical evidence. Do not infer missing historical data.
+The latest/ directory is replaceable working output and stays ignored; complete
+available reports are preserved inside the timestamped report.zip (unzip to view).
+Raw .coverage and htmlcov working files remain ignored by the existing rules.
+
+Run information includes real UTC start/end times, version, command, result and
+coverage when measured. Folder names use SGT. Executor defaults to the configured
+Git user name, not authenticated identity. Sprint defaults to Unrecorded; optional
+metadata: `python scripts/test_evidence.py all --sprint SP4 --executor "Wen Yuetong"`.
+Commit source changes before final verification; dirty source changes are flagged.
+Never include passwords in recorded commands or committed logs.
+
+For a focused diagnostic, the existing run --kind interface remains available;
+these are not a substitute for complete project verification. CI's separate jobs
+use this same interface and upload execution records plus existing report
+artifacts (90-day retention). CI does not automatically commit or download those
+artifacts into this repository. Archive required CI evidence before expiry.
