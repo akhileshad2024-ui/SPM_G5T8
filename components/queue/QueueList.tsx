@@ -3,6 +3,7 @@
 import { useApp } from "@/lib/state/app-context";
 import { attendanceLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
+import { hasFlaggedBooking } from "@/lib/venues/replacement";
 import type { EventRecord } from "@/lib/types";
 import styles from "./QueueList.module.css";
 
@@ -10,12 +11,15 @@ const FILTERS: Array<[string, string]> = [
   ["action", "Needs action"],
   ["unassigned", "Unassigned"],
   ["mine", "Mine"],
+  ["replacement", "Needs a venue"],
   ["all", "All"],
 ];
 
 export function QueueList({ events, selectedId }: { events: EventRecord[]; selectedId: string }) {
   const app = useApp();
   const { search, queueFilter } = app.state;
+  // US40: how many events have a booking that needs a replacement venue.
+  const needVenue = app.state.events.filter(hasFlaggedBooking).length;
 
   return (
     <div className={styles.panel}>
@@ -34,6 +38,7 @@ export function QueueList({ events, selectedId }: { events: EventRecord[]; selec
               onClick={() => app.setQueueFilter(id as typeof queueFilter)}
             >
               {label}
+              {id === "replacement" && needVenue > 0 ? ` (${needVenue})` : ""}
             </button>
           ))}
         </div>

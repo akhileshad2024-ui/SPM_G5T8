@@ -1,0 +1,4 @@
+US40 unit test and coverage summary - 2026-11-03 16:23:38
+
+type    test file                          tests  result   coverage
+unit    test_us40_request_replacement_venue    49  passed     100.0%

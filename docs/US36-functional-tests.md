@@ -36,4 +36,4 @@ Every notification is saved on the server in the same transaction as the step th
 | US34-AC5 | Change request decided | Requesting organiser | Change request accepted / rejected |
 | US25-AC4, US26-AC4, US29-AC5 | Equipment request / status; registration (built in Sprint 3) | Technician / coordinator / attendee | (unchanged) |
 
-US12 reassignment and the US44 safety check (US36-AC7) are sent too. Ready for stories still being built (the functions are in `backend/messaging.py`): US14 confirmation, US49–US51 reassessment.
+US12 reassignment and the US44 safety check (US36-AC7) are sent too. Ready for stories still being built (see [the handover](US36_Notifications_Handover.md)): US14 confirmation, US49–US51 reassessment.

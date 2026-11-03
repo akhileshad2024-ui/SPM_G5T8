@@ -358,6 +358,8 @@ class BookingRequestCreate(BaseModel):
     attendance: Optional[int] = Field(None, gt=0)
     layout: OptionalLayout = None
     purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+    # US40: the flagged booking this request replaces. Its timing, attendance, layout and purpose are the defaults.
+    replaces_booking_id: Optional[int] = Field(None, gt=0)
 
 
 class BookingChange(BaseModel):
@@ -438,6 +440,8 @@ class VenueBooking(BaseModel):
     hold_expires_at: Optional[datetime] = None
     hold_expiry_set_by: Optional[str] = None
     hold_notice: Optional[Literal["expiring_soon", "expired"]] = None
+    # US40: the flagged booking this one replaces (None for an ordinary request).
+    replaces_booking_id: Optional[int] = None
     # US23-AC5: "approved" / "rejected" for 7 days after Venue Staff decide, so the coordinator is told.
     decision_notice: Optional[Literal["approved", "rejected"]] = None
 
@@ -841,10 +845,18 @@ class ClarificationResponseIn(BaseModel):
 
 # ---------------------------------------------------------------- operational safety check (US44)
 
+class ArrangementTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["venue", "equipment"]
+    id: PositiveInt
+
+
 class SafetyDecisionIn(BaseModel):
     """A Safety Officer's decision. A comment is mandatory unless approving; the server checks it."""
+    model_config = ConfigDict(extra="forbid")
     outcome: Literal["approved", "changes_requested", "rejected"]
     comment: str = ""
+    targets: List[ArrangementTarget] = []
 
 
 class SafetyArea(BaseModel):
@@ -880,6 +892,8 @@ class SafetyCheck(BaseModel):
     arrangementsIssue: Optional[str] = None  # why the venue and equipment are not confirmed (None when they are)
     areas: List[SafetyArea]
     reviews: List[SafetyReviewOut] = []
+    targets: List[Dict[str, Any]] = []
+    planningStage: Optional[str] = None
 
 
 # ---------------------------------------------------------------- event-request drafts (US05)
@@ -912,6 +926,12 @@ class EventChangeDecisionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     outcome: Literal["accepted", "rejected"]
     reason: str = ""
+    effective_changes: Optional[EventDetailsUpdate] = None
+
+
+class ReassessmentResolutionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    note: str = Field(min_length=1, max_length=2000)
 
 
 class EventDraftSave(BaseModel):

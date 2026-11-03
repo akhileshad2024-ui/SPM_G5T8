@@ -10,6 +10,7 @@ import type { EventRecord, Layout, VenueBookingRecord } from "@/lib/types";
 import { blockingConflicts, needsManualResolution, pendingConflicts } from "@/lib/venues/conflicts";
 import { scheduleIssues } from "@/lib/venues/rules";
 import { holdExpiryLabel, toExpiryInput } from "@/lib/venues/hold-expiry";
+import { originalOf } from "@/lib/venues/replacement";
 import { ConflictList } from "./ConflictList";
 
 /** One pending booking request for Venue Staff to decide (US41: an event may have several, one per venue). */
@@ -32,6 +33,7 @@ export function BookingRequestCard({ event, booking }: { event: EventRecord; boo
   const stopping = blockingConflicts(booking);
   const competing = pendingConflicts(booking);
   const blocked = issues.some((i) => i.level === "block") || stopping.length > 0;
+  const replaced = originalOf(event, booking); // US40: the flagged booking this request replaces
   const others = (event.bookings ?? []).filter((b) => b.id !== booking.id && (b.status === "pending" || b.status === "approved"));
 
   return (
@@ -69,6 +71,12 @@ export function BookingRequestCard({ event, booking }: { event: EventRecord; boo
             <div style={{ fontSize: 12.5, fontWeight: 700, color: booking.hold_notice ? "var(--warn-fg)" : "var(--text)", marginTop: 6 }}>
               {holdExpiryLabel(booking)}
               {booking.hold_expiry_set_by ? ` · set by ${booking.hold_expiry_set_by}` : " · default (3 days after the request)"}
+            </div>
+          )}
+          {replaced && (
+            <div className="callout" style={{ marginTop: 12 }}>
+              <strong>Replacement venue.</strong> Replaces the booking at {replaced.venue_name}, which needs alternative arrangements. That booking
+              is released when this one is approved.
             </div>
           )}
           {others.length > 0 && (

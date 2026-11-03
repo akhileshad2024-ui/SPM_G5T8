@@ -149,6 +149,38 @@ class EventDetailChange(Base):
     affects_arrangements = Column(Boolean, nullable=False)
 
 
+class ArrangementReassessment(Base):
+    """Shared Requires Reassessment records for event changes and safety rework.
+
+    US38's booking JSON remains authoritative for its time-conflict flags. These
+    records extend that mechanism to other targets/reasons without overwriting it.
+    """
+    __tablename__ = "arrangement_reassessments"
+    __table_args__ = (UniqueConstraint("event_id", "source", "source_id", "target_type", "target_id",
+                                      name="uq_reassessment_source_target"),)
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    source = Column(String, nullable=False)
+    source_id = Column(Integer, nullable=False)
+    target_type = Column(String, nullable=False)
+    target_id = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=False)
+    context = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolution = Column(Text, nullable=True)
+
+
+class EventPreparation(Base):
+    """Preparation starts only against a specific approved safety review."""
+    __tablename__ = "event_preparations"
+    event_id = Column(Integer, ForeignKey("events.id"), primary_key=True)
+    safety_review_id = Column(Integer, ForeignKey("safety_reviews.id"), nullable=False)
+    started_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class VenueBooking(Base):
     """A venue booking request for an event (US22): saved when the coordinator asks for the venue,
     so it survives a reload, Venue Staff can see it, and other searches see the venue as held.
@@ -198,6 +230,9 @@ class VenueBooking(Base):
     # the hold no longer blocks the venue and is left out of every conflict check.
     hold_expires_at = Column(DateTime(timezone=True), nullable=True)
     hold_expiry_set_by = Column(String, nullable=True)
+    # US40: the flagged booking this one replaces. The original is kept for reference; it is released, and its
+    # flag cleared, once this booking is approved.
+    replaces_booking_id = Column(Integer, ForeignKey("venue_bookings.id"), nullable=True, index=True)
 
 
 class SafetyReview(Base):
