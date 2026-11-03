@@ -42,6 +42,12 @@ describe("US36 - the page's copy of a saved notification", () => {
 });
 
 describe("US36 - the regular poll (newest page)", () => {
+  it("an empty server inbox preserves page-only notices without offering older pages", () => {
+    const current = { notifs: [pageOnly], olderNotifs: false };
+    expect(withNewestPage(current, [], "attendee")).toEqual(current);
+    expect(current.notifs).toEqual([pageOnly]);
+  });
+
   it("[US36-AC5] new notifications appear and read state follows the server", () => {
     const before = withNewestPage({ notifs: [], olderNotifs: false }, [stored(1)], "coordinator");
     const after = withNewestPage(before, [stored(2), stored(1, { read: true })], "coordinator");
