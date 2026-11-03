@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state/app-context";
+import { confirmedNote, lockedFieldsSummary, showsConfirmation, type ConfirmationStatus } from "@/lib/events/confirmation";
 import { assignmentNote } from "@/lib/events/review/lead";
 import { IN_REVIEW_STATUSES, requestDetails, reviewChecks } from "@/lib/events/review/review";
 import { Dot } from "@/components/ui/Dot";
@@ -11,6 +12,49 @@ import { EventDetailsEditor } from "../EventDetailsEditor";
 import { ChangeRequests } from "@/components/my-events/ChangeRequests";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
+
+/**
+ * US14: what still stands in the way of confirming the event, item by item (AC2), or once confirmed, when and by
+ * whom (AC3) and which fields are now locked (AC5). The server works this out (GET /events/{id}/confirmation).
+ */
+function ConfirmationCard({ event, backendId }: { event: EventRecord; backendId: number }) {
+  const app = useApp();
+  const [status, setStatus] = useState<ConfirmationStatus | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    app.loadConfirmation(backendId).then((s) => live && setStatus(s), () => live && setStatus(null));
+    return () => { live = false; };
+    // Reloaded whenever the event's status changes (the card is keyed on it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendId]);
+
+  if (!status) return null;
+  return (
+    <div className={`card ${styles.card}`} aria-label="Confirmation">
+      <div className="eyebrow">Confirmation</div>
+      {status.confirmed ? (
+        <>
+          <div className={styles.message} style={{ marginTop: 8 }}>{confirmedNote(status, formatTimestamp)}</div>
+          <div className={styles.hint}>
+            Locked: {lockedFieldsSummary(status.lockedFields)}. Any further change goes through a change request.
+          </div>
+        </>
+      ) : status.ready ? (
+        <div className={styles.message} style={{ marginTop: 8 }}>
+          Every arrangement is complete and the safety check is approved. {event.name} is ready to confirm.
+        </div>
+      ) : (
+        <>
+          <div className={styles.messageMeta} style={{ marginTop: 8 }}>Outstanding before this event can be confirmed</div>
+          <ul aria-label="Outstanding before confirming" style={{ margin: "6px 0 0 18px", padding: 0, fontSize: 13 }}>
+            {status.outstanding.map((item) => <li key={item} style={{ marginBottom: 4 }}>{item}</li>)}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
@@ -106,6 +150,10 @@ export function RequestTab({ event }: { event: EventRecord }) {
             </div>
             {decision.reason && <div className={styles.message}>{decision.reason}</div>}
           </div>
+        )}
+
+        {event.backendId !== undefined && showsConfirmation(event.status) && (
+          <ConfirmationCard key={`${event.id}:${event.status}:${event.updatedAt ?? ""}`} event={event} backendId={event.backendId} />
         )}
 
         {event.safetyReview && (

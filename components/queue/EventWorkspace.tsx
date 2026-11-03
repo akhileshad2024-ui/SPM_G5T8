@@ -59,8 +59,9 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
       actions.push({ label: "Request safety check again", onClick: () => void app.requestSafetyCheck(id), variant: "primary" });
     }
   } else if (event.status === "safety_approved") {
-    // US44: safe to go on; confirming is US14, which isn't built yet.
-    actions.push({ label: "Safety approved: ready to confirm (not available yet)", onClick: () => app.flash("Confirming events isn't available yet.", "warn"), variant: "muted" });
+    // US14: the server confirms only when every booking is approved and unflagged and all equipment is reserved;
+    // otherwise it lists what is outstanding (also shown on the Request tab).
+    actions.push({ label: "Confirm event", onClick: () => void app.confirmEvent(event.id), variant: "primary" });
   } else if (event.bookingState === "pending") {
     actions.push({ label: "Awaiting venue decision", onClick: () => app.flash("Venue Staff have this booking request.", "warn"), variant: "muted" });
   } else if (!event.venue) {
