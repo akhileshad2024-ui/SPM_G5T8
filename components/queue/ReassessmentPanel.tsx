@@ -7,7 +7,7 @@ type Flag = { id: number; targetType: string; targetId: number; source: string; 
   reason: string; status: string; resolution: string | null; resolvedAt: string | null };
 type Summary = { flags: Flag[]; planningStage: string | null; canPrepare: boolean; preparedAt: string | null; preparationIssues: string[] };
 
-export function ReassessmentPanel({ eventId, kind, preparation = false }: { eventId: number; kind?: string; preparation?: boolean }) {
+export function ReassessmentPanel({ eventId, kind, preparation = false, heading = "Arrangement reassessment" }: { eventId: number; kind?: string; preparation?: boolean; heading?: string }) {
   const app = useApp();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -35,7 +35,7 @@ export function ReassessmentPanel({ eventId, kind, preparation = false }: { even
   const coordinator = app.state.role === "coordinator";
   if (!flags.length && !preparation && !error) return null;
   return <section className="card" aria-label={kind ? `${kind} reassessments` : "Arrangement reassessments"} style={{ padding: 18, marginBottom: 16 }}>
-    <h3>Arrangement reassessment</h3>
+    <h3>{heading}</h3>
     {summary?.planningStage && <p>Returned to {summary.planningStage.replaceAll("_", " ")}.</p>}
     {error && <p role="alert">{error}</p>}
     {!flags.length && <p>No reassessment flags recorded.</p>}

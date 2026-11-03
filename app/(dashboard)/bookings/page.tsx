@@ -7,6 +7,7 @@ import { ConflictList } from "@/components/bookings/ConflictList";
 import { needsManualResolution, reassessmentList } from "@/lib/venues/conflicts";
 import { bookingProblems } from "@/lib/venues/rules";
 import { holdExpiryLabel } from "@/lib/venues/hold-expiry";
+import { ReassessmentPanel } from "@/components/queue/ReassessmentPanel";
 
 export default function BookingsPage() {
   const app = useApp();
@@ -23,6 +24,10 @@ export default function BookingsPage() {
   );
   // US47: pending requests that overlap another pending request, for Venue Staff to resolve by hand.
   const competing = pending.filter(({ booking }) => needsManualResolution(booking));
+  // US49: the saved events whose bookings hold a venue, whose flags Venue Staff may need to resolve.
+  const holding = app.state.events.filter(
+    (e) => e.backendId !== undefined && (e.bookings ?? []).some((b) => b.status === "pending" || b.status === "approved"),
+  );
 
   return (
     <div style={{ padding: "24px 26px 34px", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -46,6 +51,14 @@ export default function BookingsPage() {
           ))}
         </div>
       )}
+
+      {/* US49: bookings an accepted change (or a safety review, US45) flagged "Requires Reassessment"; Venue Staff
+          resolve them here. A panel shows nothing for an event with no venue flags. */}
+      {holding.map((e) => (
+        <div key={e.id} aria-label={`Venue reassessment: ${e.name}`}>
+          <ReassessmentPanel eventId={e.backendId!} kind="venue" heading={`Requires reassessment: ${e.name}`} />
+        </div>
+      ))}
 
       {reassess.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

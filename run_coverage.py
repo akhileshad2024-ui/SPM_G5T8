@@ -93,6 +93,10 @@ TARGETS = {
         "main.py:confirm_event,event_confirmation_status",
         "schemas.py:ConfirmationResponse",
     ],
+    # US49: its venue check. The shared accepted-change reassessment that runs it is US50/US51's (measured there).
+    "test_us49_reassess_venue_bookings": [
+        "change_reassessment.py",
+    ],
     "test_us12_reassign_coordinator": [
         "event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
         "main.py:reassign_coordinator,event_assignment_history",

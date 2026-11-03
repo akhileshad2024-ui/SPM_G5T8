@@ -79,10 +79,10 @@ export function ChangeRequests({ eventId, canReview = false }: { eventId: number
                   <button className="btn btn-danger" onClick={() => void decide(request.id, "rejected")}>Reject change request</button>
                 </fieldset>}
                 {canReview && request.status === "accepted" && (() => {
-                  const evaluation = request.decision?.reassessment as { basis?: string; equipment_checked?: number; registration_checked?: boolean; flag_ids?: number[]; effective_changes?: object; applied_at?: string } | undefined;
+                  const evaluation = request.decision?.reassessment as { basis?: string; equipment_checked?: number; venue_checked?: number; registration_checked?: boolean; flag_ids?: number[]; effective_changes?: object; applied_at?: string } | undefined;
                   if (!evaluation) return null;
                   return <div aria-label="Accepted change reassessment">
-                    <p>Equipment reservations checked: {evaluation.equipment_checked}. Registration settings checked: {evaluation.registration_checked ? "Yes" : "No"}.</p>
+                    <p>Venue bookings checked: {evaluation.venue_checked ?? 0}. Equipment reservations checked: {evaluation.equipment_checked}. Registration settings checked: {evaluation.registration_checked ? "Yes" : "No"}.</p>
                     <p>{evaluation.basis === "reviewed_values" ? "Checked against the reviewed values; event details were retained." : "Checked against current saved details; no structured changes were provided."}</p>
                     <p>Reassessment flags: {evaluation.flag_ids?.length ?? 0}.</p>
                     {!!Object.keys(evaluation.effective_changes ?? {}).length && !evaluation.applied_at && <button className="btn btn-ghost" disabled={saving} onClick={() => void apply(request.id)}>Apply reviewed changes #{request.id}</button>}

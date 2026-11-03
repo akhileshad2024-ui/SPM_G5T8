@@ -508,6 +508,7 @@ python -m pytest tests/us13_event_status     # US13 backend
 python -m pytest tests/us23_booking_approval # US23 backend: approve/reject rules + API (docs/user-stories/US23_booking_approval.md)
 python -m pytest tests/us12_reassign_coordinator tests/unit/lead_assignment/test_us12_reassign_coordinator.py  # US12 backend: reassign rules + API (docs/user-stories/US12_reassign_coordinator.md)
 python -m pytest tests/us14_confirm_event tests/unit/safety/test_us14_confirm_event.py  # US14 backend: confirm rules + API (docs/user-stories/US14_confirm_event.md)
+python -m pytest tests/us49_reassess_venue_bookings tests/unit/accepted_change  # US49 backend: venue re-check + API (docs/user-stories/US49_reassess_venue_bookings.md)
 python -m pytest tests/us42_hold_expiry      # US42 backend: hold expiry rules + API (docs/user-stories/US42_hold_expiry.md)
 npm run test:us01       # US01 frontend unit tests (idle sign-out)
 npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
