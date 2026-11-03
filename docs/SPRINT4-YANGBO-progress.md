@@ -1,6 +1,6 @@
 # Sprint 4 — Yangbo 进度与证据
 
-**当前交付状态：三条故事已完成编码接入及匹配的局部 API／浏览器验证，正在完成最终全量检查和 PR 更新；非作者批准、正式 main 合并及该合并提交 CI 仍不能预先勾选。** 最新事实以 T8 和文末最新交付记录为准；此前“接口缺失／未完成”审核均保留为历史快照，不代表最终源码。
+**当前交付状态：三条故事已完成编码接入及匹配 API／浏览器验证；PR #43 已更新并 Ready for review。非作者批准、正式 main 合并及该合并提交 CI 仍不能预先勾选。** 精确源码提交及验证见 T8，PR 实时检查见下方链接；此前“接口缺失／未完成”审核均保留为历史快照，不代表最终源码。
 
 最后更新：2026-11-03（Asia/Shanghai）。范围：US50（3 点）、US51（3 点）、US45（5 点），共 11 点。
 
@@ -401,7 +401,7 @@ $env:TEMP = (Get-Location).Path
 
 ## T8 — 完整实施后的验证与最新 DoD（2026-11-03）
 
-本节取代前面实现前审核的当前结论，不删除历史证据。代码基线 dafea69（含 main d993a41）+ 本轮源码；提交与 PR CI 后续补齐。规则、兼容取舍、迁移、回滚和运行方法见 `SPRINT4-YANGBO-delivery.md`；当前十条 AC 表已逐行映射实现和测试。
+本节取代前面实现前审核的当前结论，不删除历史证据。源码提交 **561b70d8a57217c35b9d6ff015064c9f4895cf00**（基线 dafea69，含 main d993a41），已推送现有 PR #43。规则、兼容取舍、迁移、回滚和运行方法见 `SPRINT4-YANGBO-delivery.md`；当前十条 AC 表已逐行映射实现和测试。后续只有交付记录文档更新，不把文档记录提交误写为源代码变化。
 
 ### 已实际执行
 
@@ -415,6 +415,7 @@ $env:TEMP = (Get-Location).Path
 | 生产构建 | `npm run build`：成功，18 页面生成完成 | 前端生产编译、类型、打包；不等于部署共享库 |
 | 新浏览器 + 兼容 | Playwright 新 Sprint 4 spec + 原 US34 + US44：15 passed，2.8m | 新故事四例 + US34 三例 + US44 八例；真实本地应用／隔离数据库，无成功流程 mock |
 | 后端全量 | `python -m pytest tests -q -p no:cacheprovider`：1974 passed、1 skipped、979 subtests passed，1055.79s | 首次收集后追加的四个边界测试另行 12 项集合复核通过；不将未收集测试算入旧全量总数。Skip 是未设置 DOD_POSTGRES_TEST_URL 的实际 PostgreSQL 行锁专项；没有把它写成通过 |
+| 已提交版本复核 | 561b70d 上 `npm run build` 成功；仅新故事 spec 再跑：4 passed (1.3m) | 覆盖最终 UI 刷新／UTC 审计修正；启动字体请求出现重试但测试通过，不隐去重试记录 |
 
 最后的代码复核修正了三项问题：开发初次单测导入路径；释放库存后的 operational status/notes 被误认作 reviewed requirement 漂移；新审计时间统一输出 UTC。未修改旧 US34/US44 预期以迎合新流程。原纯文本调用仍自动检查保存事实，明确 basis，不把文本语义伪装为结构化值。
 
@@ -433,3 +434,17 @@ $env:TEMP = (Get-Location).Path
 | 9 | Setup / schema / run docs updated | 已满足 | 已满足 | 已满足 | delivery 文档、迁移 SQL、README、进度／规格已更新；迁移部署前由授权管理员执行，本轮无共享 DDL |
 
 全部项适用。即使 PR CI 成功，也不应将整条故事提前标 Done；非作者批准、main 合并及对应合并提交 CI 是剩余外部交付步骤。
+
+### PR 交付及可核查证据
+
+- [PR #43](https://github.com/akhileshad2024-ui/SPM_G5T8/pull/43)：标题已改为 `US50/US51/US45: reassess accepted changes and rework safety arrangements`，已从 Draft 转 Ready for review，尚未合并。
+- 本轮源码 561b70d 的 [PR CI run 41620715184](https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/41620715184)：已核实 backend `test` 和 `frontend` 成功；全套 functional 的最终状态应读取该运行，不能用本地四例替代整仓库结果。最终 PR head 的全部检查以 [PR Checks](https://github.com/akhileshad2024-ui/SPM_G5T8/pull/43/checks) 为准，文档记录提交也会触发新的 run。
+- 实际 GraphQL 核查：source head 561b70d，base d993a41，`isDraft=false`、`merged=false`、`mergeable=true`，`reviewDecision=REVIEW_REQUIRED`，reviews=[]。这是代码无冲突，不是已经满足非作者评审；不会自己批准或合并。
+- 连接器修改 PR 返回 403，因此使用已成功推送仓库的本地 Git 身份执行同一授权的 GitHub API 更新；凭据仅在进程内存，不打印、不保存、不纳入任何提交。CI／PR 元数据以实际 API 查询为证据。
+- PostgreSQL 行锁专项未运行，共享 Supabase 迁移／部署 smoke 未执行。SQL 文件和步骤已交付；部署前由授权管理员执行。没有修改 Notion／旧 Sprint，也没有自行勾 Done。
+
+### 最新 Notion Pending 英文草案（未写入 Notion）
+
+- US50: Implementation and matched local API/browser tests are complete in PR #43. Pending non-author review, main merge and CI on the actual main merge commit; apply the documented schema migration before deployment.
+- US51: Accepted-change registration reassessment, flags and registered-attendee notifications are implemented and locally tested in PR #43. Pending non-author review, main merge and merge-commit CI.
+- US45: Both safety outcomes, named arrangement rework, resolution/resubmission and backend preparation/confirmation gates are implemented and locally tested in PR #43. Pending non-author review, main merge and merge-commit CI.
