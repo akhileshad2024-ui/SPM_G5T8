@@ -238,6 +238,8 @@ export interface VenueBookingRecord {
   hold_notice?: "expiring_soon" | "expired" | null;
   /** US23-AC5: set for 7 days after Venue Staff decide, so the requesting coordinator is told. */
   decision_notice?: "approved" | "rejected" | null;
+  /** US40: the flagged booking this one replaces (null or absent for an ordinary request). */
+  replaces_booking_id?: number | null;
 }
 
 export interface BookingFlag {
@@ -447,7 +449,7 @@ export interface ModalState {
   confirm: string;
 }
 
-export type QueueFilter = "action" | "unassigned" | "mine" | "all";
+export type QueueFilter = "action" | "unassigned" | "mine" | "all" | "replacement";
 export type EventTab = "request" | "venue" | "equipment" | "registration" | "activity";
 
 export interface VenueFilter {

@@ -4,6 +4,7 @@ import { useApp } from "@/lib/state/app-context";
 import { useRef, useState } from "react";
 import { attendanceLabel, lastUpdatedLabel } from "@/lib/events/details";
 import { StatusPill } from "@/components/ui/Pill";
+import { hasFlaggedBooking } from "@/lib/venues/replacement";
 import type { EventRecord, EventTab } from "@/lib/types";
 import { RequestTab } from "./tabs/RequestTab";
 import { VenueTab } from "./tabs/VenueTab";
@@ -76,6 +77,11 @@ export function EventWorkspace({ event }: { event: EventRecord }) {
       const id = event.backendId;
       actions.push({ label: "Request safety check", onClick: () => void app.requestSafetyCheck(id), variant: "primary" });
     }
+  }
+
+  // US40: a booking whose venue became unavailable needs a replacement; the Venue tab searches for one.
+  if (hasFlaggedBooking(event) && event.status !== "rejected" && event.status !== "cancelled") {
+    actions.unshift({ label: "Find a replacement venue", onClick: () => app.setTab("venue"), variant: "danger" });
   }
 
   const variantClass = { primary: "btn-primary", ghost: "btn-ghost", danger: "btn-danger", muted: "btn-muted" } as const;

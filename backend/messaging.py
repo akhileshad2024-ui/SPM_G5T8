@@ -146,8 +146,11 @@ def booking_decided(db, booking):
     event = booking_event(db, booking)
     when = f"{booking.date}, {booking.start_time}–{booking.end_time}"
     if booking.status == "approved":
+        original = db.get(models.VenueBooking, booking.replaces_booking_id) if booking.replaces_booking_id else None
+        replaced = (f" It replaces the booking at {original.venue_name}, which has been released and no longer needs "
+                    "alternative arrangements.") if original is not None else ""
         notify(db, event.coordinator_id, event, "Venue booking approved",
-               f"{booking.venue_name} is confirmed for {event.name} on {when}.")
+               f"{booking.venue_name} is confirmed for {event.name} on {when}.{replaced}")
     else:
         notify(db, event.coordinator_id, event, "Venue booking rejected",
                f"{booking.venue_name} was not approved for {event.name} on {when}: {booking.decision_reason} "

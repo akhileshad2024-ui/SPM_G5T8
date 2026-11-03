@@ -331,6 +331,8 @@ class BookingRequestCreate(BaseModel):
     attendance: Optional[int] = Field(None, gt=0)
     layout: OptionalLayout = None
     purpose: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]] = None
+    # US40: the flagged booking this request replaces. Its timing, attendance, layout and purpose are the defaults.
+    replaces_booking_id: Optional[int] = Field(None, gt=0)
 
 
 class BookingChange(BaseModel):
@@ -411,6 +413,8 @@ class VenueBooking(BaseModel):
     hold_expires_at: Optional[datetime] = None
     hold_expiry_set_by: Optional[str] = None
     hold_notice: Optional[Literal["expiring_soon", "expired"]] = None
+    # US40: the flagged booking this one replaces (None for an ordinary request).
+    replaces_booking_id: Optional[int] = None
     # US23-AC5: "approved" / "rejected" for 7 days after Venue Staff decide, so the coordinator is told.
     decision_notice: Optional[Literal["approved", "rejected"]] = None
 

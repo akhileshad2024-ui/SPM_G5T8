@@ -1069,7 +1069,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const e = getEvent(state.events, eventId);
         const v = getVenue(state.venues, venueId);
         if (!e || !v) return false;
-        const problem = bookingProblem(e);
+        const problem = bookingProblem(e, details.replaces !== undefined);
         if (problem) {
           flash(problem, "warn");
           return false;
@@ -1088,7 +1088,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               `${v.name} requested for ${e.date}, ${e.start}–${e.end} (held from setup to teardown, ` +
               `${booking.setup_minutes} min setup and ${booking.teardown_minutes} min teardown).` +
               (booking.purpose ? ` For: ${booking.purpose}.` : "") +
-              (ownNeeds ? ` ${booking.attendance} people, ${booking.layout} layout.` : ""),
+              (ownNeeds ? ` ${booking.attendance} people, ${booking.layout} layout.` : "") +
+              (booking.replaces_booking_id ? " Replaces a booking that needs alternative arrangements." : ""),
           });
           await syncEventBookings(e);
           if (booking.override) {
@@ -1104,7 +1105,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             );
           }
           // US22-AC4: Venue Staff's notice is saved on the server.
-          flash(`Booking requested at ${v.name}.`);
+          flash(booking.replaces_booking_id ? `Replacement requested at ${v.name}. Venue Staff will review it.` : `Booking requested at ${v.name}.`);
           return true;
         } catch (err) {
           handleApiError(err);

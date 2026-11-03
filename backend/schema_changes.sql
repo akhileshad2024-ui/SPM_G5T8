@@ -87,3 +87,6 @@ ALTER TABLE event_status_changes ADD CONSTRAINT event_status_to CHECK (to_status
 -- Lead's reason, so event_assignments is the event's full assignment history. Safe to run more than once.
 ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS previous_coordinator_id integer REFERENCES users(id);
 ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS reason text;
+
+-- US40 (Week 7 change CR-W7-2): a replacement booking points at the flagged booking it replaces. Safe to run more than once.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS replaces_booking_id integer REFERENCES venue_bookings(id);

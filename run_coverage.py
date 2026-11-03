@@ -128,6 +128,12 @@ TARGETS = {
         "main.py:list_safety_checks,request_safety_check,decide_safety_check",
         "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
     ],
+    # US40 Request Replacement Venue: the replacement rules, releasing the original, and the approval notice.
+    "test_us40_request_replacement_venue": [
+        "booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification",
+        "venue_bookings.py:open_replacement,release_replaced",
+        "messaging.py:booking_decided",
+    ],
 }
 
 # ---------------------------------------------------------------- mode 2: one report per story folder

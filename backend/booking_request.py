@@ -18,6 +18,8 @@ APPROVED = "approved"
 # An event that already went through a booking (a replacement venue because the first became
 # unavailable, or a new request after a rejection) has moved on from Approved.
 REBOOKABLE = (APPROVED, "planning", "confirmed")
+# US40: an event in its Operational Safety Check (US44) can still replace a booking whose venue became unavailable.
+REPLACEABLE_FROM = REBOOKABLE + ("pending_safety_review", "safety_changes_requested", "safety_approved", "safety_rejected")
 
 
 class BookingRefused(Exception):
@@ -52,10 +54,36 @@ def needs_from_event(event, attendance=None, layout=None) -> SimpleNamespace:
     )
 
 
-def require_bookable_event(event_status: str, rebooking: bool) -> None:
-    """Only an approved event may ask for a venue (a rebooking may also come from a planning or confirmed one)."""
+def replacement_needs(original, event, attendance=None, layout=None) -> SimpleNamespace:
+    """US40: what a replacement venue must provide: the original booking's timing, attendance and layout (unless
+    the coordinator changes the last two), and the event's facilities and accessibility needs."""
+    needs = needs_from_event(event, attendance or original.attendance, layout or original.layout)
+    needs.date, needs.start, needs.end = original.date, original.start_time, original.end_time
+    return needs
+
+
+def require_replaceable(original, event_id: int, open_replacement=None) -> None:
+    """US40: only a booking of this event that still holds a venue and is flagged as needing alternative
+    arrangements (US39) can be replaced, and only one replacement may be open at a time.
+    `open_replacement` is the pending or approved booking that already replaces it, if any."""
+    if original is None:
+        raise BookingRefused("The booking to replace was not found.")
+    if original.event_id != event_id:
+        raise BookingRefused("That booking belongs to another event.")
+    if original.status not in ("pending", "approved"):
+        raise BookingRefused(f"That booking is {original.status}, so it can't be replaced.")
+    if not original.flag:
+        raise BookingRefused("That booking isn't flagged as needing alternative arrangements.")
+    if open_replacement is not None:
+        raise BookingRefused(f"A replacement for this booking is already {open_replacement.status}: {open_replacement.venue_name}. "
+                             "Cancel it to try another venue.")
+
+
+def require_bookable_event(event_status: str, rebooking: bool, replacing: bool = False) -> None:
+    """Only an approved event may ask for a venue (a rebooking may also come from a planning or confirmed one, and a
+    replacement for a flagged booking also from any step of the safety check)."""
     status = event_status.strip().lower()
-    if status not in (REBOOKABLE if rebooking else (APPROVED,)):
+    if status not in (REPLACEABLE_FROM if replacing else REBOOKABLE if rebooking else (APPROVED,)):
         raise BookingRefused(f"A venue can only be requested for an approved event (this event is {status.replace('_', ' ')}).")
 
 
@@ -97,7 +125,8 @@ def stored_override(override):
     return None if override is None else {**override, "acknowledged_at": override["acknowledged_at"].isoformat()}
 
 
-def build_booking(venue, event, needs, verdict: str, requested_by: str, requested_at: datetime, override, purpose=None) -> dict:
+def build_booking(venue, event, needs, verdict: str, requested_by: str, requested_at: datetime, override, purpose=None,
+                  replaces_booking_id=None) -> dict:
     """The values of the pending booking: the venue is held from the start of setup to the end of teardown."""
     hold = occupied_window(event_window(needs.date, needs.start, needs.end), venue)
     return {
@@ -120,13 +149,16 @@ def build_booking(venue, event, needs, verdict: str, requested_by: str, requeste
         "requested_by": requested_by,
         "requested_at": requested_at,
         "override": stored_override(override),
+        "replaces_booking_id": replaces_booking_id,
     }
 
 
-def build_notification(venue, event, needs, override) -> dict:
-    """What Venue Staff are told about the new request."""
+def build_notification(venue, event, needs, override, replaces=None) -> dict:
+    """What Venue Staff are told about the new request. `replaces` is the flagged booking it replaces (US40)."""
     body = (f"{venue.name} requested for {event.name} on {format_date(needs.date)}, "
             f"{needs.start}–{needs.end} ({needs.attendance} people, {needs.layout} layout).")
+    if replaces is not None:
+        body += f" It replaces the booking at {replaces.venue_name}, which needs alternative arrangements."
     if override:
         body += " The coordinator went ahead despite: " + " ".join(item["reason"] for item in override["unmet"])
     return {"to": "venue", "title": "Booking request pending", "body": body}

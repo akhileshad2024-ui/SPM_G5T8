@@ -7,6 +7,7 @@ import { Tag } from "@/components/ui/Pill";
 import type { EventRecord, Layout, RequirementCheck, VenueBookingRecord, VenueSuitability } from "@/lib/types";
 import { LAYOUT_OPTIONS } from "@/lib/data/options";
 import { bookingProblem, holdingBookings } from "@/lib/venues/booking";
+import { openReplacement, originalOf, replacedBy } from "@/lib/venues/replacement";
 import { holdExpiryLabel } from "@/lib/venues/hold-expiry";
 import { VERDICT_COLOURS, VERDICT_LABEL, buildSuitabilityRequest, unmetChecks } from "@/lib/venues/suitability";
 import { bookingProblems, venueHas } from "@/lib/venues/rules";
@@ -43,6 +44,9 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
   const [busy, setBusy] = useState(false);
   const holding = booking.status === "pending" || booking.status === "approved";
   const status = BOOKING_STATUS[booking.status];
+  // US40: a replacement points at the flagged booking it replaces; the original is kept for reference.
+  const original = originalOf(event, booking);
+  const replacement = booking.status === "cancelled" ? replacedBy(event, booking) : undefined;
 
   const save = async (acknowledged: boolean) => {
     setBusy(true);
@@ -62,6 +66,7 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
         <strong>{booking.venue_name}</strong>
         {booking.purpose && <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{booking.purpose}</span>}
         <span className="pill" style={{ background: status.bg, color: status.fg }}>{status.label}</span>
+        {holding && booking.flag && <span className="pill" style={{ background: "var(--bad-bg)", color: "var(--bad-fg)" }}>Needs a replacement</span>}
         <span className="tabular" style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
           {booking.attendance} people · {capitalise(booking.layout)} layout
         </span>
@@ -88,6 +93,16 @@ function BookingRow({ event, booking }: { event: EventRecord; booking: VenueBook
         <div style={{ fontSize: 12.5, color: booking.hold_notice ? "var(--warn-fg)" : "var(--text-muted)", marginTop: 4 }}>
           {holdExpiryLabel(booking)}
           {booking.status === "expired" && " — the venue has been released. Request it again if it is still needed."}
+        </div>
+      )}
+      {original && (
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+          Replacement for the booking at {original.venue_name} ({BOOKING_STATUS[original.status].label.toLowerCase()}), kept for reference.
+        </div>
+      )}
+      {replacement && (
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+          Replaced by the booking at {replacement.venue_name}. The booking is kept for reference.
         </div>
       )}
       {holding && booking.reassessment && (
@@ -213,6 +228,8 @@ export function VenueTab({ event }: { event: EventRecord }) {
   const [purpose, setPurpose] = useState("");
   const [attendance, setAttendance] = useState(String(event.pax || ""));
   const [layout, setLayout] = useState<Layout>(event.layout);
+  // US40: the id of the flagged booking being replaced. The request is linked to it and starts from its needs.
+  const [replacing, setReplacing] = useState<number | null>(null);
 
   const venues = app.state.venues.filter((v) => v.isActive);
   const minCap = parseInt(vf.cap, 10) || 0;
@@ -222,14 +239,31 @@ export function VenueTab({ event }: { event: EventRecord }) {
   // The current booking may have become unusable (venue deactivated/unavailable, or a setup/turnaround clash).
   const currentVenue = app.venue(event.venue);
   const problems = bookingProblems(app.state.events, app.state.venues)[event.id] ?? [];
-  const notBookable = bookingProblem(event);
+  const notBookable = bookingProblem(event, replacing !== null);
   const held = holdingBookings(event);
+  const flagged = held.filter((b) => b.flag);
+  const toReplace = replacing === null ? undefined : (event.bookings ?? []).find((b) => b.id === replacing);
+  const startReplacing = (booking: VenueBookingRecord) => {
+    setReplacing(booking.id);
+    setAttendance(String(booking.attendance));
+    setLayout(booking.layout as Layout);
+    setPurpose(booking.purpose ?? "");
+    setConfirming(null);
+  };
+  const stopReplacing = () => {
+    setReplacing(null);
+    setPurpose("");
+    setAttendance(String(event.pax || ""));
+    setLayout(event.layout);
+  };
   // Only what differs from the event is sent: the server uses the event's attendance and layout otherwise.
   const ownAttendance = Number(attendance) || undefined;
+  // A replacement always sends its needs: the server would otherwise start from the original booking's.
   const details = {
-    attendance: ownAttendance !== event.pax ? ownAttendance : undefined,
-    layout: layout !== event.layout ? layout : undefined,
+    attendance: replacing !== null || ownAttendance !== event.pax ? ownAttendance : undefined,
+    layout: replacing !== null || layout !== event.layout ? layout : undefined,
     purpose,
+    replaces: replacing ?? undefined,
   };
 
   // Ask the backend how well each venue fits this booking's needs (the event's, unless changed above).
@@ -260,9 +294,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
       setConfirming(null);
       setUnderstood(false);
       // Ready for the next booking: back to the event's own needs.
-      setPurpose("");
-      setAttendance(String(event.pax || ""));
-      setLayout(event.layout);
+      stopReplacing();
     }
   };
 
@@ -290,12 +322,53 @@ export function VenueTab({ event }: { event: EventRecord }) {
           </ul>
         </div>
       )}
+      {flagged.length > 0 && (
+        <div className="card callout-danger" style={{ padding: "14px 20px", border: "1px solid #FF4D5E" }} aria-label="Bookings needing a replacement venue">
+          <div className="section-heading">Bookings needing a replacement venue</div>
+          <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0 }}>
+            {flagged.map((b) => {
+              const open = openReplacement(event, b);
+              return (
+                <li key={b.id} style={{ padding: "10px 0", borderTop: "1px solid var(--border)" }} aria-label={`Needs a replacement: ${b.venue_name}`}>
+                  <strong>{b.venue_name}</strong>{" "}
+                  <span className="tabular" style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
+                    {b.date}, {b.start}–{b.end} · {b.attendance} people · {capitalise(b.layout)} layout
+                  </span>
+                  <div style={{ fontSize: 12.5, marginTop: 4 }}>{b.flag!.message}</div>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    {open ? (
+                      <span style={{ fontSize: 12.5 }}>
+                        Replacement requested at {open.venue_name} ({open.status === "approved" ? "approved" : "waiting for Venue Staff"}).
+                      </span>
+                    ) : replacing === b.id ? (
+                      <>
+                        <span style={{ fontSize: 12.5 }}>Choose a replacement venue below.</span>
+                        <button className="btn btn-ghost btn-sm" onClick={stopReplacing}>Stop replacing</button>
+                      </>
+                    ) : (
+                      <button className="btn btn-primary btn-sm" onClick={() => startReplacing(b)}>Find a replacement venue</button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       <EventBookings event={event} />
       <datalist id="booking-purposes">
         {PURPOSES.map((p) => <option key={p} value={p} />)}
       </datalist>
       <div className={`card ${styles.filters}`} aria-label="New booking">
-        <div className="section-heading" style={{ width: "100%" }}>{held.length ? "Book another venue" : "New booking"}</div>
+        <div className="section-heading" style={{ width: "100%" }}>
+          {toReplace ? `Replacement for the booking at ${toReplace.venue_name}` : held.length ? "Book another venue" : "New booking"}
+        </div>
+        {toReplace && (
+          <div className="callout" style={{ width: "100%" }}>
+            Same timing as the original booking ({toReplace.date}, {toReplace.start}–{toReplace.end}). Its attendance, layout and purpose
+            are filled in and can be changed. The original booking is kept for reference and released when the replacement is approved.
+          </div>
+        )}
         <label className="field">
           <span className="eyebrow">Purpose</span>
           <input className={styles.detailInput} style={{ width: 200 }} value={purpose} list="booking-purposes" placeholder="e.g. Main programme"
