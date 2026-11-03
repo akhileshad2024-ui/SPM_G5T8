@@ -168,13 +168,16 @@ STORY_DIRS = {
     "us36": "tests/us36_notifications",
 }
 
-# Backend files each of those stories' tests are meant to cover.
+# Backend files each of those stories' tests are meant to cover. "main.py:a,b" measures only those top-level
+# functions or classes, for files shared by several stories (main.py now holds every story's endpoints, so
+# measuring the whole file marks a story down for code it does not own).
 STORY_FILES = {
     "us01": ["login/auth.py", "login/security.py", "login/schemas.py", "login/models.py", "login/set_password.py"],
-    "us02": ["login/security.py", "event_access.py", "main.py"],
+    "us02": ["login/security.py", "event_access.py", "main.py:event_view,list_events,get_event"],
     "us03": ["main.py", "schemas.py", "models.py"],
-    "us13": ["event_status.py", "event_access.py", "main.py", "schemas.py", "models.py"],
-    "us15": ["event_fields.py", "main.py", "schemas.py"],
+    "us13": ["event_status.py", "event_access.py", "main.py:event_view,list_events,get_event,get_event_history",
+             "schemas.py:StatusChangeResponse", "models.py:EventStatusChange"],
+    "us15": ["event_fields.py", "main.py:event_view,event_response,list_events,get_event", "schemas.py:EventResponse,EventView"],
     "us19": ["venue_calendar.py"],
     "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
     "us36": ["messaging.py"],
@@ -408,10 +411,16 @@ def run_story_folder(story: str) -> int:
 
     cov = coverage.Coverage(data_file=str(data_file))
     cov.load()
-    include = [str(BACKEND / f) for f in STORY_FILES[story]] if story in STORY_FILES else None
+    specs = STORY_FILES.get(story)
+    include = [str(BACKEND / split_target(f)[0]) for f in specs] if specs else None
     buffer = io.StringIO()
-    total = cov.report(include=include, file=buffer, show_missing=True)
-    scope = ", ".join(STORY_FILES[story]) if include else "all of backend/"
+    if specs and any(":" in f for f in specs):
+        # "main.py:a,b" measures only those functions, so a shared file is not marked down for other stories' code.
+        table, total = targeted_report(cov, specs)
+        buffer.write(table)
+    else:
+        total = cov.report(include=include, file=buffer, show_missing=True)
+    scope = ", ".join(specs) if include else "all of backend/"
     header = (
         f"Coverage report for {story.upper()}\n"
         f"Generated: {now:%Y-%m-%d %H:%M:%S}\n"
