@@ -1,0 +1,11 @@
+Coverage report for US36
+Generated: 2026-11-03 19:34:31
+Tests: tests/us36_notifications/test_us36_notifications_api.py, tests/us36_notifications/test_us36_notifications_unit.py
+Result: 40 tests, all passed
+Measured files: messaging.py
+
+Name                   Stmts   Miss  Cover   Missing
+----------------------------------------------------
+backend\messaging.py     161      9    94%   68, 149-152, 303-307
+----------------------------------------------------
+TOTAL                    161      9    94%

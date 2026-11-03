@@ -1,0 +1,67 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 53 items
+
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC1ShowsBookingsAndUnavailablePeriods::test_US19_AC1_each_venue_shows_its_confirmed_pending_and_unavailable_periods PASSED [  1%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC1ShowsBookingsAndUnavailablePeriods::test_US19_AC1_a_venue_with_nothing_booked_is_still_listed PASSED [  3%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC1ShowsBookingsAndUnavailablePeriods::test_US19_AC1_a_deactivated_venue_is_left_out PASSED [  5%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC1ShowsBookingsAndUnavailablePeriods::test_US19_AC1_rejected_and_cancelled_bookings_are_left_out PASSED [  7%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC2OnlyTheDaysAskedFor::test_US19_AC2_only_periods_within_the_days_asked_for_are_returned PASSED [  9%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC2OnlyTheDaysAskedFor::test_US19_AC2_a_period_that_starts_before_the_range_still_shows PASSED [ 11%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC2OnlyTheDaysAskedFor::test_US19_AC2_end_before_start_is_refused PASSED [ 13%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC2OnlyTheDaysAskedFor::test_US19_AC2_a_range_beyond_a_month_view_is_refused PASSED [ 15%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC3SetupAndTurnaround::test_US19_AC3_the_time_range_includes_the_venues_setup_and_turnaround PASSED [ 16%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC3SetupAndTurnaround::test_US19_AC3_the_range_follows_the_venues_current_settings PASSED [ 18%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_the_assigned_coordinator_sees_their_event PASSED [ 20%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_venue_staff_see_every_event PASSED [ 22%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_the_lead_sees_live_events PASSED [ 24%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_technical_support_see_the_venue_busy_but_not_the_event PASSED [ 26%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_another_coordinator_sees_the_venue_busy_but_not_the_event PASSED [ 28%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_organisers_attendees_and_safety_officers_can_not_read_the_calendar[organiser] PASSED [ 30%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_organisers_attendees_and_safety_officers_can_not_read_the_calendar[attendee] PASSED [ 32%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_organisers_attendees_and_safety_officers_can_not_read_the_calendar[safety] PASSED [ 33%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC5DetailsOnlyForAuthorisedViewers::test_US19_AC5_it_needs_a_signed_in_user PASSED [ 35%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC6HoldExpiry::test_US19_AC6_a_tentative_hold_shows_when_it_expires PASSED [ 37%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC6HoldExpiry::test_US19_AC6_an_expired_hold_shows_as_released PASSED [ 39%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC6HoldExpiry::test_US19_AC6_reading_the_calendar_saves_a_lapsed_hold_as_expired PASSED [ 41%]
+tests/us19_availability_calendar/test_us19_calendar_api.py::TestAC6HoldExpiry::test_US19_AC6_a_confirmed_booking_has_no_hold_expiry PASSED [ 43%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_range_error[first0-last0-None] PASSED [ 45%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_range_error[first1-last1-None] PASSED [ 47%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_range_error[first2-last2-The calendar shows at most 62 days at a time.] PASSED [ 49%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_range_error[first3-last3-The end date can't be before the start date.] PASSED [ 50%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_day_range_covers_whole_days PASSED [ 52%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC3_stamp_is_local_wall_clock_time PASSED [ 54%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC3_a_booking_keeps_the_venue_busy_for_setup_and_turnaround PASSED [ 56%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC3_a_venue_without_settings_counts_as_zero_minutes PASSED [ 58%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_a_booking_outside_the_range_gives_no_period PASSED [ 60%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_turnaround_past_midnight_reaches_into_the_next_day PASSED [ 62%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_details_are_left_out_for_a_viewer_who_may_not_see_the_event PASSED [ 64%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_details_are_included_for_a_viewer_who_may_see_the_event PASSED [ 66%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC6_a_hold_past_its_expiry_counts_as_expired_even_before_that_is_saved PASSED [ 67%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC6_a_hold_before_its_expiry_is_pending_with_the_expiry PASSED [ 69%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC6_a_confirmed_booking_does_not_show_its_old_hold_expiry PASSED [ 71%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_unavailable_periods_within_the_range_are_shown PASSED [ 73%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_a_period_with_an_unreadable_time_is_skipped PASSED [ 75%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_a_venue_with_no_recorded_periods_has_none PASSED [ 77%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_venue_staff_may_see_every_event PASSED [ 79%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_a_coordinator_may_see_only_their_own_events PASSED [ 81%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_technical_support_see_no_event_without_an_equipment_assignment PASSED [ 83%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_calendar_lists_each_active_venue_even_with_nothing_booked PASSED [ 84%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_calendar_keeps_each_booking_with_its_own_venue PASSED [ 86%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_calendar_leaves_out_bookings_that_hold_nothing PASSED [ 88%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_calendar_orders_bookings_and_unavailable_periods_by_time PASSED [ 90%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_calendar_only_returns_the_days_asked_for PASSED [ 92%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC5_calendar_names_only_the_events_the_viewer_may_see PASSED [ 94%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC1_the_route_returns_the_calendar PASSED [ 96%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC2_the_route_refuses_a_bad_range PASSED [ 98%]
+tests/us19_availability_calendar/test_us19_calendar_unit.py::test_US19_AC6_the_route_saves_lapsed_holds_before_reading PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 53 passed, 1 warning in 45.77s ========================

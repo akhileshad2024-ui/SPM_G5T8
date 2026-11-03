@@ -1,0 +1,29 @@
+Frontend coverage for US36
+Measured files: lib/notifications.ts
+Tests  17 passed (17)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  19:35:16
+   Duration  589ms (import 43%, transform 31%, tests 16%, worker 10%)
+
+ % Coverage report from v8
+------------------|---------|----------|---------|---------|-------------------
+File              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------|---------|----------|---------|---------|-------------------
+All files         |     100 |    94.44 |     100 |     100 |                   
+ notifications.ts |     100 |    94.44 |     100 |     100 | 46                
+------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 26/26 )
+Branches     : 94.44% ( 17/18 )
+Functions    : 100% ( 15/15 )
+Lines        : 100% ( 17/17 )
+================================================================================

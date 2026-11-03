@@ -1,0 +1,25 @@
+test_a_booking_can_only_be_cancelled_once (tests.unit.venue.test_us41_multiple_venue_bookings.TestCancel.test_a_booking_can_only_be_cancelled_once) ... ok
+test_cancel_all_cancels_every_booking_still_holding_a_venue (tests.unit.venue.test_us41_multiple_venue_bookings.TestCancel.test_cancel_all_cancels_every_booking_still_holding_a_venue) ... ok
+test_cancel_all_with_nothing_to_cancel_is_refused (tests.unit.venue.test_us41_multiple_venue_bookings.TestCancel.test_cancel_all_with_nothing_to_cancel_is_refused) ... ok
+test_cancelling_one_booking_keeps_the_others (tests.unit.venue.test_us41_multiple_venue_bookings.TestCancel.test_cancelling_one_booking_keeps_the_others) ... ok
+test_a_cancelled_booking_cannot_be_changed (tests.unit.venue.test_us41_multiple_venue_bookings.TestChangeOne.test_a_cancelled_booking_cannot_be_changed) ... ok
+test_a_change_that_makes_the_venue_unsuitable_needs_acknowledging (tests.unit.venue.test_us41_multiple_venue_bookings.TestChangeOne.test_a_change_that_makes_the_venue_unsuitable_needs_acknowledging) ... ok
+test_changing_an_approved_booking_sends_it_back_to_venue_staff (tests.unit.venue.test_us41_multiple_venue_bookings.TestChangeOne.test_changing_an_approved_booking_sends_it_back_to_venue_staff) ... ok
+test_changing_one_pending_booking_leaves_the_others_alone (tests.unit.venue.test_us41_multiple_venue_bookings.TestChangeOne.test_changing_one_pending_booking_leaves_the_others_alone) ... ok
+test_a_venue_held_by_another_event_is_not_free_for_this_one (tests.unit.venue.test_us41_multiple_venue_bookings.TestCheckedOnItsOwn.test_a_venue_held_by_another_event_is_not_free_for_this_one) ... ok
+test_each_booking_is_decided_on_its_own (tests.unit.venue.test_us41_multiple_venue_bookings.TestCheckedOnItsOwn.test_each_booking_is_decided_on_its_own) ... ok
+test_suitability_uses_the_bookings_own_attendance_and_layout (tests.unit.venue.test_us41_multiple_venue_bookings.TestCheckedOnItsOwn.test_suitability_uses_the_bookings_own_attendance_and_layout) ... ok
+test_attendance_layout_and_purpose_are_saved_per_booking (tests.unit.venue.test_us41_multiple_venue_bookings.TestEachBookingsNeeds.test_attendance_layout_and_purpose_are_saved_per_booking) ... ok
+test_without_its_own_needs_a_booking_uses_the_events (tests.unit.venue.test_us41_multiple_venue_bookings.TestEachBookingsNeeds.test_without_its_own_needs_a_booking_uses_the_events) ... ok
+test_the_coordinator_sees_all_the_events_bookings_with_their_statuses (tests.unit.venue.test_us41_multiple_venue_bookings.TestSeenTogether.test_the_coordinator_sees_all_the_events_bookings_with_their_statuses) ... ok
+test_the_events_summary_follows_its_bookings (tests.unit.venue.test_us41_multiple_venue_bookings.TestSeenTogether.test_the_events_summary_follows_its_bookings) ... ok
+test_each_booking_must_be_for_a_different_venue (tests.unit.venue.test_us41_multiple_venue_bookings.TestSeveralVenues.test_each_booking_must_be_for_a_different_venue) ... ok
+test_one_event_can_request_several_venues_at_once (tests.unit.venue.test_us41_multiple_venue_bookings.TestSeveralVenues.test_one_event_can_request_several_venues_at_once) ... ok
+test_the_same_venue_can_be_asked_for_again_once_its_booking_is_cancelled (tests.unit.venue.test_us41_multiple_venue_bookings.TestSeveralVenues.test_the_same_venue_can_be_asked_for_again_once_its_booking_is_cancelled) ... ok
+test_an_unknown_booking_is_not_found (tests.unit.venue.test_us41_multiple_venue_bookings.TestWhoMay.test_an_unknown_booking_is_not_found) ... ok
+test_only_the_events_coordinator_may_change_or_cancel (tests.unit.venue.test_us41_multiple_venue_bookings.TestWhoMay.test_only_the_events_coordinator_may_change_or_cancel) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.143s
+
+OK
