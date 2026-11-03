@@ -6,6 +6,7 @@ import type {
   Role,
   WorkflowResult,
 } from "../../types";
+import { hasFlaggedBooking } from "../../venues/replacement";
 import { fail, isCoordinator, withChanges } from "./shared";
 
 /** Statuses that are still going through coordinator review (US07). */
@@ -46,6 +47,7 @@ export function reviewQueue(
     if (filter === "action" && !needsCoordinatorAction(e)) return false;
     if (filter === "unassigned" && !(IN_REVIEW_STATUSES.includes(e.status) && !e.coordinator)) return false;
     if (filter === "mine" && e.coordinator !== me) return false;
+    if (filter === "replacement" && !hasFlaggedBooking(e)) return false; // US40: a booking needs a replacement venue
     if (q && !`${e.name} ${e.organiser} ${e.id}`.toLowerCase().includes(q)) return false;
     return true;
   });

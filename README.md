@@ -319,6 +319,30 @@ A Safety Officer reviews the safety of an event's arrangements before it goes on
   the end of `backend/schema_changes.sql` once. The Safety Officer account is created in the `users` table like the
   others, then `python -m login.set_password <email>` gives it a password (see the comments in that step).
 
+## Replacement venue (US40)
+
+When a venue is marked unavailable (US39), every booking that holds it during the period is flagged as needing
+alternative arrangements. The Event Coordinator then asks for a replacement venue.
+
+- **Seeing them (AC1).** The review queue has a **Needs a venue (N)** filter listing the coordinator's events with a
+  flagged booking. On such an event, **Find a replacement venue** opens the Venue tab, whose **Bookings needing a
+  replacement venue** section lists each flagged booking with its message (`GET /bookings` carries the `flag`).
+- **Searching (AC2).** **Find a replacement venue** on a booking fills the venue list's needs from that booking: its
+  date and times, attendance, layout and purpose (the event's facilities and accessibility needs apply as always).
+  Venues that are unavailable or booked at that time are not offered.
+- **Requesting (AC3).** The request is sent with `replaces_booking_id` (`POST /venues/{id}/booking-requests`), so the new
+  booking is linked to the original. The server uses the original's timing and needs unless the coordinator changes
+  the attendance or layout. It refuses a booking that is not flagged, belongs to another event, no longer holds a
+  venue, or already has an open (pending or approved) replacement: one replacement at a time. An event in its
+  Operational Safety Check (US44) can still ask. Venue Staff see "Replacement venue" on the request.
+- **Keeping the original (AC4).** The event and the original booking are not changed by the request. When the
+  replacement is approved, the original is released: it stays on the event as a cancelled booking, shown as
+  "Replaced by the booking at ..." (the replacement points back at it), so nothing is lost.
+- **Clearing the flag (AC5).** Approving the replacement clears the original's flag (the coordinator is told in the
+  approval notification). A rejected, expired or cancelled replacement leaves the original flagged, so another venue
+  can be tried.
+- **Database:** `venue_bookings.replaces_booking_id`: run the US40 step at the end of `backend/schema_changes.sql` once.
+
 ## Project structure
 
 ```
@@ -412,7 +436,7 @@ predates US17, run the steps in `backend/schema_changes.sql` once in the Supabas
 dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
 column) must wait until every branch uses the new venue model. US42 (tentative
 holds expire) adds two `venue_bookings` columns, US38 (Requires Reassessment) one and US44 (Operational
-Safety Check) the Safety Officer role and four event statuses: run each story's step at the end of that file once.
+Safety Check) the Safety Officer role and four event statuses, and US40 (replacement venue) one column: run each story's step at the end of that file once.
 
 **Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
 The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues

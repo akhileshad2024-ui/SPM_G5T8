@@ -276,9 +276,15 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
         raise HTTPException(status_code=403, detail="You don't have permission to do that")
 
     try:
-        needs = booking_request.needs_from_event(event, request.attendance, request.layout)
+        original = None
+        if request.replaces_booking_id is not None:  # US40: a replacement for a flagged booking, linked to it
+            original = db.get(models.VenueBooking, request.replaces_booking_id)
+            booking_request.require_replaceable(original, event.id, venue_bookings.open_replacement(db, original) if original else None)
+            needs = booking_request.replacement_needs(original, event, request.attendance, request.layout)
+        else:
+            needs = booking_request.needs_from_event(event, request.attendance, request.layout)
         rebooking = event.booking_state is not None or bool(venue_bookings.event_bookings(db, event.id))
-        booking_request.require_bookable_event(event.status.value, rebooking)
+        booking_request.require_bookable_event(event.status.value, rebooking, replacing=original is not None)
         booking_request.require_active_venue(venue)
         held = venue_bookings.held_periods(db, venue_ids=[venue.id])
         booking_request.require_new_venue_for_event(venue, event.id, held)
@@ -290,9 +296,11 @@ def request_venue_booking(venue_id: int, request: schemas.BookingRequestCreate, 
 
     now = datetime.now(timezone.utc)
     override = None if verdict == venue_suitability.SUITABLE else venue_suitability.override_record(verdict, checks, user.email, now)
-    notice = booking_request.build_notification(venue, event, needs, override)
+    notice = booking_request.build_notification(venue, event, needs, override, replaces=original)
     messaging.booking_requested(db, event, notice)  # US22-AC4: saved with the request
-    row = venue_bookings.save_request(db, event, booking_request.build_booking(venue, event, needs, verdict, user.email, now, override, request.purpose))
+    purpose = request.purpose or (original.purpose if original else None)
+    row = venue_bookings.save_request(db, event, booking_request.build_booking(
+        venue, event, needs, verdict, user.email, now, override, purpose, replaces_booking_id=request.replaces_booking_id))
     return schemas.BookingRequestResponse(booking=venue_bookings.to_record(row), notification=notice)
 
 # The saved booking requests the signed-in coordinator or Venue Staff member can see: those of the events

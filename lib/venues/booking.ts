@@ -12,12 +12,15 @@ export interface BookingDetails {
   attendance?: number;
   layout?: Layout;
   purpose?: string;
+  /** US40: the id of the flagged booking this request replaces. */
+  replaces?: number;
 }
 
 /** Body for POST /venues/{id}/booking-requests: the event, whether the warning was acknowledged, and this booking's needs. */
-export interface BookingRequestBody extends BookingDetails {
+export interface BookingRequestBody extends Omit<BookingDetails, "replaces"> {
   event_id: number;
   acknowledged: boolean;
+  replaces_booking_id?: number;
 }
 
 /** An event that already went through a booking (another venue, or a new request after a rejection). */
@@ -26,8 +29,11 @@ export function isRebooking(event: Pick<EventRecord, "bookingState" | "bookings"
 }
 
 /** Why this event can't ask for a venue yet, or null when it can. The backend checks the same things. */
-export function bookingProblem(event: EventRecord): string | null {
-  const allowed = isRebooking(event) ? ["approved", "planning", "confirmed"] : ["approved"];
+export function bookingProblem(event: EventRecord, replacing = false): string | null {
+  const rebookable = ["approved", "planning", "confirmed"];
+  // US40: a replacement for a flagged booking is also allowed at any step of the Operational Safety Check (US44).
+  const safetyCheck = ["pending_safety_review", "safety_changes_requested", "safety_approved", "safety_rejected"];
+  const allowed = replacing ? [...rebookable, ...safetyCheck] : isRebooking(event) ? rebookable : ["approved"];
   if (!allowed.includes(event.status)) return "A venue can only be requested for an approved event.";
   if (event.backendId == null) return "Save the event before requesting a venue.";
   if (!eventTiming(event)) return "Set the event's date, start time and end time first.";
@@ -40,6 +46,7 @@ export function buildBookingRequest(event: EventRecord, warningAcknowledged: boo
   if (details.attendance) body.attendance = details.attendance;
   if (details.layout) body.layout = details.layout;
   if (details.purpose?.trim()) body.purpose = details.purpose.trim();
+  if (details.replaces) body.replaces_booking_id = details.replaces;
   return body;
 }
 

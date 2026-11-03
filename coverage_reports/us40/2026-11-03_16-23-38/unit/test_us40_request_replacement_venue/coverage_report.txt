@@ -1,0 +1,13 @@
+Coverage report for test_us40_request_replacement_venue  (unit tests)
+Generated: 2026-11-03 16:23:38
+Test file: tests/unit/venue/test_us40_request_replacement_venue.py
+Result: 49 tests, all passed
+Measured code: booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification, venue_bookings.py:open_replacement,release_replaced, messaging.py:booking_decided
+
+Name                                                                                                              Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------------------------------------------------------------------------------
+booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification     29     0   100%  
+venue_bookings.py:open_replacement,release_replaced                                                                   9     0   100%  
+messaging.py:booking_decided                                                                                          8     0   100%  
+------------------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                                46     0   100%

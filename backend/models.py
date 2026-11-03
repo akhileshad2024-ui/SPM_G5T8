@@ -198,6 +198,9 @@ class VenueBooking(Base):
     # the hold no longer blocks the venue and is left out of every conflict check.
     hold_expires_at = Column(DateTime(timezone=True), nullable=True)
     hold_expiry_set_by = Column(String, nullable=True)
+    # US40: the flagged booking this one replaces. The original is kept for reference; it is released, and its
+    # flag cleared, once this booking is approved.
+    replaces_booking_id = Column(Integer, ForeignKey("venue_bookings.id"), nullable=True, index=True)
 
 
 class SafetyReview(Base):
