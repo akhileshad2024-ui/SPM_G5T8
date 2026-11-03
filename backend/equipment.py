@@ -21,7 +21,7 @@ from messaging import notify
 router = APIRouter()
 CATALOGUE = [("E1", "Wireless microphone", 12), ("E2", "Projector", 6),
              ("E3", "PA system", 4), ("E4", "Stage lighting rig", 2), ("E5", "Live-stream kit", 3)]
-PLANNING = {"submitted", "under_review", "pending_clarification", "approved"}
+PLANNING = {"submitted", "under_review", "pending_clarification", "approved", "safety_changes_requested", "safety_rejected"}
 
 
 class Line(BaseModel):

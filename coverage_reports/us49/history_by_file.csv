@@ -1,2 +1,0 @@
-timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
-2026-11-03 19:14:56,unit,test_us49_reassess_venue_bookings,37,passed,100.0,unit/test_us49_reassess_venue_bookings

@@ -1,4 +1,5 @@
 import { DEFAULT_ROUTE } from "./auth/route-access";
+import { eventKey } from "./events/request/api";
 import type { EventRecord, NotificationRecord, Role } from "./types";
 
 /**
@@ -79,6 +80,8 @@ export function notificationTarget(
   if (n.eventId === undefined) return null;
   if (role === "organiser") return { route: `/my-events/${n.eventId}` };
   const event = events.find((e) => e.backendId === n.eventId);
-  if (role === "coordinator" && event) return { route: "/queue", select: event.id };
+  // Notifications can load before events after sign-in. Keep the target selected
+  // while the authorised event list loads; this does not grant access to an event.
+  if (role === "coordinator") return { route: "/queue", select: event?.id ?? eventKey(n.eventId) };
   return { route: DEFAULT_ROUTE[role] };
 }

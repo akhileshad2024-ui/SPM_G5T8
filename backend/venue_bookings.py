@@ -67,6 +67,7 @@ def to_record(row: models.VenueBooking, staff: bool = False, now: Optional[datet
         "override": row.override,
         "decided_by": row.decided_by, "decided_at": _utc(row.decided_at), "decision_reason": row.decision_reason,
         "flag": row.flag,
+        "replaces_booking_id": row.replaces_booking_id,
         "reassessment": _reassessment(row, staff),
         # US42: when the tentative hold lapses, who set that, and what the coordinator should be told.
         "hold_expires_at": _utc(row.hold_expires_at), "hold_expiry_set_by": row.hold_expiry_set_by,
@@ -152,6 +153,25 @@ def save_request(db, event: models.Event, values: dict) -> models.VenueBooking:
     return row
 
 
+def open_replacement(db, original: models.VenueBooking) -> Optional[models.VenueBooking]:
+    """US40: the pending or approved booking that already replaces `original`, if there is one."""
+    return db.query(models.VenueBooking).filter(
+        models.VenueBooking.replaces_booking_id == original.id, models.VenueBooking.status.in_(HOLDING)
+    ).order_by(models.VenueBooking.id).first()
+
+
+def release_replaced(db, replacement: models.VenueBooking) -> Optional[models.VenueBooking]:
+    """US40: `replacement` has been approved, so the booking it replaces is released and its flag cleared. The
+    original row stays, for reference, as a cancelled booking (the replacement points back at it). Does not commit.
+    Returns the released booking, or None when there was nothing to release."""
+    original = db.get(models.VenueBooking, replacement.replaces_booking_id) if replacement.replaces_booking_id else None
+    if original is None or original.status not in HOLDING:
+        return None
+    original.status = "cancelled"
+    original.flag = None
+    return original
+
+
 def require_holding(booking: models.VenueBooking) -> None:
     if booking.status not in HOLDING:
         raise BookingRefused(f"This booking is {booking.status}, so it can't be changed or cancelled.")
@@ -232,6 +252,7 @@ def decide(db, booking: models.VenueBooking, outcome: str, reason: str, decided_
         booking.status = "approved"  # the event's other bookings are kept (US41)
 
     booking.decided_by, booking.decided_at, booking.decision_reason = decided_by, now, reason or None
+    released = release_replaced(db, booking) if booking.status == "approved" else None  # US40
     summarise(db, event)
     # A rejected booking no longer clashes with anything, and an approved one's neighbours see it as confirmed (US38).
-    venue_reassessment.reconcile(db, {booking.venue_id}, now)
+    venue_reassessment.reconcile(db, {booking.venue_id, *([released.venue_id] if released else [])}, now)

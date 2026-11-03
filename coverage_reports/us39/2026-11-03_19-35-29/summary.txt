@@ -1,0 +1,4 @@
+US39 unit test and coverage summary - 2026-11-03 19:35:29
+
+type    test file                          tests  result   coverage
+unit    test_us39_mark_venue_unavailable      12  passed     100.0%

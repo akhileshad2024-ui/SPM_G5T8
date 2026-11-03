@@ -1,0 +1,12 @@
+Coverage report for test_us39_mark_venue_unavailable  (unit tests)
+Generated: 2026-11-03 19:35:29
+Test file: tests/unit/venue/test_us39_mark_venue_unavailable.py
+Result: 12 tests, all passed
+Measured code: venue_unavailability.py, schemas.py:UnavailabilityPeriod
+
+Name                             Stmts  Miss  Cover  Missing
+---------------------------------------------------------------
+venue_unavailability.py             36     0   100%  
+schemas.py:UnavailabilityPeriod      9     0   100%  
+---------------------------------------------------------------
+TOTAL                               45     0   100%

@@ -1,5 +1,5 @@
 """
-The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US38, US39, US41, US44, US46, US47, US48):
+The test-case specifications for the venue functional tests (US17, US18, US20, US21, US22, US37, US38, US39, US40, US41, US44, US46, US47, US48):
 the "written once" half of the test-case template. The Playwright specs in tests/functional/ carry
 the same IDs in their titles, e.g. "[TC-US18-01]".
 
@@ -537,3 +537,49 @@ case("TC-US44-08", "US44", "AC7", "Check a rejected safety arrangement returns t
      f"{COORD_DATA}\n{SAFETY_DATA}",
      "The status is Safety Rejected, not Rejected, and the Request tab says \"This event is not closed. Rework the arrangements (US45), then request the safety check again.\". "
      "Requesting again sets Pending Safety Review. The officer sees the first round's rejection kept in the history and approves; the event is then Safety Approved.")
+
+
+# ------------------------------------------------------------------ US40 Request Replacement Venue
+FLAGGED = ("An approved event of Priya Tan's (120 expected) with an approved booking for 40 people, classroom layout, purpose \"Breakout session\", "
+           "10:00-12:00, at a venue Venue Staff then made unavailable that day (Maintenance: Floor repairs), so the booking is flagged; a second venue is free.")
+case("TC-US40-01", "US40", "AC1", "Check the Event Coordinator can see every booking flagged as needing alternative arrangements",
+     f"{ENV} {COORD} {FLAGGED} A second approved event has nothing booked.",
+     ["Sign in as the Event Coordinator and select the Needs a venue filter in the Review queue", "Open the flagged event", "Open its Venue tab and read Bookings needing a replacement venue"],
+     COORD_DATA,
+     "The filter lists the flagged event and not the other one. The event's workspace offers Find a replacement venue. The Venue tab lists the booking under Bookings needing a replacement venue "
+     "with \"<venue> is unavailable (Maintenance: Floor repairs) ... A replacement venue is required.\", 40 people and Classroom layout, and the booking is tagged Needs a replacement.")
+case("TC-US40-02", "US40", "AC2", "Check the search for a replacement starts from the original booking's timing and requirements",
+     f"{ENV} {COORD} {FLAGGED}",
+     ["Open the flagged event's Venue tab", "Select Find a replacement venue on the flagged booking", "Read the new booking form and the venue list"],
+     COORD_DATA,
+     "The form reads \"Replacement for the booking at <original venue>\" and \"Same timing as the original booking (<date>, 10:00–12:00).\", with attendance 40, layout classroom and purpose \"Breakout session\" filled in. "
+     "The free venue is Suitable with Request booking; the original venue shows Booked and cannot be chosen again.")
+case("TC-US40-03", "US40", "AC3", "Check the replacement request is linked to the original booking and Venue Staff can see that",
+     f"{ENV} {COORD} {STAFF} {FLAGGED}",
+     ["Select Find a replacement venue, then Request booking on the free venue", "Read the flagged booking and the new booking",
+      "In another browser, sign in as Venue Staff and open Booking requests"],
+     f"{COORD_DATA}\n{STAFF_DATA}",
+     "A message says the replacement was requested and Venue Staff will review it. The flagged booking reads \"Replacement requested at <venue> (waiting for Venue Staff).\" with no second Find a replacement venue; "
+     "a second request for the same booking is refused. The new booking reads \"Replacement for the booking at <original venue>\". Venue Staff's request card says \"Replacement venue. Replaces the booking at <original venue>, which needs alternative arrangements.\"")
+case("TC-US40-04", "US40", "AC4", "Check the original event information and booking are kept for reference",
+     f"{ENV} {COORD} {FLAGGED} The replacement was requested and Venue Staff approved it.",
+     ["Sign in as the Event Coordinator, open the event and its Venue tab", "Read the original booking and the event's status and details"],
+     COORD_DATA,
+     "The event is still Approved with its name, date and times. The original booking is still listed, Cancelled, with \"Replaced by the booking at <replacement venue>. The booking is kept for reference.\", 40 people and Classroom layout; "
+     "the replacement is Approved.")
+case("TC-US40-05", "US40", "AC5", "Check the flag is cleared once the replacement booking is approved",
+     f"{ENV} {COORD} {FLAGGED} The replacement was requested; Venue Staff approve it during the test.",
+     ["Sign in as the Event Coordinator and select the Needs a venue filter: the event is listed while the replacement is pending", "Venue Staff approve the replacement", "Reload, select the filter again, open the event and its Venue tab, and open Notifications"],
+     f"{COORD_DATA}\n{STAFF_DATA}",
+     "Before approval the event is under Needs a venue. After approval the filter no longer lists it, Find a replacement venue and the Bookings needing a replacement venue section are gone, the original booking no longer says Needs a replacement, "
+     "and Notifications holds \"Venue booking approved\" saying \"It replaces the booking at <original venue>, which has been released and no longer needs alternative arrangements.\"")
+case("TC-US40-06", "US40", "AC5", "Check a rejected replacement leaves the booking flagged so another venue can be tried",
+     f"{ENV} {COORD} {FLAGGED} The replacement was requested and Venue Staff rejected it with a reason.",
+     ["Sign in as the Event Coordinator, open the event and its Venue tab"],
+     COORD_DATA,
+     "The original booking is still Approved and listed under Bookings needing a replacement venue, with Find a replacement venue offered again. The rejected request is listed as Rejected.")
+case("TC-US40-07", "US40", "AC3", "Check an event waiting for its safety check can still replace the flagged booking",
+     f"{ENV} {COORD} {FLAGGED} The event was sent to its safety check (Pending Safety Review).",
+     ["Sign in as the Event Coordinator and open the event: its status is Pending Safety Review", "Open the Venue tab, select Find a replacement venue, then Request booking on the free venue"],
+     COORD_DATA,
+     "The replacement is requested (\"Replacement requested at <venue>.\") and the new booking reads \"Replacement for the booking at <original venue>\", although the event is waiting for its safety check.")

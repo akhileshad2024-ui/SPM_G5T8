@@ -57,7 +57,7 @@ def record_initial_status(db: Session, event: models.Event, user: User, now: dat
 
 
 def change_status(db: Session, event: models.Event, new: S, user: User, now: datetime,
-                  reason: Optional[str] = None) -> None:
+                  reason: Optional[str] = None, *, rework: bool = False) -> None:
     """Move `event` to `new` and record it. Refuses changes the workflow doesn't allow (409).
 
     Does not commit, so the caller saves the status change together with its other updates.
@@ -66,7 +66,9 @@ def change_status(db: Session, event: models.Event, new: S, user: User, now: dat
     current = event.status
     if new == current:
         return
-    if not can_change(current, new):
+    returning_to_planning = (rework and new == S.approved and bool(reason)
+                             and current in (*SAFETY_STATUSES, S.confirmed))
+    if not can_change(current, new) and not returning_to_planning:
         raise HTTPException(
             status_code=http_status.HTTP_409_CONFLICT,
             detail=f"An event that is {label(current)} can't be changed to {label(new)}.",

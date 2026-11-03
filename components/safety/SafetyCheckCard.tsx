@@ -21,6 +21,7 @@ export function SafetyCheckCard({ check }: { check: SafetyCheck }) {
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Array<{type: "venue" | "equipment"; id: number}>>([]);
   const waiting = isAwaiting(check);
   const concerns = concernCount(check);
 
@@ -32,7 +33,7 @@ export function SafetyCheckCard({ check }: { check: SafetyCheck }) {
     }
     setError(null);
     setBusy(true);
-    const ok = await app.decideSafetyCheck(check.eventId, outcome, comment);
+    const ok = await app.decideSafetyCheck(check.eventId, outcome, comment, outcome === "approved" ? [] : selected);
     setBusy(false);
     if (ok) setComment("");
   }
@@ -95,6 +96,15 @@ export function SafetyCheckCard({ check }: { check: SafetyCheck }) {
 
       {waiting && (
         <div style={{ marginTop: 14 }}>
+          <fieldset style={{ marginBottom: 12 }}>
+            <legend>Arrangements requiring revision</legend>
+            <p>Select only the arrangements named in this safety request. Approval does not flag arrangements.</p>
+            {check.targets?.map(target => <label key={`${target.type}-${target.id}`} style={{ display: "block" }}>
+              <input type="checkbox" aria-label={`Reassess ${target.label}`} checked={selected.some(item => item.type === target.type && item.id === target.id)}
+                onChange={e => setSelected(old => e.target.checked ? [...old, {type: target.type, id: target.id}] : old.filter(item => item.type !== target.type || item.id !== target.id))} />
+              {target.label}
+            </label>)}
+          </fieldset>
           <label className="eyebrow" htmlFor={`safety-comment-${check.eventId}`}>Comment</label>
           <textarea
             id={`safety-comment-${check.eventId}`}

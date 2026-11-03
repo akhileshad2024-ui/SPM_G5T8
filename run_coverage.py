@@ -93,11 +93,6 @@ TARGETS = {
         "main.py:confirm_event,event_confirmation_status",
         "schemas.py:ConfirmationResponse",
     ],
-    "test_us49_reassess_venue_bookings": [
-        "change_reassessment.py",
-        "main.py:review_event_change,resolve_booking_reassessment",
-        "schemas.py:AcceptedChangesIn,ReassessmentResolutionIn",
-    ],
     "test_us12_reassign_coordinator": [
         "event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
         "main.py:reassign_coordinator,event_assignment_history",
@@ -138,6 +133,25 @@ TARGETS = {
         "main.py:list_safety_checks,request_safety_check,decide_safety_check",
         "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
     ],
+    # US39 Mark Venue Temporarily Unavailable: validating a period, finding and flagging the bookings it overlaps.
+    "test_us39_mark_venue_unavailable": [
+        "venue_unavailability.py",
+        "schemas.py:UnavailabilityPeriod",
+    ],
+    # US41 Manage Multiple Venue Bookings for an Event: each venue once per event, a booking's own needs, changing
+    # or cancelling one booking (or all of them). Requesting a booking is shared with US22, so it is not measured here.
+    "test_us41_multiple_venue_bookings": [
+        "booking_request.py:needs_from_event,require_new_venue_for_event",
+        "venue_bookings.py:event_bookings,summarise,save_request,require_holding,change,cancel",
+        "main.py:coordinators_event,coordinators_booking,change_booking,cancel_booking,cancel_all_bookings",
+        "schemas.py:BookingChange",
+    ],
+    # US40 Request Replacement Venue: the replacement rules, releasing the original, and the approval notice.
+    "test_us40_request_replacement_venue": [
+        "booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification",
+        "venue_bookings.py:open_replacement,release_replaced",
+        "messaging.py:booking_decided",
+    ],
 }
 
 # ---------------------------------------------------------------- mode 2: one report per story folder
@@ -149,7 +163,9 @@ STORY_DIRS = {
     "us03": "tests/us03_us04_event_request",
     "us13": "tests/us13_event_status",
     "us15": "tests/us15_event_information",
+    "us19": "tests/us19_availability_calendar",
     "us29": "tests/us29_us32_registration",
+    "us36": "tests/us36_notifications",
 }
 
 # Backend files each of those stories' tests are meant to cover.
@@ -159,7 +175,9 @@ STORY_FILES = {
     "us03": ["main.py", "schemas.py", "models.py"],
     "us13": ["event_status.py", "event_access.py", "main.py", "schemas.py", "models.py"],
     "us15": ["event_fields.py", "main.py", "schemas.py"],
+    "us19": ["venue_calendar.py"],
     "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
+    "us36": ["messaging.py"],
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.
@@ -170,11 +188,12 @@ STORY_FRONTEND = {
              "lib/events/request/form-adapter.ts", "lib/events/request/submission.ts"],
     "us13": ["lib/events/status-history.ts"],
     "us15": ["lib/events/details.ts"],
+    "us19": ["lib/venues/calendar.ts", "components/bookings/AvailabilityCalendar.tsx"],
     "us29": ["lib/registration.ts"],
+    "us36": ["lib/notifications.ts"],
     "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
     "us12": ["lib/events/review/reassignment.ts"],
     "us14": ["lib/events/confirmation.ts"],
-    "us49": ["lib/events/change-reassessment.ts"],
     "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
@@ -184,7 +203,6 @@ STORY_FRONTEND_TESTS = {
     "us11": "tests/unit/event-review",
     "us12": "tests/unit/event-review/reassignment",
     "us14": "tests/unit/event-review/confirmation",
-    "us49": "tests/unit/event-review/change-reassessment",
     "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 

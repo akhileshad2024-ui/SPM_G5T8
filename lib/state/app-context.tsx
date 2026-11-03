@@ -329,7 +329,7 @@ export interface AppApi {
   /** US44: the coordinator sends an event whose venue and equipment are confirmed to its safety check. */
   requestSafetyCheck: (backendId: number) => Promise<boolean>;
   /** US44: the Safety Officer approves, requests changes or rejects (a comment is mandatory unless approving). */
-  decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string) => Promise<boolean>;
+  decideSafetyCheck: (backendId: number, outcome: SafetyOutcome, comment: string, targets?: Array<{type: "venue" | "equipment"; id: number}>) => Promise<boolean>;
   saveEventDetails: (backendId: number, values: EventDetailsUpdate) => Promise<boolean>;
   /** US14: the assigned coordinator confirms the event; the server refuses (listing what is outstanding) until it is ready. */
   confirmEvent: (id: string) => Promise<boolean>;
@@ -368,8 +368,6 @@ export interface AppApi {
   approveBooking: (eventId: string, bookingId: number) => void;
   /** US42: Venue Staff set when a pending request's tentative hold expires (`local` = datetime-local value, campus time). */
   setHoldExpiry: (eventId: string, bookingId: number, local: string) => Promise<boolean>;
-  /** US49: Venue Staff reassessed a booking an accepted change flagged and found it still fits (`note` says why). */
-  resolveReassessment: (eventId: string, bookingId: number, note: string) => Promise<boolean>;
   /**
    * US41: change one booking's attendance, layout or purpose; the event's other bookings are kept. When the venue
    * isn't fully suitable for the new needs, resolves with `warning` until called again with `acknowledged`.
@@ -1023,9 +1021,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return false;
         }
       },
-      decideSafetyCheck: async (backendId, outcome, comment) => {
+      decideSafetyCheck: async (backendId, outcome, comment, targets = []) => {
         try {
-          await apiFetch<SafetyCheck>(`/events/${backendId}/safety-check`, { method: "POST", body: JSON.stringify({ outcome, comment }) });
+          await apiFetch<SafetyCheck>(`/events/${backendId}/safety-check`, { method: "POST", body: JSON.stringify({ outcome, comment, targets }) });
           await loadSafetyChecks();
           flash(outcome === "approved" ? "Safety check approved. The coordinator has been told." : outcome === "rejected"
             ? "Safety arrangement rejected. The coordinator has been told." : "Changes requested. The coordinator has been told.");
@@ -1091,7 +1089,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const e = getEvent(state.events, eventId);
         const v = getVenue(state.venues, venueId);
         if (!e || !v) return false;
-        const problem = bookingProblem(e);
+        const problem = bookingProblem(e, details.replaces !== undefined);
         if (problem) {
           flash(problem, "warn");
           return false;
@@ -1110,7 +1108,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               `${v.name} requested for ${e.date}, ${e.start}–${e.end} (held from setup to teardown, ` +
               `${booking.setup_minutes} min setup and ${booking.teardown_minutes} min teardown).` +
               (booking.purpose ? ` For: ${booking.purpose}.` : "") +
-              (ownNeeds ? ` ${booking.attendance} people, ${booking.layout} layout.` : ""),
+              (ownNeeds ? ` ${booking.attendance} people, ${booking.layout} layout.` : "") +
+              (booking.replaces_booking_id ? " Replaces a booking that needs alternative arrangements." : ""),
           });
           await syncEventBookings(e);
           if (booking.override) {
@@ -1126,7 +1125,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             );
           }
           // US22-AC4: Venue Staff's notice is saved on the server.
-          flash(`Booking requested at ${v.name}.`);
+          flash(booking.replaces_booking_id ? `Replacement requested at ${v.name}. Venue Staff will review it.` : `Booking requested at ${v.name}.`);
           return true;
         } catch (err) {
           handleApiError(err);
@@ -1155,27 +1154,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return true;
         } catch (err) {
           if (err instanceof ApiError && err.status === 409) flash(err.message, "warn"); // e.g. after the start of setup
-          else handleApiError(err);
-          return false;
-        }
-      },
-      resolveReassessment: async (eventId, bookingId, note) => {
-        const e = getEvent(state.events, eventId);
-        if (!e) return false;
-        if (!note.trim()) {
-          flash("Say why the booking still fits after the change.", "warn");
-          return false;
-        }
-        try {
-          const booking = await apiFetch<VenueBookingRecord>(`/bookings/${bookingId}/reassessment/resolve`, {
-            method: "POST",
-            body: JSON.stringify({ note }),
-          });
-          await syncEventBookings(e);
-          flash(`${booking.venue_name} still fits ${e.name}. The coordinator will be notified.`);
-          return true;
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 409) flash(err.message, "warn");
           else handleApiError(err);
           return false;
         }

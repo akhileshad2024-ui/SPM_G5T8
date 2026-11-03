@@ -7,8 +7,7 @@ The assigned Event Coordinator confirms an event once its essential arrangements
     may book several venues);
   - every item of equipment the event asks for is reserved by Technical Support (AC1);
   - no booking is flagged as needing alternative arrangements because its venue became unavailable (AC6,
-    CR-W7-2, US39), or as requiring reassessment after the venue's times changed (US38) or after an accepted
-    change (US49-AC4), and nothing else an accepted change flagged is unresolved (US50, US51);
+    CR-W7-2, US39), or as requiring reassessment after the venue's times changed (US38);
   - the Safety Officer has approved the Operational Safety Check (AC7, CR-W7-6, US44): Safety Approved.
 
 outstanding() lists every item still in the way, one per line, so the page can show them all (AC2).
@@ -29,7 +28,6 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
-import change_reassessment
 import hold_expiry
 import models
 from equipment import CATALOGUE
@@ -53,7 +51,8 @@ LOCKED_AFTER_CONFIRMATION = (*DETAIL_FIELDS, "equipment")
 def outstanding(db: Session, event: models.Event, now: datetime) -> List[str]:
     """Every arrangement still in the way of confirming the event, in the order the coordinator works through
     them: venues, then equipment, then the safety check. An empty list means it can be confirmed."""
-    items: List[str] = []
+    from arrangement_reassessment import outstanding as reassessment_outstanding
+    items: List[str] = reassessment_outstanding(db, event)
 
     # AC1 (CR-W7-3) + AC6 (CR-W7-2): each venue booking that holds a venue, on its own.
     holding = [b for b in event_bookings(db, event.id) if b.status in HOLDING and not hold_expiry.is_lapsed(b, now)]
@@ -64,11 +63,7 @@ def outstanding(db: Session, event: models.Event, now: datetime) -> List[str]:
             items.append(f"The booking at {booking.venue_name} is still waiting for Venue Staff's approval.")
         if booking.flag:
             items.append(f"The booking at {booking.venue_name} needs alternative arrangements: {booking.flag.get('message', 'its venue became unavailable.')}")
-        if booking.reassessment and booking.reassessment.get("reason") == change_reassessment.REASON:
-            # US49-AC4: flagged by an accepted change until Venue Staff reassess it or it is replaced.
-            items.append(f"The booking at {booking.venue_name} requires reassessment after change request "
-                         f"#{booking.reassessment.get('change_request_id')}: {' '.join(booking.reassessment.get('problems', []))}")
-        elif booking.reassessment:
+        if booking.reassessment:
             items.append(f"The booking at {booking.venue_name} requires reassessment: "
                          f"{booking.reassessment.get('message', 'its venue times changed.')}")
 
@@ -77,8 +72,6 @@ def outstanding(db: Session, event: models.Event, now: datetime) -> List[str]:
         if line.get("status") not in ("reserved", "fulfilled"):
             name = EQUIPMENT_NAMES.get(line.get("id"), line.get("id", "equipment"))
             items.append(f"{line.get('qty', '')} × {name} is not yet reserved by Technical Support.".lstrip())
-    # US49-AC4: what an accepted change flagged for reassessment besides the venues (US50, US51).
-    items.extend(change_reassessment.change_flags(event))
 
     # AC7 (CR-W7-6): the Operational Safety Check must have approved the event (US44).
     if event.status != S.safety_approved:

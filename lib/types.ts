@@ -59,6 +59,8 @@ export interface SafetyCheck {
   arrangementsIssue: string | null;
   areas: SafetyArea[];
   reviews: Array<{ outcome: SafetyOutcome; comment: string | null; reviewer: string; reviewedAt: string }>;
+  targets?: Array<{ type: "venue" | "equipment"; id: number; label: string }>;
+  planningStage?: string | null;
 }
 
 export type BookingState = "pending" | "approved" | "rejected" | null;
@@ -187,21 +189,14 @@ export interface BookingConflict {
   note: string | null;
 }
 
-/**
- * "Requires Reassessment". US38 (venue_time_changed): a change to the venue's setup or turnaround time made this
- * booking overlap another. US49 (accepted_change): an accepted change request means the booking no longer fits.
- */
+/** US38: "Requires Reassessment". A change to the venue's setup or turnaround time made this booking overlap another. */
 export interface BookingReassessment {
-  reason: "venue_time_changed" | "accepted_change";
+  reason: "venue_time_changed";
   message: string;
-  /** US38. */
-  setup_minutes: number | null;
-  turnaround_minutes: number | null;
-  /** US38: the bookings it clashes with. Only Venue Staff are sent these: empty for a coordinator. */
+  setup_minutes: number;
+  turnaround_minutes: number;
+  /** The bookings it clashes with. Only Venue Staff are sent these: empty for a coordinator. */
   clashes_with: BookingConflict[];
-  /** US49: each way the booking no longer fits, and the accepted change request that flagged it. */
-  problems: string[];
-  change_request_id: number | null;
   flagged_at: string;
 }
 
@@ -245,6 +240,8 @@ export interface VenueBookingRecord {
   hold_notice?: "expiring_soon" | "expired" | null;
   /** US23-AC5: set for 7 days after Venue Staff decide, so the requesting coordinator is told. */
   decision_notice?: "approved" | "rejected" | null;
+  /** US40: the flagged booking this one replaces (null or absent for an ordinary request). */
+  replaces_booking_id?: number | null;
 }
 
 export interface BookingFlag {
@@ -454,7 +451,7 @@ export interface ModalState {
   confirm: string;
 }
 
-export type QueueFilter = "action" | "unassigned" | "mine" | "all";
+export type QueueFilter = "action" | "unassigned" | "mine" | "all" | "replacement";
 export type EventTab = "request" | "venue" | "equipment" | "registration" | "activity";
 
 export interface VenueFilter {
@@ -585,32 +582,4 @@ export interface EventChangeRequest {
   proposed_changes: string;
   status: string;
   decision: Record<string, unknown> | null;
-  /** US49: what the accepted change changes (only the fields it changes); the event itself is not edited. */
-  accepted_changes?: AcceptedChanges | null;
-  /** US49: each venue booking re-checked when the change was accepted, with the outcome. */
-  venue_reassessment?: VenueReassessment | null;
-}
-
-/** US49: what an accepted change says it changes, as the US16 detail fields name them. */
-export interface AcceptedChanges {
-  date?: string;
-  start?: string;
-  end?: string;
-  pax?: number;
-  layout?: string;
-}
-
-export interface VenueReassessment {
-  checked_at: string;
-  bookings: Array<{
-    booking_id: number;
-    venue_name: string;
-    date: string;
-    start: string;
-    end: string;
-    outcome: "still_valid" | "requires_reassessment";
-    problems: string[];
-    /** Set once Venue Staff reassessed a flagged booking and found it still fits. */
-    resolution?: { note: string; by: string; at: string };
-  }>;
 }

@@ -10,6 +10,7 @@ import { EventDetailsToggle } from "@/components/ui/EventDetails";
 import { ClarificationThread } from "@/components/ui/ClarificationThread";
 import { EventDetailsEditor } from "../EventDetailsEditor";
 import { ChangeRequests } from "@/components/my-events/ChangeRequests";
+import { ReassessmentPanel } from "../ReassessmentPanel";
 import type { EventRecord } from "@/lib/types";
 import styles from "./RequestTab.module.css";
 
@@ -122,6 +123,7 @@ export function RequestTab({ event }: { event: EventRecord }) {
   return (
     <div className={styles.layout}>
       <div className={styles.main}>
+        {event.backendId !== undefined && <ReassessmentPanel eventId={event.backendId} preparation />}
         <EventDetailsEditor key={event.id} event={event} />
         {event.backendId !== undefined && event.coordinator === app.me.person && app.state.role === "coordinator" && (
           <div className={`card ${styles.card}`}>
@@ -137,8 +139,7 @@ export function RequestTab({ event }: { event: EventRecord }) {
               <p>Registration: {event.reg ? `${event.registered} registered / capacity ${event.regCap}` : "Disabled"}.</p>
               <p>Use Venue, Equipment and Registration tabs for the available arrangement details.</p>
             </section>
-            {/* US49: accepting may flag bookings for reassessment, so the bookings are read again. */}
-            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview onDecided={() => void app.reloadEvents()} />
+            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview />
           </div>
         )}
         {decision && (
@@ -154,12 +155,7 @@ export function RequestTab({ event }: { event: EventRecord }) {
         )}
 
         {event.backendId !== undefined && showsConfirmation(event.status) && (
-          <ConfirmationCard
-            // Read again when the status changes or a booking is flagged or cleared for reassessment (US49-AC4).
-            key={`${event.id}:${event.status}:${event.updatedAt ?? ""}:${(event.bookings ?? []).map((b) => `${b.id}${b.status}${b.reassessment?.flagged_at ?? ""}`).join()}`}
-            event={event}
-            backendId={event.backendId}
-          />
+          <ConfirmationCard key={`${event.id}:${event.status}:${event.updatedAt ?? ""}`} event={event} backendId={event.backendId} />
         )}
 
         {event.safetyReview && (

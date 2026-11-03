@@ -1,6 +1,0 @@
-US49 unit test and coverage summary - 2026-11-03 19:14:56
-
-type    test file                          tests  result   coverage
-unit    test_us49_reassess_venue_bookings     37  passed     100.0%
-
-frontend: Tests  12 passed (12) (all passed); line coverage 100% of lib/events/change-reassessment.ts
