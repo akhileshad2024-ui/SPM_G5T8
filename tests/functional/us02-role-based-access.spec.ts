@@ -63,11 +63,11 @@ test.describe("US02 - Role-Based Access Control", () => {
   test("[TC-016] [US02-AC2] each role's navigation shows only the pages for that role", async ({ page }, info) => {
     const expected = [
       [MAYA, /\/my-events/, ["My events", "New request", "Event registrations"]],
-      [PRIYA, /\/queue/, ["Review queue", "Pipeline", "Venues", "Event registrations"]],
+      [PRIYA, /\/queue/, ["Review queue", "Pipeline", "Venues", "Venue calendar", "Event registrations"]],
       [DANIEL, /\/bookings/, ["Booking requests", "Venue catalogue"]],
-      [WEI, /\/equipment/, ["Equipment"]],
+      [WEI, /\/equipment/, ["Equipment", "Venue calendar"]],
       [SAM, /\/browse/, ["Browse events"]],
-      [GRACE, /\/assignments/, ["Assignments"]],
+      [GRACE, /\/assignments/, ["Assignments", "Venue calendar"]],
     ] as const;
     const seen: string[] = [];
     for (const [who, landing, links] of expected) {

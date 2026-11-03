@@ -7,6 +7,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .headTitle {
   font-weight: 700;
@@ -32,19 +33,46 @@
   display: inline-block;
 }
 
+.toolbar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.toolGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toolInput {
+  height: 30px;
+  font-size: 12px;
+}
+
 .body {
   padding: 16px 20px 20px;
   overflow-x: auto;
 }
-.grid {
-  min-width: 660px;
+.message {
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+.grid,
+.wideGrid {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
+.grid {
+  min-width: 480px;
+}
+.wideGrid {
+  min-width: 1000px;
+}
 .headerRow {
   display: grid;
-  grid-template-columns: 150px repeat(5, 1fr);
   gap: 5px;
   font-family: var(--font-pt-sans), sans-serif;
   font-weight: 700;
@@ -55,7 +83,6 @@
 }
 .row {
   display: grid;
-  grid-template-columns: 150px repeat(5, 1fr);
   gap: 5px;
   align-items: stretch;
 }
@@ -74,11 +101,83 @@
 .cell {
   border-radius: 3px;
   min-height: 46px;
-  padding: 7px 8px;
+  padding: 5px;
+  background: #fafafb;
+  border: 1px solid rgba(10, 14, 26, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.monthRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.monthHeading {
+  font-family: var(--font-pt-sans), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.dayNumber {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+.otherMonth {
+  opacity: 0.55;
+}
+
+.period {
+  border-radius: 3px;
+  padding: 5px 6px;
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.periodVenue {
+  font-size: 10px;
+  opacity: 0.8;
+}
+.periodName {
   font-weight: 700;
-  display: flex;
-  align-items: flex-start;
-  overflow: hidden;
+}
+.periodTimes {
+  font-variant-numeric: tabular-nums;
+}
+.periodNote {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.confirmed {
+  background: #0a0e1a;
+  color: #fff;
+}
+.pending {
+  background: #e7eeff;
+  border: 1px solid #1466ff;
+  color: #0a33ff;
+}
+.clash {
+  background: #fff1f2;
+  border: 1px solid #ff4d5e;
+  color: #8a0f1a;
+}
+.unavailable {
+  background: #eff0f5;
+  border: 1px dashed #a1a8bd;
+  color: #6b7388;
+}
+.expired {
+  background: #fff;
+  border: 1px dashed #c8cdda;
+  color: #6b7388;
+}
+.expired .periodName {
+  text-decoration: line-through;
 }
