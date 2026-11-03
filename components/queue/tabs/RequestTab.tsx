@@ -137,7 +137,8 @@ export function RequestTab({ event }: { event: EventRecord }) {
               <p>Registration: {event.reg ? `${event.registered} registered / capacity ${event.regCap}` : "Disabled"}.</p>
               <p>Use Venue, Equipment and Registration tabs for the available arrangement details.</p>
             </section>
-            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview />
+            {/* US49: accepting may flag bookings for reassessment, so the bookings are read again. */}
+            <ChangeRequests key={event.backendId} eventId={event.backendId} canReview onDecided={() => void app.reloadEvents()} />
           </div>
         )}
         {decision && (
@@ -153,7 +154,12 @@ export function RequestTab({ event }: { event: EventRecord }) {
         )}
 
         {event.backendId !== undefined && showsConfirmation(event.status) && (
-          <ConfirmationCard key={`${event.id}:${event.status}:${event.updatedAt ?? ""}`} event={event} backendId={event.backendId} />
+          <ConfirmationCard
+            // Read again when the status changes or a booking is flagged or cleared for reassessment (US49-AC4).
+            key={`${event.id}:${event.status}:${event.updatedAt ?? ""}:${(event.bookings ?? []).map((b) => `${b.id}${b.status}${b.reassessment?.flagged_at ?? ""}`).join()}`}
+            event={event}
+            backendId={event.backendId}
+          />
         )}
 
         {event.safetyReview && (

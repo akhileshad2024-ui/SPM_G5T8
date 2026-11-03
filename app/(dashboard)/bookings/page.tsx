@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/lib/state/app-context";
 import { AvailabilityCalendar } from "@/components/bookings/AvailabilityCalendar";
 import { BookingRequestCard } from "@/components/bookings/BookingRequestCard";
@@ -7,6 +8,38 @@ import { ConflictList } from "@/components/bookings/ConflictList";
 import { needsManualResolution, reassessmentList } from "@/lib/venues/conflicts";
 import { bookingProblems } from "@/lib/venues/rules";
 import { holdExpiryLabel } from "@/lib/venues/hold-expiry";
+import { isAcceptedChangeFlag } from "@/lib/events/change-reassessment";
+
+/**
+ * US49: Venue Staff found a booking flagged by an accepted change still fits, and say why. Otherwise the
+ * coordinator replaces it (cancelling it clears the flag); until then the event can't be confirmed.
+ */
+function StillValidForm({ eventId, bookingId }: { eventId: string; bookingId: number }) {
+  const app = useApp();
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  return (
+    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={{ fontSize: 12, color: "var(--text-muted)" }} htmlFor={`still-valid-${bookingId}`}>
+        If the booking still fits after the change, say why. Otherwise the coordinator replaces it.
+      </label>
+      <textarea id={`still-valid-${bookingId}`} className="text-input" value={note} onChange={(e) => setNote(e.target.value)} />
+      <div>
+        <button
+          className="btn btn-primary"
+          disabled={saving || !note.trim()}
+          onClick={async () => {
+            setSaving(true);
+            await app.resolveReassessment(eventId, bookingId, note);
+            setSaving(false);
+          }}
+        >
+          Mark still valid
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function BookingsPage() {
   const app = useApp();
@@ -66,11 +99,26 @@ export default function BookingsPage() {
                 </span>
                 <span className="pill" style={{ background: "var(--bad-bg)", color: "var(--bad-fg)" }}>Requires Reassessment</span>
               </div>
-              <div style={{ fontSize: 12.5, marginTop: 6 }}>{booking.reassessment!.message}</div>
-              <ConflictList conflicts={booking.reassessment!.clashes_with} />
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                The booking is kept; {event.coordinator ?? "the coordinator"} has been told to reassess it.
-              </div>
+              {isAcceptedChangeFlag(booking.reassessment) ? (
+                // US49: an accepted change means the booking no longer fits; Venue Staff reassess it.
+                <>
+                  <div style={{ fontSize: 12.5, marginTop: 6 }}>
+                    Change request #{booking.reassessment!.change_request_id} was accepted for {event.name}. This booking no longer fits:
+                  </div>
+                  <ul aria-label="Why it no longer fits" style={{ margin: "6px 0 0 16px", fontSize: 12.5 }}>
+                    {booking.reassessment!.problems.map((p) => <li key={p}>{p}</li>)}
+                  </ul>
+                  <StillValidForm eventId={event.id} bookingId={booking.id} />
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12.5, marginTop: 6 }}>{booking.reassessment!.message}</div>
+                  <ConflictList conflicts={booking.reassessment!.clashes_with} />
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+                    The booking is kept; {event.coordinator ?? "the coordinator"} has been told to reassess it.
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

@@ -1,0 +1,27 @@
+Frontend coverage for US49
+Measured files: lib/events/change-reassessment.ts
+Tests  12 passed (12)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 C:/Users/user/OneDrive - Star/Documents/SMU/SPM/project
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  19:15:07
+   Duration  799ms (import 38%, transform 34%, worker 26%, tests 2%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 35/35 )
+Branches     : 100% ( 35/35 )
+Functions    : 100% ( 7/7 )
+Lines        : 100% ( 23/23 )
+================================================================================

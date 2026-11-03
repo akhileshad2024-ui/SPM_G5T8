@@ -135,6 +135,10 @@ class EventChangeRequest(Base):
     proposed_changes = Column(Text, nullable=False)
     status = Column(Text, nullable=False, default="pending", server_default="pending")
     decision = Column(JSON(none_as_null=True), nullable=True)
+    # US49: what an accepted change changes ({date, start, end, pax, layout}, only those it changes), saved with
+    # the decision; the event itself is not edited (US34). And each venue booking it re-checked, with the outcome.
+    accepted_changes = Column(JSON(none_as_null=True), nullable=True)
+    venue_reassessment = Column(JSON(none_as_null=True), nullable=True)
 
 
 class EventDetailChange(Base):
@@ -189,9 +193,11 @@ class VenueBooking(Base):
     # US39: set while the venue is unavailable during this booking ({kind, reason, note, period_start,
     # period_end, message, flagged_at}). The booking is kept; the coordinator must arrange an alternative.
     flag = Column(JSON(none_as_null=True), nullable=True)
-# US38: set when a change to the venue's setup or turnaround time makes this booking overlap another
+    # US38: set when a change to the venue's setup or turnaround time makes this booking overlap another
     # one ({reason, message, setup_minutes, turnaround_minutes, clashes_with, flagged_at}). The booking is
     # kept; it is "Requires Reassessment" until the clash is gone.
+    # US49: also set when an accepted change means the booking no longer fits ({reason: "accepted_change",
+    # message, problems, change_request_id, flagged_at}), until Venue Staff reassess it (change_reassessment.py).
     reassessment = Column(JSON(none_as_null=True), nullable=True)
     # US42: when this tentative hold lapses if not approved (UTC), and the Venue Staff member who last set it
     # (None while it is the default set on request). See hold_expiry.py. US48 reads it: once it has passed,

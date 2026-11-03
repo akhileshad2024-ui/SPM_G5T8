@@ -8,8 +8,8 @@ is saved exactly when the change it reports is saved. Every notice names the eve
 and what to do next, if anything (US36-AC2). The page polls GET /notifications every 15 seconds,
 well inside the one-minute delivery limit (US36-AC5).
 
-Functions for stories still being built (US14, US49-US51) are ready to call (US12 and US44 already do); see
-docs/US36_Notifications_Handover.md.
+Functions for stories still being built (US50, US51) are ready to call (US12, US14, US44 and US49 already
+do); see docs/US36_Notifications_Handover.md.
 """
 import logging
 import threading
@@ -281,6 +281,14 @@ def venue_booking_reassess(db, booking):
     notify_all(db, venue_staff(db), event, "Booking requires reassessment",
                f"{event.name}: an accepted change means the {booking.venue_name} booking for {booking.date} "
                "needs reassessing. Review it in Bookings.")
+
+
+def venue_booking_reassessed(db, booking, staff, note):
+    """US49: the coordinator is told Venue Staff reassessed a flagged booking and found it still fits."""
+    event = booking_event(db, booking)
+    notify(db, event.coordinator_id, event, "Booking reassessed",
+           f"{event.name}: {staff.name} reassessed the {booking.venue_name} booking for {booking.date} after the accepted "
+           f"change and found it still fits: \"{note}\"")
 
 
 def equipment_reassess(db, event):

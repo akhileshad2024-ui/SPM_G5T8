@@ -395,13 +395,22 @@ class BookingConflict(BaseModel):
 
 
 class BookingReassessment(BaseModel):
-    """US38: "Requires Reassessment". A change to the venue's setup or turnaround time made this booking overlap another."""
-    reason: Literal["venue_time_changed"]
+    """"Requires Reassessment". US38: a change to the venue's setup or turnaround time made this booking overlap
+    another. US49: an accepted change means the booking no longer fits."""
+    reason: Literal["venue_time_changed", "accepted_change"]
     message: str
-    setup_minutes: int
-    turnaround_minutes: int
-    clashes_with: List[BookingConflict] = []  # the bookings it clashes with: Venue Staff only
+    setup_minutes: Optional[int] = None  # US38
+    turnaround_minutes: Optional[int] = None  # US38
+    clashes_with: List[BookingConflict] = []  # US38, the bookings it clashes with: Venue Staff only
+    problems: List[str] = []  # US49: each way the booking no longer fits
+    change_request_id: Optional[int] = None  # US49: the accepted change request that flagged it
     flagged_at: datetime
+
+
+class ReassessmentResolutionIn(BaseModel):
+    """US49: Venue Staff found a booking flagged by an accepted change still fits, and say why."""
+    model_config = ConfigDict(extra="forbid")
+    note: str
 
 
 class VenueBooking(BaseModel):
@@ -899,6 +908,9 @@ class EventChangeRequestResponse(BaseModel):
     proposed_changes: str
     status: str
     decision: Optional[Dict[str, Any]] = None
+    # US49: what the accepted change changes, and each venue booking re-checked against it with the outcome.
+    accepted_changes: Optional[Dict[str, Any]] = None
+    venue_reassessment: Optional[Dict[str, Any]] = None
 
     @field_validator("requested_at")
     @classmethod
@@ -907,11 +919,22 @@ class EventChangeRequestResponse(BaseModel):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+class AcceptedChangesIn(BaseModel):
+    """US49: what an accepted change changes. Leave a field out (or empty) when the change doesn't change it."""
+    model_config = ConfigDict(extra="forbid")
+    date: Optional[Date] = None
+    start: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    end: Optional[str] = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    pax: Optional[int] = Field(None, ge=1)
+    layout: Optional[str] = Field(None, max_length=40)
+
+
 class EventChangeDecisionIn(BaseModel):
     """US34: reviewer identity/time come from the server; a reason is optional."""
     model_config = ConfigDict(extra="forbid")
     outcome: Literal["accepted", "rejected"]
     reason: str = ""
+    changes: Optional[AcceptedChangesIn] = None  # US49: only with "accepted"
 
 
 class EventDraftSave(BaseModel):

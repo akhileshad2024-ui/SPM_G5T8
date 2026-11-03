@@ -13,7 +13,7 @@ from login.models import Role, User
 from login.security import enforce_https, get_current_user, require_roles
 import equipment, messaging, mail_worker
 import event_drafts, event_submission, event_changes, event_updates
-import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
+import booking_request, change_reassessment, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
 from venue_audit import apply_update, change_action, creation_changes, record_change
 from event_access import involved_events, is_involved
 from event_fields import for_role
@@ -362,6 +362,27 @@ def decide_booking(booking_id: int, body: schemas.BookingDecisionIn, db: Session
     return venue_bookings.staff_records(db, [booking], datetime.now(timezone.utc))[0]
 
 
+# Fulfills US49: Venue Staff reassessed a booking an accepted change flagged and found it still fits, saying why.
+# The flag is cleared, the outcome is kept on the change request and the coordinator is told. A US38 flag can't
+# be cleared this way: it clears itself once the clash is gone. Rules broken -> 409.
+@app.post("/bookings/{booking_id}/reassessment/resolve", response_model=schemas.VenueBooking)
+def resolve_booking_reassessment(booking_id: int, body: schemas.ReassessmentResolutionIn, db: Session = Depends(get_db),
+                                 user: User = Depends(require_roles(*BOOKING_DECIDERS))):
+    booking = db.get(models.VenueBooking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking request not found")
+    now = datetime.now(timezone.utc)
+    try:
+        change_reassessment.resolve(db, booking, body.note, user, now)
+    except booking_request.BookingRefused as refusal:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=refusal.message)
+    messaging.venue_booking_reassessed(db, booking, user, body.note.strip())
+    db.commit()
+    db.refresh(booking)
+    return venue_bookings.staff_records(db, [booking], now)[0]
+
+
 def coordinators_event(db: Session, event_id: int, user: User) -> models.Event:
     """The event, if `user` is the coordinator it is assigned to (404 / 403 otherwise)."""
     event = db.get(models.Event, event_id)
@@ -662,14 +683,23 @@ def review_event_change(event_id: int, request_id: int, body: schemas.EventChang
         id=request_id, event_id=event_id).with_for_update().first()
     if saved is None:
         raise HTTPException(404, "Change request not found")
+    now = datetime.now(timezone.utc)
     try:
-        prepared = event_changes.prepare_decision(event, saved, user, body.outcome,
-                                                  body.reason, datetime.now(timezone.utc))
+        prepared = event_changes.prepare_decision(event, saved, user, body.outcome, body.reason, now)
+        # US49: what the accepted change changes, saved with the decision; the event is still not edited.
+        changes = change_reassessment.accepted_values(
+            event, body.outcome, body.changes.model_dump(exclude_none=True) if body.changes else None)
     except event_changes.ChangeRequestError as exc:
         raise HTTPException(exc.status_code, str(exc)) from exc
     saved.status = prepared["status"]
     saved.decision = prepared["decision"]
     messaging.change_decided(db, event, saved)  # US34-AC5
+    if saved.status == "accepted":
+        # US49-AC1..AC3: re-check every venue booking against the change, flag the ones that no longer fit and
+        # tell Venue Staff. US50 (equipment) and US51 (registration) re-check theirs here too.
+        saved.accepted_changes = changes
+        for booking in change_reassessment.after_acceptance(db, event, saved, now):
+            messaging.venue_booking_reassess(db, booking)
     db.commit()
     db.refresh(saved)
     return saved

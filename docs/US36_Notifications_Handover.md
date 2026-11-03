@@ -12,7 +12,8 @@ Don't create notifications in the browser (`notify(...)` in `lib/state/app-conte
 | US14-AC4 Confirm | Chin Hui | `messaging.event_confirmed(db, event, user)` | Organiser, assigned technician, Venue Staff (if a venue is held); not the confirming coordinator |
 | US44-AC2 / US36-AC7 Ready for safety check | Akhi | `messaging.safety_check_ready(db, event)` | Every active Safety Officer (found through `Role.safety`; nobody is told if no active Safety Officer account exists) |
 | US44-AC6 / US36-AC7 Safety outcome | Akhi | `messaging.safety_check_decided(db, event, outcome, comment)` with `outcome` = `"approved"`, `"changes_requested"` or `"rejected"` | Coordinator |
-| US49-AC3 Venue reassessment | Chin Hui | `messaging.venue_booking_reassess(db, booking)` | Every active Venue Staff member |
+| US49-AC3 Venue reassessment (sent by the change-request decision endpoint) | Chin Hui | `messaging.venue_booking_reassess(db, booking)` | Every active Venue Staff member |
+| US49 Booking reassessed (Venue Staff found it still fits) | Chin Hui | `messaging.venue_booking_reassessed(db, booking, staff, note)` | Coordinator |
 | US50-AC3 Equipment reassessment | Yangbo | `messaging.equipment_reassess(db, event)` | Assigned technician |
 | US51-AC3 Registrations affected | Yangbo | `messaging.attendees_affected(db, event, "what changed for them")` | Registered and waitlisted attendees |
 

@@ -92,3 +92,9 @@ ALTER TABLE event_assignments ADD COLUMN IF NOT EXISTS reason text;
 -- than once. Events confirmed before this step stay valid (their confirmation is still in the US13 status history).
 ALTER TABLE events ADD COLUMN IF NOT EXISTS confirmed_at timestamptz;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS confirmed_by_id integer REFERENCES users(id);
+
+-- US49 (reassess venue bookings after an accepted change, CR-W7-3): what an accepted change changes, and each
+-- venue booking re-checked against it with the outcome. The booking's flag uses the existing US38 reassessment
+-- column (reason 'accepted_change'). Safe to run more than once; earlier change requests keep NULL in both.
+ALTER TABLE event_change_requests ADD COLUMN IF NOT EXISTS accepted_changes json;
+ALTER TABLE event_change_requests ADD COLUMN IF NOT EXISTS venue_reassessment json;
