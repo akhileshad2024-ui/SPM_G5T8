@@ -1,0 +1,15 @@
+Coverage report for US13
+Generated: 2026-11-03 19:48:59
+Tests: tests/us13_event_status/test_history_access.py, tests/us13_event_status/test_involvement_rule.py, tests/us13_event_status/test_status_history.py, tests/us13_event_status/unit/test_status_rules_unit.py, tests/us13_event_status/unit/test_transition_table_unit.py
+Result: 359 tests, all passed
+Measured files: event_status.py, event_access.py, main.py:event_view,list_events,get_event,get_event_history, schemas.py:StatusChangeResponse, models.py:EventStatusChange
+
+Name                                                        Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------------------------
+event_status.py                                                25     0   100%  
+event_access.py                                                41     0   100%  
+main.py:event_view,list_events,get_event,get_event_history     27     7    74%  617-623
+schemas.py:StatusChangeResponse                                 3     0   100%  
+models.py:EventStatusChange                                     9     0   100%  
+------------------------------------------------------------------------------------------
+TOTAL                                                         105     7    93%

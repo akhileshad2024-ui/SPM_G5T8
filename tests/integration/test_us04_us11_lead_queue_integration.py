@@ -1,6 +1,6 @@
 """US04 -> US11/US43: the Event Coordinator Lead's unassigned queue (GET /lead/queue).
 
-The integration designs INT01-INT04 from docs/US04_US11_Integration_Handover.md, run against the real
+The integration designs INT01-INT04, run against the real
 FastAPI app and SQLAlchemy on an isolated SQLite database (never Supabase), with real session tokens.
 """
 

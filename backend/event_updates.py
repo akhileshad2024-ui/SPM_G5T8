@@ -10,6 +10,7 @@ The API owns the transaction, AC2 history and the AC3 notifications (messaging.d
 # must be importable without database configuration (including in unit-test CI).
 PLANNING_STATUSES = {
     "submitted", "under_review", "pending_clarification", "approved",
+    "safety_changes_requested", "safety_rejected",
 }
 
 # Public API field -> existing events column. Never allow ownership/status edits.
