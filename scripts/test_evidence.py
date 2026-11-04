@@ -19,15 +19,41 @@ def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
 
 
-def save_record(folder, record):
-    """Human-readable text beside machine-readable source metadata."""
-    (folder / 'run-info.json').write_text(json.dumps(record, indent=2) + '\n')
+def display_sgt(instant):
+    return dt.datetime.fromisoformat(instant).astimezone(
+        dt.timezone(dt.timedelta(hours=8))).strftime('%Y-%m-%d %H:%M:%S SGT')
+
+
+def frontend_coverage_text(summary):
+    lines = ['Frontend coverage by file (statement / branch / function / line %):']
+    for name, values in summary.items():
+        label = name if name == 'total' else os.path.relpath(name, ROOT)
+        percentages = ' / '.join(str(values[key]['pct']) for key in
+                                 ['statements', 'branches', 'functions', 'lines'])
+        lines.append(f'{label}: {percentages}')
+    lines.append('See the complete HTML report for uncovered source lines.')
+    return '\n'.join(lines)
+
+
+def save_record(folder, record, coverage_text=None):
+    """Save readable TXT evidence alongside its precise run metadata."""
+    (folder / 'run-info.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
     lines = [f"{key}: {record.get(key, 'Unrecorded')}" for key in
-             ['kind', 'scope', 'executor', 'sprint', 'started_at', 'ended_at',
-              'commit', 'dirty', 'result', 'passed', 'failed', 'skipped', 'subtests_passed']]
-    lines += [f"Statement coverage: {record.get('statement_percent', 'Not measured')}" + ('%' if 'statement_percent' in record else ''),
-              f"Branch coverage: {record.get('branch_percent', 'Not measured')}" + ('%' if 'branch_percent' in record else '')]
-    (folder / 'summary.txt').write_text('\n'.join(lines) + '\n')
+             ['kind', 'scope', 'executor', 'sprint', 'commit', 'dirty', 'result',
+              'passed', 'failed', 'skipped', 'subtests_passed']]
+    lines += [f"Started: {display_sgt(record['started_at'])}",
+              f"Ended: {display_sgt(record['ended_at'])}"]
+    if record['kind'] in ['backend', 'frontend']:
+        lines += [f"Statement coverage: {record.get('statement_percent', 'Not measured')}" + ('%' if 'statement_percent' in record else ''),
+                  f"Branch coverage: {record.get('branch_percent', 'Not measured')}" + ('%' if 'branch_percent' in record else '')]
+    if record.get('skip_reason'):
+        lines.append('Skipped reason: ' + record['skip_reason'])
+    if record.get('recording_error'):
+        lines.append('Recording error: ' + record['recording_error'])
+    if coverage_text:
+        lines += ['', coverage_text]
+    name = 'coverage_report.txt' if record['kind'] in ['backend', 'frontend'] else 'summary.txt'
+    (folder / name).write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 
 def run(args):
@@ -60,9 +86,12 @@ def run(args):
         record['ci_url'] = f"{os.getenv('GITHUB_SERVER_URL')}/{os.getenv('GITHUB_REPOSITORY')}/actions/runs/{os.getenv('GITHUB_RUN_ID')}"
         record['source'] += ': ' + record['ci_url']
     output = []
+    coverage_text = None
     code = 1
     try:
-        with (folder / 'test_output.txt').open('w') as log:
+        with (folder / 'test_output.txt').open('w', encoding='utf-8') as log:
+            log.write(f"Started: {display_sgt(record['started_at'])}\nCommit: {record['commit']}\nScope: {record['scope']} / {record['kind']}\nCommand: {record['command']}\n\n")
+            log.flush()
             child = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='replace')
             try:
                 for line in child.stdout:
@@ -101,11 +130,14 @@ def run(args):
                 record['branch_percent'] = round(100 * totals['covered_branches'] / totals['num_branches'], 2) if totals['num_branches'] else ''
                 with (data.parent / 'coverage.txt').open('w') as summary:
                     subprocess.run([sys.executable, '-m', 'coverage', 'report', '--data-file=coverage_reports/project/latest/backend/.coverage', '--show-missing'], cwd=ROOT, check=True, stdout=summary)
+                coverage_text = (data.parent / 'coverage.txt').read_text()
                 report = data.parent
         elif args.kind == 'frontend' and not args.command:
             summary = ROOT / 'coverage_reports/project/latest/frontend/coverage-summary.json'
             if summary.exists() and summary.stat().st_mtime >= started.timestamp():
-                totals = json.loads(summary.read_text())['total']
+                details = json.loads(summary.read_text())
+                totals = details['total']
+                coverage_text = frontend_coverage_text(details)
                 record['statement_percent'] = totals['statements']['pct']
                 record['branch_percent'] = totals['branches']['pct']
                 report = summary.parent
@@ -129,7 +161,11 @@ def run(args):
         raise
     finally:
         record['ended_at'] = dt.datetime.now(dt.timezone.utc).isoformat()
-        save_record(folder, record)
+        save_record(folder, record, coverage_text)
+        log_path = folder / 'test_output.txt'
+        if log_path.exists():
+            with log_path.open('a', encoding='utf-8') as log:
+                log.write(f"\nEnded: {display_sgt(record['ended_at'])}\nResult: {record['result']}\n")
     return code
 
 
