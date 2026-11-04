@@ -1,0 +1,13 @@
+kind: functional
+scope: project
+executor: yuetongwen2024-maker
+sprint: Unrecorded
+commit: b07a41f487a666cda944228adcc122a9dfd92d46
+dirty: False
+result: Pass
+passed: 237
+failed: 4
+skipped: 1
+subtests_passed: Unrecorded
+Started: 2026-11-04 11:59:46 SGT
+Ended: 2026-11-04 12:09:20 SGT

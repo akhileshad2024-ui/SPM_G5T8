@@ -1,0 +1,19 @@
+{
+  "record_id": "20261104T035946Z-46abd372",
+  "sprint": "Unrecorded",
+  "scope": "project",
+  "kind": "functional",
+  "executor": "yuetongwen2024-maker",
+  "started_at": "2026-11-04T03:59:46.606337+00:00",
+  "timezone": "UTC (convert +08:00 for SGT)",
+  "commit": "b07a41f487a666cda944228adcc122a9dfd92d46",
+  "dirty": false,
+  "result": "Pass",
+  "command": "npm run test:functional",
+  "source": "local execution",
+  "exit_code": 0,
+  "passed": 237,
+  "failed": 4,
+  "skipped": 1,
+  "ended_at": "2026-11-04T04:09:20.122017+00:00"
+}

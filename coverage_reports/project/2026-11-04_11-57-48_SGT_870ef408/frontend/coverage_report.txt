@@ -1,0 +1,120 @@
+kind: frontend
+scope: project
+executor: yuetongwen2024-maker
+sprint: Unrecorded
+commit: b07a41f487a666cda944228adcc122a9dfd92d46
+dirty: False
+result: Pass
+passed: 469
+failed: Unrecorded
+skipped: Unrecorded
+subtests_passed: Unrecorded
+Started: 2026-11-04 11:59:44 SGT
+Ended: 2026-11-04 11:59:46 SGT
+Statement coverage: 21.36%
+Branch coverage: 21.07%
+
+Frontend coverage by file (statement / branch / function / line %):
+total: 21.36 / 21.07 / 20.09 / 22.16
+app/layout.tsx: 0 / 100 / 0 / 0
+app/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/layout.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/assignments/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/board/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/bookings/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/browse/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/calendar/page.tsx: 100 / 100 / 100 / 100
+app/(dashboard)/catalogue/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/equipment/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/my-events/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/my-events/[id]/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/new-request/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/queue/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/registrations/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/safety/page.tsx: 0 / 0 / 0 / 0
+app/(dashboard)/venues/page.tsx: 0 / 0 / 0 / 0
+app/login/page.tsx: 0 / 0 / 0 / 0
+components/Modal.tsx: 0 / 0 / 0 / 0
+components/Toast.tsx: 0 / 0 / 0 / 0
+components/board/BoardColumn.tsx: 0 / 0 / 0 / 0
+components/bookings/AvailabilityCalendar.tsx: 100 / 100 / 100 / 100
+components/bookings/BookingRequestCard.tsx: 0 / 0 / 0 / 0
+components/bookings/ConflictList.tsx: 0 / 0 / 0 / 0
+components/browse/PublicEventCard.tsx: 0 / 0 / 0 / 0
+components/catalogue/VenueCard.tsx: 0 / 0 / 0 / 0
+components/catalogue/VenueForm.tsx: 0 / 0 / 0 / 0
+components/equipment/EquipmentManager.tsx: 0 / 0 / 0 / 0
+components/equipment/EquipmentRequestCard.tsx: 0 / 0 / 0 / 0
+components/equipment/InventoryCard.tsx: 0 / 0 / 0 / 0
+components/layout/ChangePasswordDialog.tsx: 0 / 0 / 0 / 0
+components/layout/NotificationsPanel.tsx: 0 / 0 / 0 / 0
+components/layout/Sidebar.tsx: 0 / 0 / 0 / 0
+components/layout/TopBar.tsx: 0 / 0 / 0 / 0
+components/login/LoginForm.tsx: 0 / 0 / 0 / 0
+components/login/LoginHero.tsx: 0 / 100 / 0 / 0
+components/my-events/ChangeRequests.tsx: 0 / 0 / 0 / 0
+components/my-events/MyEventsTable.tsx: 0 / 0 / 0 / 0
+components/my-events/ReviewedValues.tsx: 0 / 0 / 0 / 0
+components/new-request/StepBasics.tsx: 0 / 0 / 0 / 0
+components/new-request/StepRegistration.tsx: 0 / 0 / 0 / 0
+components/new-request/StepRequirements.tsx: 0 / 0 / 0 / 0
+components/new-request/WizardSteps.tsx: 0 / 0 / 0 / 0
+components/queue/EventDetailHistory.tsx: 0 / 0 / 0 / 0
+components/queue/EventDetailsEditor.tsx: 0 / 0 / 0 / 0
+components/queue/EventWorkspace.tsx: 0 / 0 / 0 / 0
+components/queue/QueueList.tsx: 0 / 0 / 0 / 0
+components/queue/ReassessmentPanel.tsx: 0 / 0 / 0 / 0
+components/queue/tabs/ActivityTab.tsx: 0 / 0 / 0 / 0
+components/queue/tabs/EquipmentTab.tsx: 0 / 0 / 0 / 0
+components/queue/tabs/RegistrationTab.tsx: 0 / 0 / 0 / 0
+components/queue/tabs/RequestTab.tsx: 0 / 0 / 0 / 0
+components/queue/tabs/VenueTab.tsx: 0 / 0 / 0 / 0
+components/registrations/useEventRegistrations.ts: 0 / 0 / 0 / 0
+components/safety/SafetyCheckCard.tsx: 0 / 0 / 0 / 0
+components/ui/ClarificationThread.tsx: 50 / 66.66 / 40 / 52.63
+components/ui/Dot.tsx: 0 / 0 / 0 / 0
+components/ui/EventDetails.tsx: 0 / 0 / 0 / 0
+components/ui/Pill.tsx: 0 / 0 / 0 / 0
+components/ui/ProgressBar.tsx: 0 / 0 / 0 / 0
+components/ui/StatusHistory.tsx: 0 / 0 / 0 / 0
+components/venues/VenueDetails.tsx: 0 / 0 / 0 / 0
+components/venues/VenueSearch.tsx: 0 / 0 / 0 / 0
+lib/notifications.ts: 100 / 100 / 100 / 100
+lib/registration.ts: 100 / 100 / 100 / 100
+lib/selectors.ts: 0 / 0 / 0 / 0
+lib/types.ts: 0 / 0 / 0 / 0
+lib/api/client.ts: 53.57 / 38.7 / 40 / 52
+lib/auth/idle-timeout.ts: 85.24 / 90.9 / 70.58 / 85.45
+lib/auth/route-access.ts: 100 / 100 / 100 / 100
+lib/data/options.ts: 100 / 100 / 100 / 100
+lib/data/seed.ts: 0 / 100 / 100 / 0
+lib/events/confirmation.ts: 100 / 100 / 100 / 100
+lib/events/details.ts: 100 / 91.35 / 100 / 100
+lib/events/status-history.ts: 100 / 100 / 100 / 100
+lib/events/visibility.ts: 100 / 100 / 100 / 100
+lib/events/request/api.ts: 100 / 97.61 / 100 / 100
+lib/events/request/form-adapter.ts: 100 / 100 / 100 / 100
+lib/events/request/pending-request.ts: 100 / 100 / 100 / 100
+lib/events/request/submission.ts: 100 / 100 / 100 / 100
+lib/events/request/validation.ts: 100 / 100 / 100 / 100
+lib/events/review/api.ts: 100 / 100 / 100 / 100
+lib/events/review/assignment.ts: 100 / 100 / 100 / 100
+lib/events/review/clarification.ts: 100 / 100 / 100 / 100
+lib/events/review/decision.ts: 100 / 100 / 100 / 100
+lib/events/review/lead.ts: 100 / 100 / 100 / 100
+lib/events/review/reassignment.ts: 100 / 100 / 100 / 100
+lib/events/review/review.ts: 97.67 / 96.66 / 100 / 100
+lib/events/review/shared.ts: 100 / 100 / 100 / 100
+lib/safety/checks.ts: 0 / 0 / 0 / 0
+lib/state/app-context.tsx: 0 / 0 / 0 / 0
+lib/ui/page-meta.ts: 25 / 23.52 / 50 / 23.52
+lib/venues/booking.ts: 0 / 0 / 0 / 0
+lib/venues/calendar.ts: 100 / 100 / 100 / 100
+lib/venues/conflicts.ts: 0 / 0 / 0 / 0
+lib/venues/form.ts: 0 / 0 / 0 / 0
+lib/venues/hold-expiry.ts: 100 / 100 / 100 / 100
+lib/venues/replacement.ts: 7.69 / 0 / 0 / 12.5
+lib/venues/rules.ts: 18.42 / 7.37 / 25.8 / 21.5
+lib/venues/search.ts: 0 / 0 / 0 / 0
+lib/venues/suitability.ts: 0 / 0 / 0 / 0
+See the complete HTML report for uncovered source lines.
