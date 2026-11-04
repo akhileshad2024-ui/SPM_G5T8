@@ -29,8 +29,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   timeout: 60_000,
   expect: { timeout: 10_000 },
-  reporter: [["list"], ["html", { outputFolder: "coverage/functional/report", open: "never" }]],
-  outputDir: "coverage/functional/results",
+  reporter: [["list"], ["html", { outputFolder: "coverage_reports/project/latest/functional/report", open: "never" }]],
+  outputDir: "coverage_reports/project/latest/functional/results",
   use: {
     baseURL: `http://localhost:${FRONTEND_PORT}`,
     trace: "retain-on-failure",

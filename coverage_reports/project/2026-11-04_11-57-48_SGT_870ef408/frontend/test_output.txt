@@ -1,0 +1,156 @@
+Started: 2026-11-04 11:59:44 SGT
+Commit: b07a41f487a666cda944228adcc122a9dfd92d46
+Scope: project / frontend
+Command: npm run test:coverage
+
+
+> connectsphere@0.1.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.2 /Users/user/Desktop/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  27 passed (27)
+      Tests  469 passed (469)
+   Start at  11:59:44
+   Duration  1.50s (transform 31%, tests 24%, environment 19%, import 15%, worker 12%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   21.36 |    21.07 |   20.09 |   22.16 |                   
+ app               |       0 |        0 |       0 |       0 |                   
+  layout.tsx       |       0 |      100 |       0 |       0 | 6-32              
+  page.tsx         |       0 |        0 |       0 |       0 | 1-18              
+ app/(dashboard)   |       0 |        0 |       0 |       0 |                   
+  layout.tsx       |       0 |        0 |       0 |       0 | 1-37              
+ ...d)/assignments |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-176             
+ ...shboard)/board |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-32              
+ ...oard)/bookings |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-117             
+ ...hboard)/browse |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-26              
+ ...ard)/catalogue |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-45              
+ ...ard)/equipment |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-23              
+ ...ard)/my-events |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-22              
+ ...my-events/[id] |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-42              
+ ...d)/new-request |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-22              
+ ...shboard)/queue |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-17              
+ .../registrations |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-38              
+ ...hboard)/safety |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-31              
+ ...hboard)/venues |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-65              
+ app/login         |       0 |        0 |       0 |       0 |                   
+  page.tsx         |       0 |        0 |       0 |       0 | 1-20              
+ components        |       0 |        0 |       0 |       0 |                   
+  Modal.tsx        |       0 |        0 |       0 |       0 | 1-52              
+  Toast.tsx        |       0 |        0 |       0 |       0 | 1-14              
+ components/board  |       0 |        0 |       0 |       0 |                   
+  BoardColumn.tsx  |       0 |        0 |       0 |       0 | 1-22              
+ ...nents/bookings |   64.94 |       42 |   69.56 |   65.11 |                   
+  ...questCard.tsx |       0 |        0 |       0 |       0 | 1-153             
+  ConflictList.tsx |       0 |        0 |       0 |       0 | 9-13              
+ components/browse |       0 |        0 |       0 |       0 |                   
+  ...EventCard.tsx |       0 |        0 |       0 |       0 | 1-69              
+ ...ents/catalogue |       0 |        0 |       0 |       0 |                   
+  VenueCard.tsx    |       0 |        0 |       0 |       0 | 8-175             
+  VenueForm.tsx    |       0 |        0 |       0 |       0 | 8-173             
+ ...ents/equipment |       0 |        0 |       0 |       0 |                   
+  ...ntManager.tsx |       0 |        0 |       0 |       0 | 1-100             
+  ...questCard.tsx |       0 |        0 |       0 |       0 | 1-11              
+  ...ntoryCard.tsx |       0 |        0 |       0 |       0 | 5-8               
+ components/layout |       0 |        0 |       0 |       0 |                   
+  ...ordDialog.tsx |       0 |        0 |       0 |       0 | 1-89              
+  ...ionsPanel.tsx |       0 |        0 |       0 |       0 | 1-34              
+  Sidebar.tsx      |       0 |        0 |       0 |       0 | 1-75              
+  TopBar.tsx       |       0 |        0 |       0 |       0 | 1-15              
+ components/login  |       0 |        0 |       0 |       0 |                   
+  LoginForm.tsx    |       0 |        0 |       0 |       0 | 1-60              
+  LoginHero.tsx    |       0 |      100 |       0 |       0 | 4-30              
+ ...ents/my-events |       0 |        0 |       0 |       0 |                   
+  ...eRequests.tsx |       0 |        0 |       0 |       0 | 1-88              
+  ...entsTable.tsx |       0 |        0 |       0 |       0 | 1-77              
+  ...wedValues.tsx |       0 |        0 |       0 |       0 | 1-38              
+ ...ts/new-request |       0 |        0 |       0 |       0 |                   
+  StepBasics.tsx   |       0 |        0 |       0 |       0 | 1-96              
+  ...istration.tsx |       0 |        0 |       0 |       0 | 1-99              
+  ...uirements.tsx |       0 |        0 |       0 |       0 | 1-128             
+  WizardSteps.tsx  |       0 |        0 |       0 |       0 | 3-13              
+ components/queue  |       0 |        0 |       0 |       0 |                   
+  ...ilHistory.tsx |       0 |        0 |       0 |       0 | 1-35              
+  ...ilsEditor.tsx |       0 |        0 |       0 |       0 | 1-106             
+  ...Workspace.tsx |       0 |        0 |       0 |       0 | 1-121             
+  QueueList.tsx    |       0 |        0 |       0 |       0 | 1-51              
+  ...mentPanel.tsx |       0 |        0 |       0 |       0 | 1-62              
+ ...nts/queue/tabs |       0 |        0 |       0 |       0 |                   
+  ActivityTab.tsx  |       0 |        0 |       0 |       0 | 6-18              
+  EquipmentTab.tsx |       0 |        0 |       0 |       0 | 1-6               
+  ...rationTab.tsx |       0 |        0 |       0 |       0 | 1-44              
+  RequestTab.tsx   |       0 |        0 |       0 |       0 | 1-228             
+  VenueTab.tsx     |       0 |        0 |       0 |       0 | 1-526             
+ .../registrations |       0 |        0 |       0 |       0 |                   
+  ...istrations.ts |       0 |        0 |       0 |       0 | 1-47              
+ components/safety |       0 |        0 |       0 |       0 |                   
+  ...CheckCard.tsx |       0 |        0 |       0 |       0 | 1-122             
+ components/ui     |   14.86 |    18.82 |    7.14 |   14.92 |                   
+  ...ionThread.tsx |      50 |    66.66 |      40 |   52.63 | 20-27,47-48       
+  Dot.tsx          |       0 |        0 |       0 |       0 | 2                 
+  EventDetails.tsx |       0 |        0 |       0 |       0 | 1-93              
+  Pill.tsx         |       0 |        0 |       0 |       0 | 6-26              
+  ProgressBar.tsx  |       0 |        0 |       0 |       0 | 10-11             
+  ...usHistory.tsx |       0 |        0 |       0 |       0 | 1-95              
+ components/venues |       0 |        0 |       0 |       0 |                   
+  VenueDetails.tsx |       0 |        0 |       0 |       0 | 6-70              
+  VenueSearch.tsx  |       0 |        0 |       0 |       0 | 1-168             
+ lib               |   67.79 |       80 |   63.33 |   70.27 |                   
+  selectors.ts     |       0 |        0 |       0 |       0 | 10-35             
+ lib/api           |   53.57 |     38.7 |      40 |      52 |                   
+  client.ts        |   53.57 |     38.7 |      40 |      52 | 21-28,46-47,50-52 
+ lib/auth          |   86.95 |     92.3 |      75 |   86.88 |                   
+  idle-timeout.ts  |   85.24 |     90.9 |   70.58 |   85.45 | 136-145           
+ lib/data          |    87.5 |      100 |     100 |    87.5 |                   
+  seed.ts          |       0 |      100 |     100 |       0 | 8                 
+ lib/events        |     100 |     92.7 |     100 |     100 |                   
+  details.ts       |     100 |    91.35 |     100 |     100 | 115,118,125,128   
+ ...events/request |     100 |     98.7 |     100 |     100 |                   
+  api.ts           |     100 |    97.61 |     100 |     100 | 173-195           
+ lib/events/review |   99.34 |    98.61 |     100 |     100 |                   
+  review.ts        |   97.67 |    96.66 |     100 |     100 | 50                
+ lib/safety        |       0 |        0 |       0 |       0 |                   
+  checks.ts        |       0 |        0 |       0 |       0 | 9-38              
+ lib/state         |       0 |        0 |       0 |       0 |                   
+  app-context.tsx  |       0 |        0 |       0 |       0 | 1-1345            
+ lib/ui            |      25 |    23.52 |      50 |   23.52 |                   
+  page-meta.ts     |      25 |    23.52 |      50 |   23.52 | 13-27,31-39       
+ lib/venues        |      32 |     17.1 |   29.72 |   33.95 |                   
+  booking.ts       |       0 |        0 |       0 |       0 | 28-91             
+  conflicts.ts     |       0 |        0 |       0 |       0 | 10-31             
+  form.ts          |       0 |        0 |       0 |       0 | 9-84              
+  replacement.ts   |    7.69 |        0 |       0 |    12.5 | 17-44             
+  rules.ts         |   18.42 |     7.37 |    25.8 |    21.5 | ...31,140,153-264 
+  search.ts        |       0 |        0 |       0 |       0 | 8-70              
+  suitability.ts   |       0 |        0 |       0 |       0 | 9-65              
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 21.36% ( 621/2907 )
+Branches     : 21.07% ( 588/2790 )
+Functions    : 20.09% ( 211/1050 )
+Lines        : 22.16% ( 536/2418 )
+================================================================================
+
+Ended: 2026-11-04 11:59:46 SGT
+Result: Pass

@@ -31,8 +31,8 @@ export default defineConfig({
   retries: 0, // Do not automatically repeat shared-data writes.
   timeout: 120_000,
   expect: { timeout: 15_000 },
-  reporter: [["list"], ["html", { outputFolder: "coverage/acceptance/report", open: "never" }]],
-  outputDir: "coverage/acceptance/results",
+  reporter: [["list"], ["html", { outputFolder: `coverage_reports/${story.toLowerCase()}/latest/acceptance/report`, open: "never" }]],
+  outputDir: `coverage_reports/${story.toLowerCase()}/latest/acceptance/results`,
   use: {
     baseURL: "http://localhost:3000",
     timezoneId: "Asia/Singapore",

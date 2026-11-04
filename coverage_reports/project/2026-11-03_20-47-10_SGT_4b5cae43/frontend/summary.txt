@@ -1,0 +1,15 @@
+kind: frontend
+scope: project
+executor: yuetongwen2024-maker
+sprint: SP4
+started_at: 2026-11-03T12:48:42.543983+00:00
+ended_at: 2026-11-03T12:48:44.977507+00:00
+commit: 20034ef6517db17146fdd961ea1437fbbf89136b
+dirty: True
+result: Pass
+passed: 467
+failed: Unrecorded
+skipped: Unrecorded
+subtests_passed: Unrecorded
+Statement coverage: 22.12%
+Branch coverage: 22.13%

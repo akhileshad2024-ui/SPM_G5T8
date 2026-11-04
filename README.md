@@ -536,7 +536,7 @@ anyway: two Next.js dev servers can't share the `.next` folder.
 npx playwright install chromium     # once
 npm run test:functional             # all functional tests
 npx playwright test -g "US10-AC2"   # one acceptance criterion
-npx playwright show-report coverage/functional/report   # results, with screenshots/traces of failures
+npx playwright show-report coverage_reports/project/latest/functional/report   # results, with screenshots/traces of failures
 ```
 
 The backend's Python packages must be installed. If `python` isn't the interpreter
@@ -603,3 +603,49 @@ new GitHub Actions run has already uploaded the reports. No 100% claim is made.
 The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**: Next.js / React, a Python monolith, and Supabase DB. Today the backend serves sign-in and the venue catalogue; the other data is still held in the browser.
 The Python framework, Supabase Auth usage, database connection method, and email provider remain TBD. Component boundaries and API connections are proposed and should be aligned with the implementation as it develops.
 To edit, download the file and open it in draw.io / diagrams.net using **File > Open From > Device**. Use this `.drawio` file as the primary editable source.
+
+
+### Test execution evidence
+
+Activate the project Python virtual environment, install the existing dependencies
+and Playwright browser, and stop local dev/test servers. Run the complete suites:
+
+```bash
+python scripts/test_evidence.py
+```
+
+The command runs backend unit/integration with coverage, frontend with coverage,
+and isolated Playwright functional tests, retaining each result under:
+
+```text
+coverage_reports/project/YYYY-MM-DD_HH-MM-SS_SGT_<unique-id>/
+  backend/     # test_output.txt, summary.txt, run-info.json, available coverage report.zip
+  frontend/    # test_output.txt, summary.txt, run-info.json, available coverage report.zip
+  functional/  # test_output.txt, summary.txt, run-info.json, available Playwright report.zip
+```
+
+Failures remain saved; the command fails if any suite/recording fails. Other
+suites still run after a failure. Ctrl+C stops further suites; force termination
+can prevent complete recording. Functional results are not code coverage. Tests
+use isolated fixtures, not the shared-database acceptance configuration.
+
+Each member reviews and commits their timestamped execution directory with their
+work. Other members pull it from Git; do not overwrite or delete earlier runs.
+No summary CSV is generated. Old US report folders and their existing history
+files are retained as historical evidence. Do not infer missing historical data.
+The latest/ directory is replaceable working output and stays ignored; complete
+available reports are preserved inside the timestamped report.zip (unzip to view).
+Raw .coverage and htmlcov working files remain ignored by the existing rules.
+
+Run information includes real UTC start/end times, version, command, result and
+coverage when measured. Folder names use SGT. Executor defaults to the configured
+Git user name, not authenticated identity. Sprint defaults to Unrecorded; optional
+metadata: `python scripts/test_evidence.py all --sprint SP4 --executor "Wen Yuetong"`.
+Commit source changes before final verification; dirty source changes are flagged.
+Never include passwords in recorded commands or committed logs.
+
+For a focused diagnostic, the existing run --kind interface remains available;
+these are not a substitute for complete project verification. CI's separate jobs
+use this same interface and upload execution records plus existing report
+artifacts (90-day retention). CI does not automatically commit or download those
+artifacts into this repository. Archive required CI evidence before expiry.

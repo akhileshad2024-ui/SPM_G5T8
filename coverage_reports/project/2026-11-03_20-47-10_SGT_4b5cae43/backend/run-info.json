@@ -1,0 +1,22 @@
+{
+  "record_id": "20261103T124710Z-479212b1",
+  "sprint": "SP4",
+  "scope": "project",
+  "kind": "backend",
+  "executor": "yuetongwen2024-maker",
+  "started_at": "2026-11-03T12:47:10.339799+00:00",
+  "timezone": "UTC (convert +08:00 for SGT)",
+  "commit": "20034ef6517db17146fdd961ea1437fbbf89136b",
+  "dirty": true,
+  "result": "Pass",
+  "command": "/Users/user/Desktop/SPM_G5T8/.venv/bin/python -m coverage run --branch --source=backend --data-file=coverage_reports/project/latest/backend/.coverage -m pytest tests -v -p no:cacheprovider",
+  "source": "local execution",
+  "exit_code": 0,
+  "subtests_passed": 1009,
+  "passed": 2027,
+  "skipped": 1,
+  "statement_percent": 98.26,
+  "branch_percent": 96.74,
+  "ended_at": "2026-11-03T12:48:42.505090+00:00",
+  "skip_reason": "PostgreSQL concurrent allocation requires DOD_POSTGRES_TEST_URL pointing to a disposable PostgreSQL test DB; tests/integration/test_equipment_postgres_concurrency.py:29."
+}
