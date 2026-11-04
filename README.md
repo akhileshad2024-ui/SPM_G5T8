@@ -1,469 +1,51 @@
 # ConnectSphere — Event Operations Platform
 
-Sprint 4 US50/US51/US45: see [implementation, migration and run instructions](docs/SPRINT4-YANGBO-delivery.md) before running the new shared reassessment and preparation workflows against an existing database.
+ConnectSphere follows one event request from submission through review, venue booking,
+equipment reservation, safety check, confirmation and attendee registration, with a
+different view for each role: Event Organiser, Event Coordinator, Event Coordinator Lead,
+Venue Staff, Technical Support, Attendee and Safety Officer.
 
-A Next.js (App Router + TypeScript) rebuild of the ConnectSphere event-operations
-prototype: one request moving through review, venue booking, equipment
-reservation, and registration, with a different view per role.
+## Tech stack
 
-Sign-in, the venue catalogue, event requests and venue booking requests are served by a
-FastAPI backend (`backend/`) on Supabase Postgres; the app starts with no sample events.
-Equipment requests and reservations are saved on the server. Equipment submission/status
-notices and registration confirmations are recipient-scoped and persist across reloads.
-Registration confirmation emails use a transactional SMTP outbox; configure delivery and
-run the retry worker as described in [US25–US32 delivery](docs/US25-US32-delivery.md).
-Notifications (US36) are saved on the server for the person involved, with the step that causes them,
-and the page checks for new ones every 15 seconds: see [US36 test cases](docs/US36-functional-tests.md)
-and, for stories still being built, the [handover](docs/US36_Notifications_Handover.md).
-
-## Login & role-based access control (RBAC)
-
-All login code lives in `backend/login/`:
-
-```
-backend/login/
-  models.py        User table and the Role enum
-  schemas.py       Request/response bodies for the auth endpoints
-  security.py      Password hashing, session cookie, get_current_user, require_roles
-  auth.py          /auth/* endpoints: login, logout, me, change-password
-  set_password.py  Script: set one account's password
-```
-
-**Secure login**
-
-- Passwords are stored only as Argon2id hashes — never in plain text.
-- Signing in sets a signed session token in an `HttpOnly`, `SameSite=Lax`
-  cookie, so page scripts can't read it.
-- 30 minutes without activity signs you out (`SESSION_IDLE_MINUTES`): the
-  backend renews the session on every signed-in request, and the frontend
-  tracks clicks/typing/scrolling across tabs, keeps the session alive while
-  you're active, and returns you to the sign-in page once you've been idle.
-  A session never lasts more than 8 hours from sign-in (`SESSION_HOURS`).
-- In production (`APP_ENV=production`) credentials are only accepted over
-  HTTPS: plain-HTTP requests get 403, HSTS is sent and the cookie is `Secure`.
-- Signing out (or changing your password) revokes the session on the server,
-  so a copied cookie stops working.
-- A wrong password and an unknown email get the same error, so the login can't
-  be used to find out which emails have accounts.
-- 5 wrong passwords in a row lock the account for 15 minutes.
-- Users can change their own password from the sidebar (they must enter the
-  current one).
-- The frontend calls the backend through `/api/*`, which Next.js forwards to
-  FastAPI (`next.config.ts`), so the cookie is same-origin.
-
-**What each role can open**
-
-| Role | Lands on | Pages |
-|---|---|---|
-| Event Organiser | `/my-events` | My events, New request |
-| Event Coordinator | `/queue` | Review queue, Pipeline, Venues (search, filter and read-only details) |
-| Venue Staff | `/bookings` | Booking requests, Venue catalogue |
-| Technical Support | `/equipment` | Equipment |
-| Attendee | `/browse` | Browse events |
-| Safety Officer | `/safety` | Safety checks (US44) |
-
-Opening any other page redirects to the role's home page; signed-out users are
-sent to `/login`. This is `canAccessRoute` in `lib/auth/route-access.ts`, driven by
-`NAV_FOR`.
-
-**Backend role checks**
-
-The page guard only controls what the browser shows — the backend is what
-actually enforces permissions. Protect every endpoint with one of these from
-`backend/login/security.py`:
-
-```python
-Depends(get_current_user)                  # any signed-in user, else 401
-Depends(require_roles(Role.venue, ...))    # only these roles, else 403
-```
-
-| Endpoint | Allowed |
-|---|---|
-| `POST /auth/login`, `POST /auth/logout` | anyone |
-| `GET /auth/me`, `POST /auth/change-password` | any signed-in user |
-| `GET /venues` | any signed-in user (active venues only) |
-| `GET /venues/{id}` | any signed-in user (active venues only; a deactivated venue is a 404) |
-| `POST /venues/search` | Event Coordinator (search and filter active venues) |
-| `POST /venues/suitability` | Event Coordinator (compare an event's venue needs with each venue) |
-| `POST /venues/{id}/booking-requests` | Event Coordinator assigned to the event (request a venue for an approved event) |
-| `GET /bookings` | Event Coordinator, Venue Staff (the saved booking requests of the events they can see) |
-| `POST /bookings/{id}/decision` | Venue Staff (approve or reject a pending booking request) |
-| `GET /venues?include_inactive=true` | Venue Staff, Event Coordinator |
-| `POST /venues`, `PUT /venues/{id}` | Venue Staff |
-| `DELETE /venues/{id}` | Venue Staff — always refused with 409: deactivate instead |
-| `GET /venues/{id}/history` | Venue Staff |
-| `POST /events`, `PUT /events/{id}` | Event Organiser — `PUT` only on their own drafts |
-| `GET /events` | any signed-in user — only events they are involved in (below) |
-| `GET /events/{id}/history` | users involved in that event |
-| `GET /coordinators` | Event Coordinator — the coordinator accounts an event can be assigned to (US11) |
-| `POST /events/{id}/assign`, `/review`, `/clarification`, `/decision` | Event Coordinator — the review steps below |
-
-## Event status (US13)
-
-An event's status is always one of: **Draft, Submitted, Under Review, Pending
-Clarification, Approved, Rejected, Confirmed, Cancelled**.
-
-**Changing a status — rule for every story:** call `change_status()` in
-`backend/event_status.py`; never set `event.status` directly. It refuses changes
-the workflow doesn't allow (409) and records each change in the
-`event_status_changes` table (old → new status, who, when, optional reason), which
-is what `GET /events/{id}/history` and the "Status history" timeline show.
-
-| From | May change to |
-|---|---|
-| (new request) | Draft, Submitted |
-| Draft | Submitted |
-| Submitted | Under Review, Cancelled |
-| Under Review | Pending Clarification, Approved, Rejected, Cancelled |
-| Pending Clarification | Under Review, Cancelled |
-| Approved | Confirmed, Cancelled |
-| Confirmed | Cancelled |
-| Rejected, Cancelled | — (final) |
-
-**Who is involved in an event** (`backend/event_access.py`) — and so may see it,
-its status and its history: the organiser who created it (drafts are visible only
-to them); a coordinator assigned to it, or any coordinator while it is live
-(submitted, not rejected or cancelled) and unassigned; Venue Staff once it has a
-venue booking; Technical Support once it requests equipment; attendees once it is
-Confirmed with registration open.
-
-## Event review (US07, US08, US10, US11)
-
-The coordinator's review steps are checked on the page (`lib/events/review/`, instant
-messages) and saved by the backend, which checks them again with the same rules
-(`backend/event_review.py`) and records each status change in the history.
-
-| Step | Endpoint | Status change | Rules |
-|---|---|---|---|
-| Assign a coordinator (US11) | `POST /events/{id}/assign` `{coordinatorId}` | — | event unassigned and live; the account must be an active Event Coordinator |
-| Start review (US07) | `POST /events/{id}/review` | Submitted → Under Review | only Submitted requests |
-| Clarification / amendment (US08) | `POST /events/{id}/clarification` `{kind, message}` | Under Review → Pending Clarification | assigned coordinator only; message 1–1000 characters |
-| Approve / reject (US10) | `POST /events/{id}/decision` `{outcome, reason}` | Under Review → Approved / Rejected | assigned coordinator only; reject needs a 10–1000 character reason, approve takes an optional note |
-
-Not built yet: the organiser's reply to a clarification (US09, Pending Clarification →
-Under Review) and confirming an event (US14, Approved → Confirmed).
-
-## Venue catalogue (US17 + Week 7 changes)
-
-- Each venue records capacity, location, layouts, facilities, accessibility,
-  operating hours and days, **setup and turnaround minutes**, and periods when
-  it is **temporarily unavailable** (with a reason: maintenance, equipment
-  failure, renovation, safety, internal activity, or other + note).
-- Accessibility features come from a fixed set (Wheelchair Access, Special Physical Seating,
-  Mobility/Facility Arrangements), enforced by both the form and the API. The set is
-  `ACCESSIBILITY_FEATURES` in `backend/schemas.py` and `VENUE_ACCESSIBILITY_OPTIONS` in
-  `lib/data.ts`; a unit test fails if the two differ.
-- Venues are never deleted, only deactivated and reactivated.
-- Every create, edit, deactivation and reactivation is written to the
-  `venue_changes` table: who made the change, when, and each changed field's old
-  and new values.
-- A booking occupies its venue from *start − setup* to *end + turnaround*
-  (e.g. 10:00–12:00 with 30 + 45 min occupies 09:30–12:45). This window is used
-  for suitability, the availability calendar and conflict detection
-  (`lib/venues/rules.ts`). Venue Staff can't approve a booking that clashes.
-- The availability calendar (US19, [test cases](docs/US19-functional-tests.md)) shows each
-  venue by day, week or month. Everyone who can open it sees when a venue is busy; the
-  server only names an event to someone who may see that event (`backend/venue_calendar.py`).
-- When a venue edit (longer setup/turnaround, a new unavailable period,
-  deactivation) puts existing bookings in trouble, they are **kept** and
-  flagged: the coordinator gets a notification, the event's activity log and
-  venue tab explain the problem, and the bookings page lists them under
-  "Confirmed bookings needing attention". The coordinator can request a
-  replacement venue without losing any other event details. Two bookings that overlap because the
-  setup/turnaround got longer are flagged separately as "Requires Reassessment" (see Booking conflicts).
-
-## Venue search (US20)
-
-Event Coordinators search the active venues on the **Venues** page. Every filter is optional and
-the ones given must all match:
-
-| Filter | A venue matches when |
-|---|---|
-| Date and time | it is free for the whole period (date, start and end are given together) |
-| Expected attendance | its capacity is at least that many people |
-| Location | its location is the one chosen (picked from the locations of the active venues) |
-| Accessibility | it offers every ticked feature (the same fixed set as the venue form) |
-| Layout | it supports that layout |
-| Facilities | it offers every ticked facility |
-
-- **Free for the period** uses the same rules as the rest of the app (`backend/venue_search.py`
-  mirrors `lib/venue-rules.ts`): the venue is open that weekday and the event falls within its
-  operating hours; no unavailability period overlaps; no booking clashes. Setup and turnaround
-  are included, so an event occupies *start − setup* to *end + turnaround* (Week 7 change #1),
-  and a window that only touches another does not clash. Setup or turnaround running outside
-  operating hours does not rule a venue out, matching the venue tab's warning-only treatment.
-- **Bookings** are not stored in the backend yet (events live in the browser), so the page sends
-  the bookings that currently hold a venue (approved or pending) together with the search.
-  That is why the search is a `POST`.
-- **Results are strict:** only venues meeting every filter are listed, no close matches.
-- **Filters** are shown as chips (from the response's `applied_filters`); each chip has a button
-  that clears just that filter and searches again. "Clear all" resets the search. When nothing
-  matches, the page says so and keeps the applied filters on screen.
-- The search runs over all active venues in one query and in memory; the unit tests time a
-  2,000-venue, 4,000-booking search against the 3-second limit.
-
-## Venue suitability and booking requests (US21, US22)
-
-On an event's **Venue** tab (Event Coordinator) every active venue is checked against the event's
-recorded needs by the backend (`backend/venue_suitability.py`, `POST /venues/suitability`):
-
-- Each venue is marked **Suitable**, **Partially suitable** or **Unsuitable**.
-- Every need is compared with what the venue offers (capacity, layout, each facility, each
-  accessibility feature, and availability at the event's date and time); the unmet ones are listed
-  with the reason, and the full comparison can be expanded under each venue.
-- How serious a miss is: capacity below the attendance, an unsupported layout, a missing
-  accessibility feature (the Week 4 answers say accessibility/layout mismatches make a venue not
-  suitable) and anything stopping the venue being used then are **blockers** (unsuitable); a missing
-  facility, or setup/turnaround running outside operating hours, is a **caveat** (partially suitable).
-
-Requesting a venue (`backend/booking_request.py`, `POST /venues/{id}/booking-requests`):
-
-- The page names only the event. The server reads the event's saved date, start and end, expected
-  attendance, layout and needs, and the venue's setup and teardown periods (the venue's own
-  configured times, Week 7 change #1), so the booking records exactly what the event asks for.
-  Only the coordinator the event is assigned to may ask.
-- Only an **approved** event can ask for a venue. An event that already went through a booking (a
-  replacement venue because the first became unavailable, or a new request after a rejection) may
-  also ask once it is planning or confirmed, so Week 7 change #2 keeps working.
-- The booking is **saved** (`venue_bookings` table) as **pending** and the venue is **provisionally
-  held** from the start of setup to the end of teardown. Pending and approved bookings hold a
-  venue: search (US20), suitability (US21) and further requests all read them from the table, so a
-  venue another coordinator has requested is not free. The booking survives a reload and Venue Staff
-  see it on their Booking requests page, with the hold and any override. The new table is created
-  automatically when the backend starts; no manual database change is needed.
-- **No second pending request** for the same venue and time period (setup and teardown included;
-  touching periods are fine). This cannot be overridden.
-- A venue that is not fully suitable can still be requested, but only after the coordinator
-  acknowledges the warning. The **override** (verdict, who acknowledged, when, every unmet
-  requirement) is saved with the booking, shown on the event (`venueOverrides`) and to Venue Staff.
-  A clash with an already *approved* booking can be acknowledged too, as the story allows; Venue
-  Staff still cannot approve a clashing booking.
-- **Venue Staff decide** (`POST /bookings/{id}/decision`): approving makes the booking confirmed and
-  blocks the venue for others (refused if something confirmed is in the way, see Booking conflicts below,
-  or the venue was deactivated); rejecting needs a reason and releases the venue, handing the event
-  back to its previous approved venue if it had one. Asking for a replacement venue releases the
-  event's earlier pending request, and approving the replacement releases its earlier booking.
-- Venue Staff's notification of a new request, and the coordinator's of the decision, are saved with
-  the step (US36). Not yet saved: the activity log lines, which are rebuilt only for the current session.
-- Events now state accessibility needs from the same fixed set as venues (Wheelchair Access, Special
-  Physical Seating, Mobility/Facility Arrangements), so the two can be compared.
-
-## Booking conflicts (US38, US46, US47, US48)
-
-Venue Staff see what is in the way of each booking on the **Booking requests** page, and the backend refuses to
-confirm a booking that something confirmed is in the way of. The rules are pure functions in
-`backend/venue_conflicts.py`; `backend/venue_bookings.py` and `backend/venue_reassessment.py` read and save the
-bookings. The page only shows what the server sends (`lib/venues/conflicts.ts`).
-
-| What is in the way | Blocks approval? | Shown to Venue Staff |
-|---|---|---|
-| A **confirmed** booking at the same venue (US46) | Yes | "Can't be approved while this stands.", with the booking's event, date, time and status |
-| One of the venue's **unavailable periods** (US48) | Yes, the same as a confirmed booking | "<venue> is unavailable (Maintenance: note) from ... to ..." |
-| Another **pending** request (US47) | No: Venue Staff choose which to approve | "Needs manual resolution" |
-
-- **Setup and turnaround are included (US46).** Each booking occupies the venue from *start - setup* to
-  *end + turnaround*, using the venue's configured times for both bookings (10:00-12:00 with 30 and 45 min
-  occupies 09:30-12:45). Windows that only touch do not overlap.
-- **Checked again at confirmation (US46).** Approving re-reads what is saved at that moment, not what was true when
-  the request was made or the page loaded, and locks the venue's row (effective on PostgreSQL) so two Venue Staff
-  confirming overlapping bookings together are checked one after the other. The refusal names the booking in the way.
-- **Expired holds are left out (US48).** A pending booking whose `hold_expires_at` has passed holds nothing:
-  conflict checks, venue search, suitability and the re-check after a venue time change all ignore it. Approved
-  bookings never expire. US42 sets `hold_expires_at` (a default on request, changeable by Venue Staff) and saves
-  "expired" on a lapsed hold, which releases the event's venue.
-- **Pending requests that conflict (US47).** A second pending request for the same time is refused when it is made
-  (US22), so two pending requests only conflict after a venue's setup or turnaround time changes (below), or when
-  two are made at the same moment. Both are flagged for manual resolution; nothing is approved or rejected
-  automatically. Once one is confirmed, it blocks the other, which can then only be rejected.
-- **A venue's setup or turnaround time changes (US38).** `PUT /venues/{id}` re-checks every pending and confirmed
-  booking at the venue that has not ended yet. Its hold is brought into line with the venue's new times, and a
-  booking that now overlaps another it did not overlap before is marked **Requires Reassessment** with the
-  booking(s) it clashes with (`reassessed_bookings` in the response). Nothing is removed, cancelled or rejected.
-  The flag is saved on the booking (`venue_bookings.reassessment`) and clears by itself when nothing clashes any
-  more (the other booking is rejected or cancelled, or the times are put back). The coordinator is notified when
-  the flag is saved (US36) and is not told which other event it clashes with. Venue Staff are.
-- `GET /bookings` gives Venue Staff each booking with its `conflicts`. Coordinators get their bookings without them.
-- **Database:** `venue_bookings` gains the `reassessment` column (and uses US42's `hold_expires_at`). The backend does
-  not alter existing tables, so run the US38 step of `backend/schema_changes.sql` once in the Supabase SQL Editor
-  before using these features; until then, reading bookings fails on the missing column.
-
-## Operational safety check (US44)
-
-A Safety Officer reviews the safety of an event's arrangements before it goes on to preparation. The rules are in
-`backend/safety_check.py`; the Safety Officer's page is **Safety checks** (`/safety`).
-
-- **Statuses (US13).** Four are added to the set: *Pending Safety Review*, *Safety Changes Requested*, *Safety
-  Approved* and *Safety Rejected* (`backend/event_status.py`). An approved event goes to Pending Safety Review; from
-  there the Safety Officer's decision moves it to one of the other three. Safety Approved is what the coordinator
-  confirms from (US14, not built yet).
-- **Sending an event to the check (AC2).** The assigned coordinator presses **Request safety check**
-  (`POST /events/{id}/safety-check/request`) once every venue booking is approved and any equipment is confirmed by
-  Technical Support. The Safety Officers are told (US36). Until then the server refuses, saying what is missing.
-- **What the officer reviews (AC2, AC3).** `GET /safety-checks` lists the events waiting (longest first) and those
-  already decided, each with seven areas: expected attendance, venue capacity and layout, emergency access,
-  accessibility requirements, equipment placement, crowd movement and known venue restrictions. Concerns are flagged
-  (more people than the capacity, a layout the venue does not list, an accessibility need the venue does not offer,
-  an item with no technical requirements, a closed day or outside opening hours, an unavailable period). The
-  system records no emergency access plan or crowd flow, so those two areas say "Not recorded": the officer asks
-  the coordinator and writes what they found in the comment.
-- **Deciding (AC4, AC5).** **Approve**, **Request changes** or **Reject** (`POST /events/{id}/safety-check`). A comment
-  is mandatory when requesting changes or rejecting. Approving is refused if the venue or equipment stopped being
-  confirmed after the check was requested. The outcome, reviewer, time and comment are saved (`safety_reviews`) and
-  the status change is in the event's history. Two officers deciding at once are handled one after the other.
-- **The coordinator is told (AC6)** with a notification (US36) and sees the outcome and comment on the event's
-  Request tab. The organiser and the Event Coordinator Lead see them too; Venue Staff, Technical Support and
-  attendees do not.
-- **A rejection does not end the event (AC7).** Safety Rejected, like Safety Changes Requested, can go back to Pending
-  Safety Review: the coordinator reworks the arrangements (the rework process is US45, not built yet) and presses
-  **Request safety check again**.
-- **Access (AC1).** The Safety Officer (`safety`) only opens `/safety` and sees only events in the four safety statuses.
-- **Database:** the `users.role` and event status check constraints must allow the new values: run the US44 step at
-  the end of `backend/schema_changes.sql` once. The Safety Officer account is created in the `users` table like the
-  others, then `python -m login.set_password <email>` gives it a password (see the comments in that step).
-
-## Replacement venue (US40)
-
-When a venue is marked unavailable (US39), every booking that holds it during the period is flagged as needing
-alternative arrangements. The Event Coordinator then asks for a replacement venue.
-
-- **Seeing them (AC1).** The review queue has a **Needs a venue (N)** filter listing the coordinator's events with a
-  flagged booking. On such an event, **Find a replacement venue** opens the Venue tab, whose **Bookings needing a
-  replacement venue** section lists each flagged booking with its message (`GET /bookings` carries the `flag`).
-- **Searching (AC2).** **Find a replacement venue** on a booking fills the venue list's needs from that booking: its
-  date and times, attendance, layout and purpose (the event's facilities and accessibility needs apply as always).
-  Venues that are unavailable or booked at that time are not offered.
-- **Requesting (AC3).** The request is sent with `replaces_booking_id` (`POST /venues/{id}/booking-requests`), so the new
-  booking is linked to the original. The server uses the original's timing and needs unless the coordinator changes
-  the attendance or layout. It refuses a booking that is not flagged, belongs to another event, no longer holds a
-  venue, or already has an open (pending or approved) replacement: one replacement at a time. An event in its
-  Operational Safety Check (US44) can still ask. Venue Staff see "Replacement venue" on the request.
-- **Keeping the original (AC4).** The event and the original booking are not changed by the request. When the
-  replacement is approved, the original is released: it stays on the event as a cancelled booking, shown as
-  "Replaced by the booking at ..." (the replacement points back at it), so nothing is lost.
-- **Clearing the flag (AC5).** Approving the replacement clears the original's flag (the coordinator is told in the
-  approval notification). A rejected, expired or cancelled replacement leaves the original flagged, so another venue
-  can be tried.
-- **Database:** `venue_bookings.replaces_booking_id`: run the US40 step at the end of `backend/schema_changes.sql` once.
-
-## Project structure
-
-```
-app/
-  layout.tsx                 Root layout: fonts, global CSS, AppProvider
-  page.tsx                   "/" — redirects to /login or the role's home page
-  login/page.tsx             Sign-in screen
-  (dashboard)/layout.tsx     Signed-in shell: sidebar, top bar, modal, toast
-  (dashboard)/queue/         Coordinator: review queue + event workspace (tabs)
-  (dashboard)/board/         Coordinator: pipeline board
-  (dashboard)/venues/        Coordinator: venue search + read-only details (US18, US20)
-  (dashboard)/calendar/      Coordinator, Lead, Technical support: venue availability calendar (US19)
-  (dashboard)/my-events/     Organiser: my requests + stats
-  (dashboard)/new-request/   Organiser: 3-step new request wizard
-  (dashboard)/bookings/      Venue staff: availability calendar + booking requests
-  (dashboard)/catalogue/     Venue staff: venue catalogue
-  (dashboard)/equipment/     Technical support: inventory + equipment requests
-  (dashboard)/safety/        Safety Officer: events awaiting an Operational Safety Check (US44)
-  (dashboard)/browse/        Attendee: browse & register for events
-
-components/
-  layout/          Sidebar, TopBar, NotificationsPanel
-  ui/              Small shared primitives (Pill, Dot, ProgressBar)
-  login/           Sign-in screen pieces
-  queue/           Review queue list + event workspace + its 5 tabs
-  board/, my-events/, new-request/, bookings/, catalogue/, equipment/, browse/
-                   One folder per page, holding that page's own components
-  Modal.tsx, Toast.tsx   Global overlays rendered from the dashboard layout
-
-lib/
-  types.ts         Shared domain types (Role, EventRecord, Venue, ...)
-  data.ts          Static reference data, seed data, per-role nav + route guard
-  selectors.ts     Pure helpers (freeQty, suitability, lookups) — no React
-  event-request/   US03/US04: request validation + submission (pure, unit tested)
-  event-review/    US07/08/10/11: review queue, clarification, approve/reject,
-                   coordinator assignment — ACs in docs/user-stories/
-  venue-rules.ts   Venue availability: occupied windows, conflicts, unavailability — no React
-  venue-search.ts  Venue search (US20): filter state, request body, clearing one filter — no React
-  venue-suitability.ts  Venue suitability (US21): request body and verdict wording — no React
-  venue-booking.ts      Venue booking request (US22): request body, who may send one, saved bookings onto events — no React
-  venues/conflicts.ts   Booking conflicts (US46-US48): which block approval, which need manual resolution — no React
-  venue-form.ts    Venue catalogue form state + client-side validation — no React
-  api.ts           fetch wrapper for the backend (/api/*)
-  app-context.tsx  Global state + every mutation (signIn, approve, requestBooking, ...)
-  page-meta.ts     Per-route title/subtitle for the top bar
-
-backend/
-  main.py          FastAPI app + venue endpoints
-  venue_availability.py  Shared availability rules: occupied windows, closed days/hours, unavailability, clashes
-  venue_search.py        Venue search rules (US20): requirements + free-for-the-period check
-  venue_suitability.py   Suitability rules (US21): verdict, every need compared, override record
-  booking_request.py     Booking request rules (US22): approved event, no duplicate pending, values to save, notification
-  venue_bookings.py      Saved bookings (US22): what holds a venue, saving a request, Venue Staff's decision (checked again, US46)
-  venue_conflicts.py     Booking conflict rules (US46-US48): what is in the way of a booking, and whether it blocks approval
-  venue_reassessment.py  Venue setup/turnaround change (US38): re-check future bookings, "Requires Reassessment" flags
-  safety_check.py        Operational Safety Check (US44): ready for the check, the officer's decision, what is reviewed
-  database.py      Database connection (reads backend/.env)
-  models.py, schemas.py   Venue + venue change-history tables, request/response bodies
-  schema_changes.sql  Database changes to run once in the Supabase SQL Editor (US17 columns, US38 reassessment, US42 hold expiry)
-
-  seed_venues.py   Script: add five demo venues to the catalogue
-  login/           Authentication + RBAC (see above)
-```
-
-Each page's feature components live in their own folder next to the route
-that uses them; only truly cross-page pieces sit in `components/layout` and
-`components/ui`.
+- **Frontend:** Next.js (App Router) with TypeScript and React
+- **Backend:** FastAPI (Python) in `backend/`
+- **Database:** Supabase Postgres (tests use a throwaway SQLite database instead)
+- **Tests:** pytest and unittest (backend), Vitest (frontend), Playwright (end to end)
 
 ## Getting started
 
-**Backend** (once) — run these from the `backend/` folder:
+**Backend** (run from the `backend/` folder):
 
 ```bash
 cd backend
 cp .env.example .env               # then fill in DATABASE_URL and JWT_SECRET
 pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-Generate a `JWT_SECRET` with
-`python -c "import secrets; print(secrets.token_urlsafe(48))"`. The backend
-refuses to start without one.
+Generate a `JWT_SECRET` with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+The backend refuses to start without one.
 
-The user accounts already exist in the team's shared Supabase database (the
-`users` table), so there is nothing to seed. There is currently no script or
-page for creating new accounts.
-
-Start the backend with `uvicorn main:app --reload` (from `backend/`).
-
-**Database changes** — the backend never alters existing tables. If your database
-predates US17, run the steps in `backend/schema_changes.sql` once in the Supabase
-dashboard (SQL Editor). The final step (dropping the old `unavailableDates`
-column) must wait until every branch uses the new venue model. US42 (tentative
-holds expire) adds two `venue_bookings` columns, US38 (Requires Reassessment) one and US44 (Operational
-Safety Check) the Safety Officer role and four event statuses, and US40 (replacement venue) one column: run each story's step at the end of that file once.
-
-**Demo venues** — to fill the venue catalogue with five demo venues (Grand Hall,
-The Atrium, ...), run `python -m seed_venues` (from `backend/`; existing venues
-are left alone).
-
-**Managing passwords** (from `backend/`):
+User accounts already exist in the team's shared Supabase database, so there is nothing
+to seed. To set one account's password (from `backend/`):
 
 ```bash
-python -m login.set_password wei.lim@connectsphere.edu   # prompts for the new password
+python -m login.set_password wei.lim@connectsphere.edu
 ```
 
-This also clears a lockout and signs that account out everywhere. Don't type
-passwords into the `users` table in Supabase — the `password_hash` column must
-hold an Argon2 hash, so a plain password there can never sign in.
+To add five demo venues to the catalogue, run `python -m seed_venues` (from `backend/`).
+If your database is older than the current code, run the steps in
+`backend/schema_changes.sql` once in the Supabase SQL Editor.
 
-**Frontend:**
+**Frontend** (from the project root):
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000 — you'll land on the sign-in screen. Sign in with
-one of these accounts (ask the team for the passwords — they are not stored in
-the repo):
+Open http://localhost:3000 and sign in with one of these accounts (ask the team for the
+passwords; they are not stored in the repo):
 
 | Email | Role |
 |---|---|
@@ -473,179 +55,37 @@ the repo):
 | wei.lim@connectsphere.edu | Technical Support |
 | sam.adeyemi@student.connectsphere.edu | Attendee |
 
-## Deploying to Vercel
+## Project structure
 
-This is a standard Next.js app — push it to GitHub and import the repo at
-[vercel.com/new](https://vercel.com/new), or run `npx vercel` from this
-directory. Set `BACKEND_URL` to wherever the FastAPI backend is hosted, and
-set `APP_ENV=production` in the backend's environment: it then refuses any
-request not made over HTTPS (behind a hosting proxy it reads
-`X-Forwarded-Proto`), sends HSTS, and makes the session cookie HTTPS-only.
-
-## Tests
-
-```bash
-npm test                # all frontend unit tests (vitest)
-python -m pytest tests  # all Python tests (pip install pytest pytest-cov once)
-python -m unittest discover -s tests/unit/venue -p "test_us17_*.py" -v
-python -m unittest discover -s tests/unit/venue -p "test_us18_*.py" -v
-python -m unittest discover -s tests/unit/venue -p "test_us20_*.py" -v
-python -m unittest discover -s tests/unit/venue -p "test_us21_*.py" -v
-python -m unittest discover -s tests/unit/venue -p "test_us22_*.py" -v
-python -m unittest discover -s tests/unit/venue -p "test_us38_*.py" -v   # also us46, us47, us48
-                        # US17 backend unit tests: validation rules + change recording, no API or database
-python -m unittest discover -s tests/integration -p "test_us17_*.py" -v
-python -m unittest discover -s tests/integration -p "test_us20_*.py" -v
-python -m unittest discover -s tests/integration -p "test_us21_*.py" -v
-python -m unittest discover -s tests/integration -p "test_us22_*.py" -v
-python -m unittest discover -s tests/integration -p "test_us38_*.py" -v   # also us46, us47, us48
-                        # US20 integration tests: search through the real API (login, SQL, JSON columns), also run by hand
-                        # US17 integration tests (run by hand, not part of the automated coverage): real API + in-memory SQLite, never touches Supabase
-python -m pytest tests/us01_secure_login     # US01 backend: unit/ + API tests, throwaway SQLite
-python -m pytest tests/us02_rbac             # US02 backend
-python -m pytest tests/us03_us04_event_request   # US03/US04 backend
-python -m pytest tests/us13_event_status     # US13 backend
-python -m pytest tests/us23_booking_approval # US23 backend: approve/reject rules + API (docs/user-stories/US23_booking_approval.md)
-python -m pytest tests/us12_reassign_coordinator tests/unit/lead_assignment/test_us12_reassign_coordinator.py  # US12 backend: reassign rules + API (docs/user-stories/US12_reassign_coordinator.md)
-python -m pytest tests/us14_confirm_event tests/unit/safety/test_us14_confirm_event.py  # US14 backend: confirm rules + API (docs/user-stories/US14_confirm_event.md)
-python -m pytest tests/us49_reassess_venue_bookings tests/unit/accepted_change  # US49 backend: venue re-check + API (docs/user-stories/US49_reassess_venue_bookings.md)
-python -m pytest tests/us42_hold_expiry      # US42 backend: hold expiry rules + API (docs/user-stories/US42_hold_expiry.md)
-npm run test:us01       # US01 frontend unit tests (idle sign-out)
-npm run test:us02       # US02 frontend unit tests (page access, who sees which events)
-
-# Coverage for one story (run from the project root), saved under coverage_reports/<story>/<date_time>/.
-# US17/US18/US20: runs each UNIT test file on its own -> unit/<test_file>/ (htmlcov/index.html,
-# coverage_report.txt, test_output.txt) plus summary.txt, and one line per test file in
-# coverage_reports/<story>/history_by_file.csv. Integration tests are not part of this automation.
-python run_coverage.py us17      # or us18, us20, us21, us22, us38, us46, us47, us48, us11, us43 (us11/us43 also write frontend/)
-# US01, US02, US03, US13: runs the story's whole test folder (htmlcov/index.html, coverage_report.txt,
-# test_output.txt, frontend/coverage_report.txt) and adds a line to coverage_reports/<story>/history.csv.
-python run_coverage.py us01      # or us02, us03, us13
+```
+app/          Next.js pages, one folder per role's screens
+components/   React components, one folder per page plus shared layout and UI pieces
+lib/          Frontend logic: types, API client, validation and rules (no React where possible)
+backend/      FastAPI app (main.py), business rules, database models, login/ (authentication and RBAC)
+tests/        All tests, one folder per story (tests/usXX_*), plus unit/, integration/ and functional/
+docs/         Architecture diagram
+coverage_reports/   Saved test and coverage runs, one folder per story
 ```
 
-### Functional tests (end to end)
-
-A real browser (Playwright, Chromium) drives the real app: sign in, open the review
-queue, click through a story, and check what the user sees. Playwright starts both
-servers itself — FastAPI on a throwaway SQLite database seeded with test accounts
-(`tests/functional/support/seed_users.py`, never Supabase) and Next.js — on ports
-8100 and 3100, so they don't clash with `npm run dev`. Stop `npm run dev` first
-anyway: two Next.js dev servers can't share the `.next` folder.
+## Running the tests
 
 ```bash
-npx playwright install chromium     # once
-npm run test:functional             # all functional tests
-npx playwright test -g "US10-AC2"   # one acceptance criterion
-npx playwright show-report coverage_reports/project/latest/functional/report   # results, with screenshots/traces of failures
+npm test                      # frontend unit tests (Vitest)
+python -m pytest tests        # backend tests (pip install pytest pytest-cov once)
+npx playwright install chromium   # once
+npm run test:functional       # end-to-end tests (Playwright starts both servers itself)
 ```
 
-The backend's Python packages must be installed. If `python` isn't the interpreter
-that has them (e.g. a virtualenv), point at it: `PYTHON=.venv/bin/python npm run test:functional`.
-Covered so far: US07, US08, US10 (`tests/functional/*.spec.ts`). CI runs them in the
-`functional` job and keeps the report as an artifact.
-
-US01 and US02 keep their tests in one folder per story (`tests/us01_secure_login/`,
-`tests/us02_rbac/`): pytest backend tests (`unit/` for single functions,
-`test_*.py` for the API) next to the Vitest frontend tests (`*.unit.test.ts`).
-
-## CI coverage evidence
-
-`.github/workflows/tests.yml` runs on pull requests and pushes to `main`.
-It keeps the existing tests, TypeScript check and Next.js build, and measures:
-
-- Backend: statement and branch coverage for `backend/`, using all Python tests.
-- Frontend: statement, branch, function and line coverage for TypeScript/TSX
-  in `lib/`, `app/` and `components/`, including untested source files.
-
-Coverage includes both unit and integration execution on the backend; it is
-not a unit-only metric. Frontend coverage is collected from Vitest unit tests,
-not manual browser tests. Config/build scripts, styles and test files are outside
-these source scopes. A module's 100% result must not be called project-wide 100%.
-
-Each job uploads its reports even after a test failure when reports exist.
-In GitHub, open **Actions → the workflow run → Artifacts**, then download
-`backend-coverage-<commit SHA>` and `frontend-coverage-<commit SHA>`.
-Backend HTML starts at `html/index.html`; frontend HTML starts at `index.html`.
-JSON/XML or LCOV files provide machine-readable results. Reports are requested
-to remain for 90 days; download required evidence before it expires. Reports can
-contain source code, so share them only with authorised project reviewers.
-
-This initial setup measures coverage without a percentage pass/fail threshold.
-Green CI means the tests/checks passed, not that coverage reached 100%. Review
-uncovered code, improve justified tests, and document any exception before
-agreeing a threshold. Generated reports remain ignored by Git; Actions artifacts
-and run logs are the evidence, rather than committing new generated report files.
-
-Local frontend measurement: `npm run test:coverage`.
-For backend measurement, install `coverage`, then run:
+To run one story's tests under coverage (from the project root):
 
 ```bash
-python -m coverage run --branch --source=backend --data-file=/tmp/connectsphere-ci.coverage -m pytest tests -q -p no:cacheprovider
-python -m coverage report --data-file=/tmp/connectsphere-ci.coverage --show-missing
+python run_coverage.py us01   # or any story, e.g. us19, us36
 ```
 
-Local verification on 13 Oct 2026 (SGT): 943 Python tests and 474 subtests passed;
-291 frontend tests passed; type check and workflow YAML parsing passed. Backend
-statement coverage was 97.49% and branch coverage 96.05%. Frontend statement
-coverage was 18.20% and branch coverage 21.62% in the full source scope above.
-Many UI components/context are not executed by the current unit tests, so their
-uncovered code remains visible. This is local verification, not a claim that a
-new GitHub Actions run has already uploaded the reports. No 100% claim is made.
-
-## Development scripts
-
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run start` — run the production build locally
+The report is saved under `coverage_reports/<story>/<date_time>/` (open `htmlcov/index.html`
+for the backend and `frontend/htmlcov/index.html` for the frontend).
 
 ## Architecture
-[Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio)
-The file contains three English diagrams: C1 System Context, C2 Containers, and C3 Backend Components. These describe the **Proposed Target Architecture**: Next.js / React, a Python monolith, and Supabase DB. Today the backend serves sign-in and the venue catalogue; the other data is still held in the browser.
-The Python framework, Supabase Auth usage, database connection method, and email provider remain TBD. Component boundaries and API connections are proposed and should be aligned with the implementation as it develops.
-To edit, download the file and open it in draw.io / diagrams.net using **File > Open From > Device**. Use this `.drawio` file as the primary editable source.
 
-
-### Test execution evidence
-
-Activate the project Python virtual environment, install the existing dependencies
-and Playwright browser, and stop local dev/test servers. Run the complete suites:
-
-```bash
-python scripts/test_evidence.py
-```
-
-The command runs backend unit/integration with coverage, frontend with coverage,
-and isolated Playwright functional tests, retaining each result under:
-
-```text
-coverage_reports/project/YYYY-MM-DD_HH-MM-SS_SGT_<unique-id>/
-  backend/     # test_output.txt, summary.txt, run-info.json, available coverage report.zip
-  frontend/    # test_output.txt, summary.txt, run-info.json, available coverage report.zip
-  functional/  # test_output.txt, summary.txt, run-info.json, available Playwright report.zip
-```
-
-Failures remain saved; the command fails if any suite/recording fails. Other
-suites still run after a failure. Ctrl+C stops further suites; force termination
-can prevent complete recording. Functional results are not code coverage. Tests
-use isolated fixtures, not the shared-database acceptance configuration.
-
-Each member reviews and commits their timestamped execution directory with their
-work. Other members pull it from Git; do not overwrite or delete earlier runs.
-No summary CSV is generated. Old US report folders and their existing history
-files are retained as historical evidence. Do not infer missing historical data.
-The latest/ directory is replaceable working output and stays ignored; complete
-available reports are preserved inside the timestamped report.zip (unzip to view).
-Raw .coverage and htmlcov working files remain ignored by the existing rules.
-
-Run information includes real UTC start/end times, version, command, result and
-coverage when measured. Folder names use SGT. Executor defaults to the configured
-Git user name, not authenticated identity. Sprint defaults to Unrecorded; optional
-metadata: `python scripts/test_evidence.py all --sprint SP4 --executor "Wen Yuetong"`.
-Commit source changes before final verification; dirty source changes are flagged.
-Never include passwords in recorded commands or committed logs.
-
-For a focused diagnostic, the existing run --kind interface remains available;
-these are not a substitute for complete project verification. CI's separate jobs
-use this same interface and upload execution records plus existing report
-artifacts (90-day retention). CI does not automatically commit or download those
-artifacts into this repository. Archive required CI evidence before expiry.
+[Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio):
+system context, containers and backend components. Open the file in draw.io / diagrams.net.
