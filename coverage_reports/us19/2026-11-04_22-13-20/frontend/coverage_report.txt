@@ -1,0 +1,31 @@
+Frontend coverage for US19
+Measured files: lib/venues/calendar.ts, components/bookings/AvailabilityCalendar.tsx
+Tests  67 passed (67)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  3 passed (3)
+      Tests  67 passed (67)
+   Start at  22:14:05
+   Duration  4.60s (transform 30%, environment 26%, tests 26%, import 15%, worker 2%)
+
+  Transform  transforming modules took 2.07s · 30% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 129/129 )
+Branches     : 100% ( 77/77 )
+Functions    : 100% ( 53/53 )
+Lines        : 100% ( 109/109 )
+================================================================================

@@ -1,0 +1,13 @@
+Coverage report for US02
+Generated: 2026-11-04 21:54:22
+Tests: tests/us02_rbac/test_event_visibility_api.py, tests/us02_rbac/test_rbac.py, tests/us02_rbac/unit/test_require_roles_unit.py
+Result: 88 tests, all passed
+Measured files: login/security.py, event_access.py, main.py:event_view,list_events,get_event
+
+Name                                      Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------
+login/security.py                            89    19    79%  26, 60-61, 70, 102, 116-117, 127-128, 135-138, 175-177, 179-181
+event_access.py                              41    18    56%  48, 53-64, 66-70
+main.py:event_view,list_events,get_event     17     7    59%  619-625
+------------------------------------------------------------------------
+TOTAL                                       147    44    70%

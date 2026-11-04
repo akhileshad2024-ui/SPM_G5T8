@@ -10,7 +10,7 @@ import pytest
 import models
 from login.models import Role
 
-from test_status_history import add_user, create, history, move, seed
+from test_status_history import add_user, create, history, move, opened, seed
 
 S = models.EventStatus
 
@@ -76,6 +76,36 @@ def test_a_coordinator_cannot_see_an_event_assigned_to_another_coordinator(signe
     coordinator = signed_in(Role.coordinator)
     assert refused(coordinator, event_id)
     assert event_id not in [e["id"] for e in coordinator.get("/events").json()]
+
+
+# ---------------------------------------------------------------- AC1/AC4 on the single-event view (GET /events/{id})
+
+def test_opening_an_event_shows_its_current_status(signed_in, db):
+    organiser = signed_in(Role.organiser)
+    event_id = create(organiser)
+    move(db, event_id, S.under_review)
+
+    response = opened(organiser, event_id)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "under_review"
+
+
+def test_opening_an_event_you_are_not_involved_in_is_refused(signed_in, db):
+    event_id = create(signed_in(Role.organiser))
+    other = add_user(db, "lin.chen@connectsphere.edu", "Lin Chen", Role.organiser)
+
+    response = opened(other, event_id)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You don't have permission to do that"
+
+
+def test_opening_an_event_that_does_not_exist_is_not_found(signed_in):
+    response = opened(signed_in(Role.lead), 999999)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Event not found"
 
 
 def test_an_unassigned_event_is_seen_by_the_lead_and_not_by_coordinators(signed_in, db):

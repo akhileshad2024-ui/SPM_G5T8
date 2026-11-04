@@ -2,6 +2,7 @@
 US01 — AC6: passwords are never stored in plain text.
 """
 
+import runpy
 import sys
 
 import pytest
@@ -154,6 +155,15 @@ def test_set_password_script_rejects_unknown_accounts(monkeypatch):
 def test_set_password_script_requires_exactly_one_email(monkeypatch):
     with pytest.raises(SystemExit, match="Usage"):
         run_set_password(monkeypatch, password=NEW_PASSWORD)
+
+
+def test_set_password_script_runs_main_when_started_from_the_command_line(monkeypatch):
+    """`python -m login.set_password <email>` reaches main(): an unknown account stops it with a message."""
+    monkeypatch.setattr(sys, "argv", ["set_password", "nobody@connectsphere.edu"])
+    monkeypatch.setenv("NEW_PASSWORD", NEW_PASSWORD)
+
+    with pytest.warns(RuntimeWarning), pytest.raises(SystemExit, match="No account found"):
+        runpy.run_module("login.set_password", run_name="__main__")
 
 
 def test_session_cookie_does_not_contain_the_password(client):

@@ -1,0 +1,11 @@
+Coverage report for US19
+Generated: 2026-11-04 22:13:20
+Tests: tests/us19_availability_calendar/test_us19_calendar_api.py, tests/us19_availability_calendar/test_us19_calendar_unit.py
+Result: 53 tests, all passed
+Measured files: venue_calendar.py
+
+Name                        Stmts   Miss  Cover   Missing
+---------------------------------------------------------
+backend\venue_calendar.py      53      0   100%
+---------------------------------------------------------
+TOTAL                          53      0   100%

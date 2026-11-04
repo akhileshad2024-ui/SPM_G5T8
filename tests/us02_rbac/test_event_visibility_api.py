@@ -14,10 +14,13 @@ list is written out by hand from the rule:
     (nobody but the organiser ever sees a draft)
 """
 
+from types import SimpleNamespace
+
 import pytest
 
 import models
 from auth_testkit import PASSWORD, get_user
+from event_access import involved_events, is_involved
 from login import security
 from login.models import Role, User
 
@@ -147,6 +150,39 @@ def test_attendees_see_only_confirmed_events_with_registration_open(signed_in, s
     assert "approved_booked" not in visible      # registration open, but not confirmed yet
     assert "confirmed_closed" not in visible     # confirmed, but registration is off
     assert visible == {"confirmed_open"}
+
+
+# ---------------------------------------------------------------- opening one event (GET /events/{id})
+
+@pytest.mark.parametrize("role", list(Role), ids=lambda r: r.value)
+def test_each_role_can_open_exactly_the_events_it_can_list(signed_in, seeded, role):
+    session = signed_in(role)
+
+    for name, event_id in seeded.items():
+        response = session.get(f"/events/{event_id}")
+        expected = 200 if name in VISIBLE_TO[role] else 403
+        assert response.status_code == expected, f"{role.value} opening {name}: {response.text}"
+
+
+def test_opening_an_event_you_are_not_involved_in_names_no_details(signed_in, seeded):
+    response = signed_in(Role.attendee).get(f"/events/{seeded['submitted_other']}")
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "You don't have permission to do that"}
+
+
+def test_opening_an_event_that_does_not_exist_is_not_found(signed_in, seeded):
+    response = signed_in(Role.lead).get("/events/999999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Event not found"}
+
+
+def test_an_account_with_an_unknown_role_is_involved_in_no_event(db, seeded):
+    stranger = SimpleNamespace(id=999, role="guest")
+
+    assert involved_events(db.query(models.Event), stranger).all() == []
+    assert not any(is_involved(event, stranger) for event in db.query(models.Event).all())
 
 
 def test_the_rule_follows_a_role_change_immediately(signed_in, seeded, db):

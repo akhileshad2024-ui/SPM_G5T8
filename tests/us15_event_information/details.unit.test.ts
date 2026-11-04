@@ -171,6 +171,48 @@ describe("detailSections (AC2: hidden fields are not shown as empty)", () => {
     expect(shown).not.toHaveProperty("Closes");
   });
 
+  it("shows how many places are taken against the capacity limit, and the withdrawal deadline", () => {
+    const shown = rows(detailSections(fullEvent({ registered: 45, withdrawalClose: "2026-11-18" })));
+
+    expect(shown["Places taken"]).toBe("45 of 120");
+    expect(shown["Withdraw by"]).toBe("18 Nov 2026");
+  });
+
+  it("shows just the number of places taken when there is no capacity limit", () => {
+    const shown = rows(detailSections(fullEvent({ regCap: null, registered: 7 })));
+
+    expect(shown["Places taken"]).toBe("7");
+  });
+
+  it("counts no places taken when the count is missing", () => {
+    expect(rows(detailSections(fullEvent({ registered: undefined })))["Places taken"]).toBe("0 of 120");
+    expect(rows(detailSections(fullEvent({ regCap: null, registered: undefined })))["Places taken"]).toBe("0");
+  });
+
+  it("hides places taken and the withdrawal deadline while registration is not open", () => {
+    const shown = rows(detailSections(fullEvent({ reg: false, registered: 45, withdrawalClose: "2026-11-18" })));
+
+    expect(shown).not.toHaveProperty("Places taken");
+    expect(shown).not.toHaveProperty("Withdraw by");
+  });
+
+  it("still shows the time when only the end time was sent, or only the start time", () => {
+    const withoutStart = fullEvent();
+    Reflect.deleteProperty(withoutStart, "start");
+    const withoutEnd = fullEvent();
+    Reflect.deleteProperty(withoutEnd, "end");
+
+    expect(rows(detailSections(withoutStart))).toHaveProperty("Time");
+    expect(rows(detailSections(withoutEnd))).toHaveProperty("Time");
+  });
+
+  it("shows a blank clarification message or decision outcome as empty text rather than failing", () => {
+    const shown = rows(detailSections(fullEvent({ clarification: { kind: "clarification" } as never, decision: {} as never })));
+
+    expect(shown["Clarification requested"]).toBe("");
+    expect(shown["Decision"]).toBe("");
+  });
+
   it("shows no clarification or decision row until there is one", () => {
     const shown = rows(detailSections(fullEvent({ clarification: null, decision: null })));
 

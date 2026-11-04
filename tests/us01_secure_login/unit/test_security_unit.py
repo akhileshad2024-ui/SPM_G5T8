@@ -5,6 +5,7 @@ tokens and the idle timeout (AC4), and the session cookie (AC5).
 Each function is called directly with stand-in objects (no HTTP, no database).
 """
 
+import runpy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -13,6 +14,7 @@ import pytest
 from fastapi import HTTPException, Response
 
 from login import security
+from login.models import Role
 
 
 def make_user(**overrides):
@@ -216,6 +218,49 @@ def test_get_current_user_renews_the_session_cookie():
     renewed = claims(response.headers["set-cookie"].split("=", 1)[1].split(";", 1)[0])
     assert renewed["start"] == int(signed_in.timestamp())
     assert renewed["exp"] - renewed["iat"] == security.SESSION_IDLE_MINUTES * 60
+
+
+def test_background_polling_is_authenticated_without_renewing_the_cookie():
+    """Polling must not count as activity, so it never slides the idle window."""
+    user = make_user()
+
+    result = security.get_current_user_without_renewal(request_with(security.create_session_token(user)), FakeDB(user))
+
+    assert result is user
+
+
+def test_background_polling_rejects_requests_without_a_session():
+    with pytest.raises(HTTPException) as err:
+        security.get_current_user_without_renewal(request_with(None), FakeDB(make_user()))
+
+    assert err.value.status_code == 401
+    assert err.value.detail == "Not signed in"
+
+
+def test_require_roles_lets_an_allowed_role_through():
+    dependency = security.require_roles(Role.venue, Role.lead)
+    user = make_user(role=Role.lead)
+
+    assert dependency(user) is user
+
+
+def test_require_roles_refuses_any_other_role():
+    dependency = security.require_roles(Role.venue)
+
+    with pytest.raises(HTTPException) as err:
+        dependency(make_user(role=Role.attendee))
+
+    assert err.value.status_code == 403
+    assert err.value.detail == "You don't have permission to do that"
+
+
+@pytest.mark.parametrize("secret", ["", "too-short", "CHANGE_ME"])
+def test_the_app_refuses_to_start_without_a_strong_jwt_secret(monkeypatch, secret):
+    """Session tokens are only as safe as the signing secret, so a missing / placeholder one stops start-up."""
+    monkeypatch.setenv("JWT_SECRET", secret)
+
+    with pytest.raises(RuntimeError, match="JWT_SECRET is missing or too short"):
+        runpy.run_path(security.__file__)
 
 
 # ---------------------------------------------------------------- AC5: the cookie itself

@@ -1,0 +1,29 @@
+Frontend coverage for US01
+Measured files: lib/auth/idle-timeout.ts
+Tests  29 passed (29)
+Line coverage: 85.45%
+
+
+ RUN  v5.0.2 E:/Work/A65/SPM_G5T8
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  21:54:20
+   Duration  1.76s (transform 36%, import 33%, worker 16%, tests 15%)
+
+ % Coverage report from v8
+-----------------|---------|----------|---------|---------|-------------------
+File             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------------|---------|----------|---------|---------|-------------------
+All files        |   85.24 |     90.9 |   70.58 |   85.45 |                   
+ idle-timeout.ts |   85.24 |     90.9 |   70.58 |   85.45 | 136-145           
+-----------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 85.24% ( 52/61 )
+Branches     : 90.9% ( 20/22 )
+Functions    : 70.58% ( 12/17 )
+Lines        : 85.45% ( 47/55 )
+================================================================================
