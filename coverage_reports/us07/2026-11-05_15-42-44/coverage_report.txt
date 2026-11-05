@@ -1,0 +1,12 @@
+Coverage report for US07
+Generated: 2026-11-05 15:42:44
+Tests: tests/us07_us11_event_review/test_review_api.py (only tests named test_US07)
+Result: 9 tests, all passed
+Measured files: event_review.py:start_review, main.py:start_review
+
+Name                          Stmts  Miss  Cover  Missing
+------------------------------------------------------------
+event_review.py:start_review      4     0   100%  
+main.py:start_review              3     0   100%  
+------------------------------------------------------------
+TOTAL                             7     0   100%

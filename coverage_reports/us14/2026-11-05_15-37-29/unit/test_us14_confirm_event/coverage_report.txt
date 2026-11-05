@@ -1,0 +1,13 @@
+Coverage report for test_us14_confirm_event  (unit tests)
+Generated: 2026-11-05 15:37:29
+Test file: tests/unit/safety/test_us14_confirm_event.py
+Result: 35 tests, all passed
+Measured code: event_confirmation.py, main.py:confirm_event,event_confirmation_status, schemas.py:ConfirmationResponse
+
+Name                                             Stmts  Miss  Cover  Missing
+-------------------------------------------------------------------------------
+event_confirmation.py                               47     0   100%  
+main.py:confirm_event,event_confirmation_status     17     0   100%  
+schemas.py:ConfirmationResponse                      7     0   100%  
+-------------------------------------------------------------------------------
+TOTAL                                               71     0   100%

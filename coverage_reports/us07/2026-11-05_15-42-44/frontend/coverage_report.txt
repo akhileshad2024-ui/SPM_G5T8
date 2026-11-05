@@ -1,0 +1,29 @@
+Frontend coverage for US07
+Measured files: lib/events/review/review.ts
+Tests  37 passed (37)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 C:/Users/user/OneDrive - Star/Documents/SMU/SPM/project
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  15:43:03
+   Duration  930ms (transform 47%, import 30%, worker 20%, tests 3%)
+
+ % Coverage report from v8
+-----------|---------|----------|---------|---------|-------------------
+File       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------|---------|----------|---------|---------|-------------------
+All files  |   97.67 |       95 |     100 |     100 |                   
+ review.ts |   97.67 |       95 |     100 |     100 | 50,91             
+-----------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 97.67% ( 42/43 )
+Branches     : 95% ( 57/60 )
+Functions    : 100% ( 10/10 )
+Lines        : 100% ( 36/36 )
+================================================================================

@@ -1,0 +1,6 @@
+US14 unit test and coverage summary - 2026-11-05 15:37:29
+
+type    test file                          tests  result   coverage
+unit    test_us14_confirm_event               35  passed     100.0%
+
+frontend: Tests  17 passed (17) (all passed); line coverage 100% of lib/events/confirmation.ts

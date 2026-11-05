@@ -1,0 +1,27 @@
+Frontend coverage for US42
+Measured files: lib/venues/hold-expiry.ts
+Tests  17 passed (17)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 C:/Users/user/OneDrive - Star/Documents/SMU/SPM/project
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  15:39:49
+   Duration  933ms (import 37%, transform 34%, worker 24%, tests 5%)
+
+ % Coverage report from v8
+----------------|---------|----------|---------|---------|-------------------
+File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------|---------|----------|---------|---------|-------------------
+----------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 24/24 )
+Branches     : 100% ( 14/14 )
+Functions    : 100% ( 4/4 )
+Lines        : 100% ( 17/17 )
+================================================================================

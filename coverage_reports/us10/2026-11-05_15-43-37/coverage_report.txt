@@ -1,0 +1,13 @@
+Coverage report for US10
+Generated: 2026-11-05 15:43:37
+Tests: tests/us07_us11_event_review/test_review_api.py (only tests named test_US10)
+Result: 20 tests, all passed
+Measured files: event_review.py:note_error,check_note,check_decision_allowed,decide, main.py:decide_request, schemas.py:DecisionIn
+
+Name                                                                 Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------------------
+event_review.py:note_error,check_note,check_decision_allowed,decide     33     0   100%  
+main.py:decide_request                                                   6     0   100%  
+schemas.py:DecisionIn                                                    3     0   100%  
+---------------------------------------------------------------------------------------------------
+TOTAL                                                                   42     0   100%

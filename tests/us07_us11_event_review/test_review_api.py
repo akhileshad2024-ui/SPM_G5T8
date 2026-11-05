@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
+import event_review
 import models
 from auth_testkit import PASSWORD, get_user, login
 from login import security
@@ -117,6 +118,17 @@ def under_review(organiser, coordinator, lead):
 def stored(db, event_id):
     db.expire_all()
     return db.get(models.Event, event_id)
+
+
+def rule_refusal(db, event_id, assigned_to_other, call):
+    """The review rule's own refusal when the event has no coordinator, or another one (Marcus): `call(event, user, now)`
+    runs the rule directly as the signed-in coordinator, since the route already refuses these with 403 (US43)."""
+    add_user(db, "marcus.lee@connectsphere.edu", "Marcus Lee", Role.coordinator)
+    marcus = db.query(User).filter_by(email="marcus.lee@connectsphere.edu").one()
+    seed(db, event_id, coordinator_id=marcus.id if assigned_to_other else None)
+    with pytest.raises(event_review.ReviewError) as refusal:
+        call(stored(db, event_id), get_user(db, Role.coordinator), datetime.now(timezone.utc))
+    return refusal.value
 
 
 def refused(response, status, message=None):
@@ -418,6 +430,45 @@ def test_US08_an_unknown_kind_is_rejected(organiser, coordinator, lead):
     assert post(coordinator, event_id, "clarification", kind="question", message=QUESTION).status_code == 422
 
 
+@pytest.mark.parametrize("outcome", ["approved", "rejected"])
+def test_US08_AC5_a_decided_request_cannot_be_sent_for_clarification(organiser, coordinator, lead, db, outcome):
+    event_id = under_review(organiser, coordinator, lead)
+    post(coordinator, event_id, "decision", outcome=outcome, reason=REASON)
+
+    response = post(coordinator, event_id, "clarification", kind="clarification", message=QUESTION)
+    assert refused(response, 409, "A decision has already been made on this request.")
+    assert stored(db, event_id).clarification is None
+
+
+def test_US08_AC1_a_second_request_keeps_the_answered_one_in_its_history(organiser, coordinator, lead, db):
+    # After the organiser replies (US09) and the review resumes, the coordinator may ask again.
+    event_id = under_review(organiser, coordinator, lead)
+    post(coordinator, event_id, "clarification", kind="clarification", message=QUESTION)
+    assert post(organiser, event_id, "clarification-response", message="About 120 people.").status_code == 200
+    assert post(coordinator, event_id, "resume-review").status_code == 200
+
+    response = post(coordinator, event_id, "clarification", kind="amendment", message="Please move it to the afternoon.")
+
+    assert response.status_code == 200, response.text
+    latest = response.json()["clarification"]
+    assert (latest["kind"], latest["message"], latest.get("response")) == ("amendment", "Please move it to the afternoon.", None)
+    [earlier] = stored(db, event_id).clarification["history"]
+    assert (earlier["message"], earlier["response"]["message"]) == (QUESTION, "About 120 people.")
+
+
+@pytest.mark.parametrize("assigned, message", [
+    (False, "Assign a coordinator before making a decision on this request."),
+    (True, "Only the assigned coordinator (Marcus Lee) can make this decision."),
+])
+def test_US08_AC5_the_rule_itself_refuses_an_unassigned_or_another_coordinators_event(organiser, coordinator, lead, db, assigned, message):
+    # The route already refuses these with 403 (US43); the rule refuses them too, should anything call it directly.
+    event_id = under_review(organiser, coordinator, lead)
+    refusal = rule_refusal(db, event_id, assigned, lambda event, user, now: event_review.request_clarification(
+        db, event, user, "clarification", QUESTION, now))
+    assert (refusal.status_code, refusal.message) == (409, message)
+    assert stored(db, event_id).status == S.under_review
+
+
 # ---------------------------------------------------------------- US10: approve / reject
 
 def test_US10_AC1_AC3_approving_records_the_decision_and_the_note(organiser, coordinator, lead):
@@ -487,6 +538,28 @@ def test_US10_AC5_only_once_a_coordinator_is_assigned(organiser, coordinator, db
 
     response = post(coordinator, event_id, "decision", outcome="approved")
     assert refused(response, 403)  # US43: not the coordinator's event
+
+
+def test_US10_AC5_not_while_waiting_for_the_organiser_to_clarify(organiser, coordinator, lead, db):
+    event_id = under_review(organiser, coordinator, lead)
+    post(coordinator, event_id, "clarification", kind="clarification", message=QUESTION)
+
+    response = post(coordinator, event_id, "decision", outcome="approved")
+    assert refused(response, 409, "Waiting for the organiser to respond to your clarification request.")
+    assert stored(db, event_id).decision is None
+
+
+@pytest.mark.parametrize("assigned, message", [
+    (False, "Assign a coordinator before making a decision on this request."),
+    (True, "Only the assigned coordinator (Marcus Lee) can make this decision."),
+])
+def test_US10_AC5_the_rule_itself_refuses_an_unassigned_or_another_coordinators_event(organiser, coordinator, lead, db, assigned, message):
+    # The route already refuses these with 403 (US43); the rule refuses them too, should anything call it directly.
+    event_id = under_review(organiser, coordinator, lead)
+    refusal = rule_refusal(db, event_id, assigned, lambda event, user, now: event_review.decide(
+        db, event, user, "approved", "", now))
+    assert (refusal.status_code, refusal.message) == (409, message)
+    assert stored(db, event_id).status == S.under_review
 
 
 def test_US10_AC5_not_before_the_review_has_started(organiser, coordinator, lead):

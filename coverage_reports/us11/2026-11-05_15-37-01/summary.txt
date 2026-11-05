@@ -1,0 +1,6 @@
+US11 unit test and coverage summary - 2026-11-05 15:37:01
+
+type    test file                          tests  result   coverage
+unit    test_us11_assign_coordinator          18  passed     100.0%
+
+frontend: Tests  144 passed (144) (all passed); line coverage 100% of lib/events/review/assignment.ts, lib/events/review/lead.ts

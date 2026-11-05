@@ -1,0 +1,13 @@
+Coverage report for US08
+Generated: 2026-11-05 15:43:05
+Tests: tests/us07_us11_event_review/test_review_api.py (only tests named test_US08)
+Result: 16 tests, all passed
+Measured files: event_review.py:note_error,check_note,check_decision_allowed,request_clarification, main.py:request_clarification, schemas.py:ClarificationIn
+
+Name                                                                                Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------------------------------------------------
+event_review.py:note_error,check_note,check_decision_allowed,request_clarification     35     1    97%  59
+main.py:request_clarification                                                           6     0   100%  
+schemas.py:ClarificationIn                                                              3     0   100%  
+------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                  44     1    98%

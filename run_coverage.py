@@ -170,6 +170,19 @@ STORY_DIRS = {
     "us19": "tests/us19_availability_calendar",
     "us29": "tests/us29_us32_registration",
     "us36": "tests/us36_notifications",
+    # US07, US08 and US10 share one API test file with US11; STORY_SELECT keeps only each story's own tests.
+    "us07": "tests/us07_us11_event_review",
+    "us08": "tests/us07_us11_event_review",
+    "us10": "tests/us07_us11_event_review",
+    "us23": "tests/us23_booking_approval",
+    "us42": "tests/us42_hold_expiry",
+}
+
+# Stories that share a test folder: the pytest -k expression that picks out their tests (test names carry the story).
+STORY_SELECT = {
+    "us07": "test_US07",
+    "us08": "test_US08",
+    "us10": "test_US10",
 }
 
 # Backend files each of those stories' tests are meant to cover. "main.py:a,b" measures only those top-level
@@ -185,6 +198,18 @@ STORY_FILES = {
     "us19": ["venue_calendar.py"],
     "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
     "us36": ["messaging.py"],
+    # US07 starts the review; US08 asks for clarification; US10 decides. Each is measured on its own rule and endpoint.
+    "us07": ["event_review.py:start_review", "main.py:start_review"],
+    "us08": ["event_review.py:note_error,check_note,check_decision_allowed,request_clarification",
+             "main.py:request_clarification", "schemas.py:ClarificationIn"],
+    "us10": ["event_review.py:note_error,check_note,check_decision_allowed,decide",
+             "main.py:decide_request", "schemas.py:DecisionIn"],
+    # US23 Venue Staff approve or reject a pending booking request, and the coordinator is told.
+    "us23": ["venue_bookings.py:decide,decision_notice", "main.py:decide_booking", "schemas.py:BookingDecisionIn",
+             "messaging.py:booking_decided"],
+    # US42 tentative holds expire: the hold rules, setting an expiry, expiring lapsed holds and the coordinator's notices.
+    "us42": ["hold_expiry.py", "main.py:expire_lapsed_holds,set_hold_expiry", "schemas.py:BookingHoldIn",
+             "messaging.py:sweep_holds"],
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.
@@ -201,6 +226,10 @@ STORY_FRONTEND = {
     "us11": ["lib/events/review/assignment.ts", "lib/events/review/lead.ts"],
     "us12": ["lib/events/review/reassignment.ts"],
     "us14": ["lib/events/confirmation.ts"],
+    "us07": ["lib/events/review/review.ts"],
+    "us08": ["lib/events/review/clarification.ts"],
+    "us10": ["lib/events/review/decision.ts"],
+    "us42": ["lib/venues/hold-expiry.ts"],
     "us43": ["lib/events/review/lead.ts", "lib/events/review/shared.ts", "lib/auth/route-access.ts"],
 }
 
@@ -210,6 +239,10 @@ STORY_FRONTEND_TESTS = {
     "us11": "tests/unit/event-review",
     "us12": "tests/unit/event-review/reassignment",
     "us14": "tests/unit/event-review/confirmation",
+    "us07": "tests/unit/event-review/review.unit",
+    "us08": "tests/unit/event-review/clarification.unit",
+    "us10": "tests/unit/event-review/decision.unit",
+    "us42": "tests/us42_hold_expiry",
     "us43": "tests/unit/event-review tests/us02_rbac/route-access",
 }
 
@@ -361,9 +394,10 @@ def run_story_backend(story: str, data_file: Path) -> tuple:
     """Run the story folder's pytest tests under coverage: (test files, output, tests run, all passed)."""
     folder = ROOT / STORY_DIRS[story]
     test_files = sorted(p.relative_to(ROOT) for p in folder.rglob("test_*.py"))
+    select = ["-k", STORY_SELECT[story]] if story in STORY_SELECT else []
     run = subprocess.run(
         [sys.executable, "-m", "coverage", "run", f"--data-file={data_file}", f"--source={BACKEND}",
-         "-m", "pytest", str(folder), "-v", "-p", "no:cacheprovider"],
+         "-m", "pytest", str(folder), "-v", "-p", "no:cacheprovider", *select],
         cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     output = run.stdout + run.stderr
@@ -428,7 +462,8 @@ def run_story_folder(story: str) -> int:
     header = (
         f"Coverage report for {story.upper()}\n"
         f"Generated: {now:%Y-%m-%d %H:%M:%S}\n"
-        f"Tests: {', '.join(p.as_posix() for p in test_files)}\n"
+        f"Tests: {', '.join(p.as_posix() for p in test_files)}"
+        f"{f' (only tests named {STORY_SELECT[story]})' if story in STORY_SELECT else ''}\n"
         f"Result: {tests_run} tests, {'all passed' if passed else 'FAILURES'}\n"
         f"Measured files: {scope}\n\n"
     )
