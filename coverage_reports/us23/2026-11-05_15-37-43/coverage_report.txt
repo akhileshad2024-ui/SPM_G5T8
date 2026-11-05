@@ -1,0 +1,14 @@
+Coverage report for US23
+Generated: 2026-11-05 15:37:43
+Tests: tests/us23_booking_approval/test_booking_approval_api.py, tests/us23_booking_approval/unit/test_decision_notice_unit.py
+Result: 42 tests, all passed
+Measured files: venue_bookings.py:decide,decision_notice, main.py:decide_booking, schemas.py:BookingDecisionIn, messaging.py:booking_decided
+
+Name                                      Stmts  Miss  Cover  Missing
+------------------------------------------------------------------------
+venue_bookings.py:decide,decision_notice     31     0   100%  
+main.py:decide_booking                       15     0   100%  
+schemas.py:BookingDecisionIn                  3     0   100%  
+messaging.py:booking_decided                  8     0   100%  
+------------------------------------------------------------------------
+TOTAL                                        57     0   100%

@@ -1,0 +1,27 @@
+Frontend coverage for US14
+Measured files: lib/events/confirmation.ts
+Tests  17 passed (17)
+Line coverage: 100%
+
+
+ RUN  v5.0.2 C:/Users/user/OneDrive - Star/Documents/SMU/SPM/project
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  15:37:41
+   Duration  1.02s (transform 43%, import 29%, worker 24%, tests 4%)
+
+ % Coverage report from v8
+-----------------|---------|----------|---------|---------|-------------------
+File             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------------|---------|----------|---------|---------|-------------------
+-----------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 11/11 )
+Branches     : 100% ( 8/8 )
+Functions    : 100% ( 4/4 )
+Lines        : 100% ( 9/9 )
+================================================================================

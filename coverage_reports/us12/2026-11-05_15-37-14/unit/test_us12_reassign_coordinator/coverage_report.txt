@@ -1,0 +1,13 @@
+Coverage report for test_us12_reassign_coordinator  (unit tests)
+Generated: 2026-11-05 15:37:14
+Test file: tests/unit/lead_assignment/test_us12_reassign_coordinator.py
+Result: 30 tests, all passed
+Measured code: event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history, main.py:reassign_coordinator,event_assignment_history, schemas.py:ReassignCoordinatorIn,AssignmentHistoryEntry
+
+Name                                                                                       Stmts  Miss  Cover  Missing
+-------------------------------------------------------------------------------------------------------------------------
+event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history     44     1    98%  59
+main.py:reassign_coordinator,event_assignment_history                                         14     0   100%  
+schemas.py:ReassignCoordinatorIn,AssignmentHistoryEntry                                        9     0   100%  
+-------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                         67     1    99%

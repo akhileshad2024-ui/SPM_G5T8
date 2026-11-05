@@ -1,0 +1,6 @@
+US12 unit test and coverage summary - 2026-11-05 15:37:14
+
+type    test file                          tests  result   coverage
+unit    test_us12_reassign_coordinator        30  passed      98.5%
+
+frontend: Tests  22 passed (22) (all passed); line coverage 100% of lib/events/review/reassignment.ts

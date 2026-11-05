@@ -1,0 +1,60 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.17, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\user\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Scripts\python.exe
+rootdir: C:\Users\user\OneDrive - Star\Documents\SMU\SPM\project
+plugins: anyio-4.16.0
+collecting ... collected 46 items
+
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_a_new_request_is_held_with_a_default_expiry PASSED [  2%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_venue_staff_set_the_expiry_and_it_is_saved PASSED [  4%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_an_expiry_in_the_past_or_after_setup_is_refused[<lambda>-The expiry must be in the future.] PASSED [  6%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_an_expiry_in_the_past_or_after_setup_is_refused[<lambda>-The hold can't last beyond the start of setup for the event.] PASSED [  8%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_only_venue_staff_set_expiries PASSED [ 10%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_an_approved_booking_has_no_hold_to_expire PASSED [ 13%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC1_an_unknown_booking_is_not_found PASSED [ 15%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC2_a_hold_past_its_expiry_is_saved_as_expired PASSED [ 17%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC2_the_venue_is_released_for_other_requests PASSED [ 19%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC2_until_it_expires_the_hold_keeps_the_venue PASSED [ 21%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC2_the_event_no_longer_shows_the_venue_as_requested PASSED [ 23%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC3_the_coordinator_is_warned_within_24_hours_of_expiry PASSED [ 26%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC3_no_warning_while_expiry_is_further_off PASSED [ 28%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC3_the_coordinator_is_told_when_it_expires PASSED [ 30%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC4_an_expired_hold_cannot_become_a_confirmed_booking PASSED [ 32%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC4_even_before_expired_is_saved_it_is_not_approved PASSED [ 34%]
+tests/us42_hold_expiry/test_hold_expiry_api.py::test_US42_AC4_the_coordinator_sees_it_as_expired PASSED [ 36%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_a_new_hold_expires_three_days_after_the_request PASSED [ 39%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_the_default_never_outlasts_the_start_of_setup PASSED [ 41%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_setup_start_is_read_as_campus_time PASSED [ 43%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_venue_staff_set_an_expiry_in_utc_and_who_set_it_is_recorded PASSED [ 45%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_the_expiry_must_be_in_the_future_and_before_setup[when0-The expiry must be in the future.] PASSED [ 47%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_the_expiry_must_be_in_the_future_and_before_setup[when1-The expiry must be in the future.] PASSED [ 50%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_the_expiry_must_be_in_the_future_and_before_setup[when2-The hold can't last beyond the start of setup for the event.] PASSED [ 52%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_an_expiry_exactly_at_the_start_of_setup_is_allowed PASSED [ 54%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_the_expiry_needs_a_time_zone PASSED [ 56%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_only_a_pending_request_has_a_hold_to_set[approved] PASSED [ 58%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_only_a_pending_request_has_a_hold_to_set[rejected] PASSED [ 60%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_only_a_pending_request_has_a_hold_to_set[cancelled] PASSED [ 63%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_only_a_pending_request_has_a_hold_to_set[expired] PASSED [ 65%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC1_a_hold_that_has_already_lapsed_cannot_be_extended PASSED [ 67%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_a_pending_hold_lapses_at_its_expiry_time PASSED [ 69%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_a_pending_hold_is_kept_until_then PASSED [ 71%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_only_unapproved_holds_lapse[approved] PASSED [ 73%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_only_unapproved_holds_lapse[rejected] PASSED [ 76%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_only_unapproved_holds_lapse[cancelled] PASSED [ 78%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_a_booking_saved_before_holds_had_an_expiry_never_lapses PASSED [ 80%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC2_times_saved_without_a_zone_are_read_as_utc PASSED [ 82%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_no_notice_while_the_expiry_is_more_than_24_hours_away PASSED [ 84%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_warned_within_24_hours_of_expiry[left0] PASSED [ 86%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_warned_within_24_hours_of_expiry[left1] PASSED [ 89%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_warned_within_24_hours_of_expiry[left2] PASSED [ 91%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_told_again_when_it_expires PASSED [ 93%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_no_notice_once_the_request_has_been_decided[approved] PASSED [ 95%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_no_notice_once_the_request_has_been_decided[rejected] PASSED [ 97%]
+tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py::test_US42_AC3_no_notice_once_the_request_has_been_decided[cancelled] PASSED [100%]
+
+============================== warnings summary ===============================
+..\..\..\..\..\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\user\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 46 passed, 1 warning in 51.96s ========================
