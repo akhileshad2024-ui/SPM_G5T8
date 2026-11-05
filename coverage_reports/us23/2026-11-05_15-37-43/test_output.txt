@@ -1,0 +1,56 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.17, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\user\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Scripts\python.exe
+rootdir: C:\Users\user\OneDrive - Star\Documents\SMU\SPM\project
+plugins: anyio-4.16.0
+collecting ... collected 42 items
+
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC1_venue_staff_see_pending_requests_for_every_venue PASSED [  2%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC1_every_venue_staff_member_sees_the_same_requests PASSED [  4%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC1_other_roles_cannot_list_booking_requests[organiser] PASSED [  7%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC1_other_roles_cannot_list_booking_requests[tech] PASSED [  9%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC1_other_roles_cannot_list_booking_requests[attendee] PASSED [ 11%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC2_a_request_shows_the_event_timing_and_venue_requirements PASSED [ 14%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_venue_staff_approve_a_request PASSED [ 16%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_rejecting_needs_a_reason[] PASSED [ 19%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_rejecting_needs_a_reason[   ] PASSED [ 21%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_a_rejection_keeps_its_reason PASSED [ 23%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_only_venue_staff_decide[coordinator] PASSED [ 26%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_only_venue_staff_decide[organiser] PASSED [ 28%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_an_unknown_request_is_not_found PASSED [ 30%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_a_decided_request_cannot_be_decided_again[approved] PASSED [ 33%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC3_a_decided_request_cannot_be_decided_again[rejected] PASSED [ 35%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC4_approving_confirms_the_hold_so_a_clashing_request_cannot_be_approved PASSED [ 38%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC4_a_venue_deactivated_since_the_request_cannot_be_approved PASSED [ 40%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC4_the_event_shows_its_venue_as_booked PASSED [ 42%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC4_rejecting_releases_the_venue_for_other_requests PASSED [ 45%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC5_the_requesting_coordinator_is_told_the_outcome[approved-] PASSED [ 47%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC5_the_requesting_coordinator_is_told_the_outcome[rejected-Held for maintenance that week.] PASSED [ 50%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC5_an_undecided_request_has_nothing_to_tell PASSED [ 52%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC5_old_decisions_are_not_repeated PASSED [ 54%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC6_deciding_one_booking_leaves_the_events_other_bookings_alone PASSED [ 57%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC6_an_event_waits_on_its_remaining_bookings PASSED [ 59%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC7_an_expired_hold_cannot_be_approved PASSED [ 61%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC7_rejecting_it_explains_the_venue_is_already_free PASSED [ 64%]
+tests/us23_booking_approval/test_booking_approval_api.py::test_US23_AC7_a_hold_still_within_its_expiry_can_be_approved PASSED [ 66%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_a_recent_decision_is_passed_on_to_the_coordinator[approved] PASSED [ 69%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_a_recent_decision_is_passed_on_to_the_coordinator[rejected] PASSED [ 71%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_still_shown_exactly_seven_days_later PASSED [ 73%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_no_longer_shown_after_seven_days PASSED [ 76%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_only_decisions_are_passed_on[pending] PASSED [ 78%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_only_decisions_are_passed_on[cancelled] PASSED [ 80%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_only_decisions_are_passed_on[expired] PASSED [ 83%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_a_booking_never_decided_has_no_notice PASSED [ 85%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC5_times_saved_without_a_zone_are_read_as_utc PASSED [ 88%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC7_an_expired_hold_cannot_be_approved PASSED [ 90%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC7_rejecting_an_expired_hold_explains_the_venue_is_already_free PASSED [ 92%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC7_a_booking_already_saved_as_expired_is_refused_too PASSED [ 95%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC7_the_expired_hold_is_never_marked_approved PASSED [ 97%]
+tests/us23_booking_approval/unit/test_decision_notice_unit.py::test_US23_AC7_an_expired_booking_without_a_recorded_expiry_is_still_refused PASSED [100%]
+
+============================== warnings summary ===============================
+..\..\..\..\..\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\user\AppData\Local\Temp\claude\c--Users-user-OneDrive---Star-Documents-SMU-SPM-project\aa9b3baf-3fd8-4791-86c9-3ed7028dd8ae\scratchpad\py313\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 42 passed, 1 warning in 55.91s ========================

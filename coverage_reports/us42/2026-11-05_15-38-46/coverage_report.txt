@@ -1,0 +1,14 @@
+Coverage report for US42
+Generated: 2026-11-05 15:38:46
+Tests: tests/us42_hold_expiry/test_hold_expiry_api.py, tests/us42_hold_expiry/unit/test_hold_expiry_rules_unit.py
+Result: 46 tests, all passed
+Measured files: hold_expiry.py, main.py:expire_lapsed_holds,set_hold_expiry, schemas.py:BookingHoldIn, messaging.py:sweep_holds
+
+Name                                         Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------
+hold_expiry.py                                  49     0   100%  
+main.py:expire_lapsed_holds,set_hold_expiry     14     0   100%  
+schemas.py:BookingHoldIn                         2     0   100%  
+messaging.py:sweep_holds                        13     0   100%  
+---------------------------------------------------------------------------
+TOTAL                                           78     0   100%

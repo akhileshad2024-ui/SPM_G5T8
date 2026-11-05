@@ -1,0 +1,2 @@
+timestamp,type,test_file,tests_run,result,coverage_percent,report_folder
+2026-11-05 15:37:14,unit,test_us12_reassign_coordinator,30,passed,98.5,unit/test_us12_reassign_coordinator
