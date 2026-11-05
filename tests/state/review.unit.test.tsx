@@ -128,6 +128,13 @@ describe("reassignCoordinator (the lead hands an event to someone else)", () => 
     expect(await act2(() => m.app.reassignCoordinator("EVT-9", "Marcus Lee", "why"))).toBe(false);
   });
 
+  it("refuses a name that isn't on the coordinators' roster", async () => {
+    const m = await setup();
+
+    expect(await act2(() => m.app.reassignCoordinator("EVT-1", "Nobody", "why"))).toBe(false);
+    expect(m.app.state.toast).toBe("Nobody is not an Event Coordinator.");
+  });
+
   it("returns false and explains when the page's rules refuse (no reason given)", async () => {
     const m = await setup();
 
@@ -142,6 +149,30 @@ describe("reassignCoordinator (the lead hands an event to someone else)", () => 
 
     expect(await act2(() => m.app.reassignCoordinator("EVT-1", "Marcus Lee", "Priya is on leave"))).toBe(false);
     expect(m.app.state.toast).toBe("Already moved");
+  });
+});
+
+describe("with several events on the page, only the one acted on changes", () => {
+  it("assign, reply, safety request, details and page-only confirm leave the others alone", async () => {
+    const lead = await mountApp({ role: "lead", events: [stored(1), stored(2)], routes: { "GET /coordinators": [PRIYA] } });
+    route("POST /events/1/assign", stored(1, { coordinator: "Priya Tan" }));
+    await act2(() => lead.app.assignCoordinator("EVT-1", "Priya Tan"));
+    await flush();
+    expect(lead.app.state.events.map((e) => e.coordinator)).toEqual(["Priya Tan", null]);
+
+    const m = await mountApp({ events: [underReview(1), underReview(2, { name: "Other" })] });
+    route("POST /events/1/clarification-response", stored(1, { status: "under_review" }));
+    await act2(() => m.app.saveClarificationReply(1, "Reply"));
+    route("POST /events/1/safety-check/request", stored(1, { status: "pending_safety_review" }));
+    await act2(() => m.app.requestSafetyCheck(1));
+    route("PATCH /events/1/details", underReview(1, { name: "Renamed" }));
+    await act2(() => m.app.saveEventDetails(1, {} as never));
+    expect(m.app.state.events.map((e) => e.name)).toEqual(["Renamed", "Other"]);
+    expect(m.app.state.events[1].status).toBe("under_review");
+
+    const sample = await mountApp({ events: [unstored({ status: "approved" }), stored(2)] });
+    await act2(() => sample.app.confirmEvent("EVT-undefined"));
+    expect(sample.app.state.events.map((e) => e.status)).toEqual(["confirmed", "submitted"]);
   });
 });
 

@@ -81,6 +81,15 @@ describe("the venue catalogue", () => {
     expect(m.app.state.venues.map((v) => v.name)).toEqual(["Grand Hall (renamed)"]);
   });
 
+  it("leaves the other venues as they were when one is edited", async () => {
+    const m = await mountApp({ routes: { "GET /venues?include_inactive=true": [apiVenue(3), apiVenue(4, { name: "Annex" })] } });
+    route("PUT /venues/3", apiVenue(3, { name: "Renamed" }));
+
+    await act2(() => m.app.saveVenue("3", { name: "Renamed" }));
+
+    expect(m.app.state.venues.map((v) => v.name)).toEqual(["Renamed", "Annex"]);
+  });
+
   it("keeps the bookings the server flagged on their events and lists those events as affected", async () => {
     const held = approved(1, { venue: 3, bookingState: "approved" });
     const m = await withVenue([held]);
@@ -192,6 +201,16 @@ describe("requestBooking", () => {
     expect(m.app.state.events[0].activity[0].body).toContain("30 min setup and 15 min teardown");
   });
 
+  it("re-reads the bookings without touching the event's neighbours", async () => {
+    const m = await mountApp({ events: [approved(1), stored(2, { name: "Other" })], routes: { "GET /venues?include_inactive=true": [apiVenue(3)] } });
+    route("POST /venues/3/booking-requests", response());
+    arrange();
+
+    await act2(() => m.app.requestBooking("EVT-1", "3"));
+
+    expect(m.app.state.events.map((e) => e.bookingState)).toEqual(["pending", null]);
+  });
+
   it("describes a booking with its own purpose, attendance and layout, and one that replaces another", async () => {
     const m = await withVenue([approved(1, { bookingState: "approved", venue: 3 })]);
     route("POST /venues/3/booking-requests", response({ purpose: "Breakout", attendance: 40, layout: "theatre", replaces_booking_id: 2 } as never));
@@ -243,6 +262,16 @@ describe("requestBooking", () => {
     expect(await act2(() => m.app.requestBooking("EVT-1", "3"))).toBe(true);
 
     expect(m.app.state.events[0]).toMatchObject({ venue: null, bookingState: "rejected" });
+  });
+
+  it("shows an event with no earlier bookings as having no venue when Venue Staff can't read it", async () => {
+    const m = await withVenue();
+    route("POST /venues/3/booking-requests", response({ status: "cancelled" }));
+    fail("GET /events/1", 403, "Not yours");
+
+    expect(await act2(() => m.app.requestBooking("EVT-1", "3"))).toBe(true);
+
+    expect(m.app.state.events[0]).toMatchObject({ venue: null, bookingState: null });
   });
 
   it("returns false when the event can't be re-read for another reason", async () => {
@@ -325,6 +354,17 @@ describe("Venue Staff decide a booking", () => {
     expect(m.app.state.toast).toBe("Clashes with another booking");
     expect(m.app.state.modal).not.toBeNull();
     expect(called("GET /events/1")).toBe(1);
+  });
+
+  it("still shows the refusal when re-reading afterwards fails too", async () => {
+    const m = await setup();
+    fail("POST /bookings/5/decision", 409, "Clashes with another booking");
+    fail("GET /bookings", 500, "later");
+
+    await act2(() => m.app.approveBooking("EVT-1", 5));
+    await flush();
+
+    expect(m.app.state.toast).toBe("Clashes with another booking");
   });
 
   it("shows any other failure without re-reading", async () => {

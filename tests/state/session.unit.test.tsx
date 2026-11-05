@@ -3,9 +3,11 @@
  * lib/state/app-context.tsx: the session (restore, sign in/out, idle, expiry), the toast, error
  * handling, notifications, selection and the data loaded after sign-in.
  */
+import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../lib/api/client";
 import { PEOPLE } from "../../lib/data/seed";
+import { useApp } from "../../lib/state/app-context";
 import { router, resetNext } from "../helpers/next-mocks";
 import { idle } from "./api-mock";
 import { act2, bodies, called, fail, flush, mountApp, resetApi, route, stored, user } from "./harness";
@@ -56,6 +58,7 @@ describe("signIn", () => {
   it("asks for an email and a password before calling the server", async () => {
     const m = await mountApp({ signedIn: false });
 
+    expect(await act2(() => m.app.signIn(undefined as never, "pw"))).toEqual({ ok: false, error: "Enter your work email to continue." });
     expect(await act2(() => m.app.signIn("   ", "pw"))).toEqual({ ok: false, error: "Enter your work email to continue." });
     expect(await act2(() => m.app.signIn("a@b.edu", ""))).toEqual({ ok: false, error: "Enter your password." });
     expect(called("POST /auth/login")).toBe(0);
@@ -364,6 +367,37 @@ describe("notifications", () => {
     intervals.mockRestore();
   });
 
+  it("ignores a refresh that arrives after the person left the page", async () => {
+    const intervals = vi.spyOn(globalThis, "setInterval");
+    const m = await mountApp({ routes: { "GET /notifications": rows } });
+    const poll = intervals.mock.calls.find(([, ms]) => ms === 15000)?.[0] as () => void;
+    intervals.mockRestore();
+    route("GET /notifications", [{ ...rows[0], title: "Too late" }]);
+
+    m.hook.unmount();
+    poll();
+    await flush();
+
+    expect(called("GET /notifications")).toBe(2);
+    expect(m.app.state.notifs.map((n) => n.title)).toEqual(["Approved", "Reviewed"]);
+  });
+
+  it("marks only the signed-in role's notifications read", async () => {
+    const m = await mountApp({
+      role: "lead",
+      events: [stored(1, { id: undefined as never })],
+      routes: { "GET /coordinators": [{ id: 7, name: "Priya Tan" }], "GET /notifications": [{ ...rows[0], id: 3 }] },
+    });
+    await act2(() => m.app.assignCoordinator("EVT-undefined", "Priya Tan")); // adds notices for other roles, on the page only
+    await flush();
+
+    await act2(() => m.app.markAllRead());
+
+    const byRole = Object.fromEntries(m.app.state.notifs.map((n) => [n.to + n.id, n.read]));
+    expect(Object.values(byRole).filter(Boolean)).toHaveLength(1); // the lead's own saved notice
+    expect(m.app.state.notifs.filter((n) => n.to !== "lead").every((n) => !n.read)).toBe(true);
+  });
+
   it("keeps working when a refresh fails", async () => {
     const m = await mountApp({ routes: { "GET /notifications": () => { throw new ApiError(500, "x"); } } });
 
@@ -491,6 +525,16 @@ describe("notifications", () => {
     await act2(() => m.app.loadOlderNotifs());
 
     expect(m.app.state.toast).toBe("No older ones");
+  });
+});
+
+describe("useApp", () => {
+  it("can't be used outside the provider", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => renderHook(() => useApp())).toThrow("useApp() must be used within <AppProvider>");
+
+    quiet.mockRestore();
   });
 });
 
