@@ -54,6 +54,11 @@ def history(session, event_id):
     return response.json()
 
 
+def opened(session, event_id):
+    """GET /events/{id}: the latest saved details of one event, including its current status."""
+    return session.get(f"/events/{event_id}")
+
+
 def steps(entries):
     return [(e["fromStatus"], e["toStatus"]) for e in entries]
 

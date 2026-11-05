@@ -1,0 +1,6 @@
+US43 unit test and coverage summary - 2026-11-04 22:18:09
+
+type    test file                          tests  result   coverage
+unit    test_us43_lead_oversight              25  passed     100.0%
+
+frontend: Tests  199 passed (199) (all passed); line coverage 100% of lib/events/review/lead.ts, lib/events/review/shared.ts, lib/auth/route-access.ts

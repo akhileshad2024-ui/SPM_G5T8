@@ -1,0 +1,14 @@
+Coverage report for test_us43_lead_oversight  (unit tests)
+Generated: 2026-11-04 22:18:09
+Test file: tests/unit/lead_assignment/test_us43_lead_oversight.py
+Result: 25 tests, all passed
+Measured code: event_access.py, event_fields.py, main.py:event_view,lead_queue, login/models.py
+
+Name                           Stmts  Miss  Cover  Missing
+-------------------------------------------------------------
+event_access.py                   41     0   100%  
+event_fields.py                   19     0   100%  
+main.py:event_view,lead_queue      7     0   100%  
+login/models.py                   24     0   100%  
+-------------------------------------------------------------
+TOTAL                             91     0   100%

@@ -8,6 +8,7 @@ only the people involved get it, the person who made the change is left out, and
 """
 
 from datetime import date, datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 
@@ -298,3 +299,46 @@ def test_US51_notification_is_rolled_back_with_callers_transaction(db, event):
     assert len(notices(db, attendee)) == 1
     db.rollback()
     assert notices(db, attendee) == []
+
+
+# ---------------------------------------------------------------- Venue Staff's decision, and the registration notice
+
+def test_US36_no_role_means_no_staff_to_notify(db):
+    assert messaging.staff_with_role(db, None) == []
+
+
+def test_US36_US23_AC5_coordinator_is_told_which_booking_an_approved_replacement_releases(db, event, venue):
+    original = booking(db, event, venue, status="approved")
+    replacement = booking(db, event, venue, status="approved", replaces_booking_id=original.id)
+
+    messaging.booking_decided(db, replacement)
+
+    [notice] = notices(db, Role.coordinator)
+    assert notice.title == "Venue booking approved"
+    assert "It replaces the booking at Lecture Theatre 1, which has been released" in notice.body
+
+
+def test_US36_US23_AC5_a_plain_approval_mentions_no_replacement(db, event, venue):
+    messaging.booking_decided(db, booking(db, event, venue, status="approved"))
+
+    [notice] = notices(db, Role.coordinator)
+    assert notice.title == "Venue booking approved"
+    assert "replaces" not in notice.body
+
+
+@pytest.mark.parametrize("status, title", [
+    (models.RegistrationStatus.registered, "Registration confirmed"),
+    (models.RegistrationStatus.waitlisted, "Added to waitlist"),
+])
+def test_US36_US29_registration_notice_and_email_follow_the_outcome(db, event, status, title):
+    attendee = get_user(db, Role.attendee)
+    registration = SimpleNamespace(status=status)
+
+    messaging.registration_confirmation(db, event, attendee, registration)
+    db.flush()
+
+    [notice] = notices(db, attendee.id)
+    assert notice.title == title and status.value in notice.body
+    [email] = db.query(models.EmailOutbox).all()
+    assert (email.recipient, email.subject) == (attendee.email, f"{title}: Design Keynote")
+    assert email.attempts == 0

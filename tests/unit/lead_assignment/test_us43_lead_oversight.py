@@ -192,6 +192,15 @@ class TestEveryRolesVisibility(LeadTestCase):
         self.assertEqual(self.visible(alex), [])
         self.assertFalse(is_involved(self.db.query(models.Event).first(), alex))
 
+    def test_the_safety_officer_sees_only_events_in_the_safety_check(self):
+        officer = self.user("Sofia Reyes", Role.safety)
+        in_check = self.request("In safety check", status=S.pending_safety_review)
+        events = self.db.query(models.Event).order_by(models.Event.id).all()
+
+        self.assertEqual(self.visible(officer), ["In safety check"])
+        self.assertEqual([e.name for e in events if is_involved(e, officer)], ["In safety check"])
+        self.assertTrue(is_involved(in_check, officer))
+
     def test_an_unknown_role_sees_nothing(self):
         stranger = User(id=99, name="Nobody", role="unknown")
 

@@ -20,13 +20,16 @@ Run from the repo root:
 
 import sys
 import unittest
+from datetime import time
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fastapi import HTTPException
 
 from test_us22_submit_booking_request import COORDINATOR, OTHER_COORDINATOR, STAFF, DatabaseTestCase
+import booking_request
 import main
 import models
 import schemas
@@ -254,6 +257,50 @@ class TestWhoMay(US41TestCase):
 
     def test_an_unknown_booking_is_not_found(self):
         self.assertEqual(self.refusal(main.cancel_booking, 999, db=self.db, user=COORDINATOR).status_code, 404)
+
+    def test_cancelling_all_bookings_of_an_unknown_event_is_not_found(self):
+        refused = self.refusal(main.cancel_all_bookings, 999, db=self.db, user=COORDINATOR)
+
+        self.assertEqual((refused.status_code, refused.detail), (404, "Event not found"))
+
+
+def saved_event(**overrides):
+    """An event as the booking rules read it: the fields needs_from_event() uses, all filled in."""
+    fields = dict(date="2026-12-01", start_time=time(10, 0), end_time=time(12, 0), expected_attendance=80,
+                  layout="Theatre", facilities=["projector"], accessibility=["step-free"])
+    return SimpleNamespace(**{**fields, **overrides})
+
+
+class TestEventMustBeCompleteToBook(unittest.TestCase):
+    """One booking may be for part of an event (AC2), but there must still be something to book a venue for."""
+
+    def test_a_complete_event_gives_the_needs_of_each_booking(self):
+        needs = booking_request.needs_from_event(saved_event())
+
+        self.assertEqual((needs.date, needs.start, needs.end, needs.attendance, needs.layout),
+                         ("2026-12-01", "10:00", "12:00", 80, "theatre"))
+        self.assertEqual((needs.facilities, needs.accessibility), (["projector"], ["step-free"]))
+
+    def test_a_booking_can_replace_the_events_own_attendance_and_layout(self):
+        needs = booking_request.needs_from_event(saved_event(expected_attendance=None, layout=None),
+                                                 attendance=25, layout="Classroom")
+
+        self.assertEqual((needs.attendance, needs.layout), (25, "classroom"))
+
+    def test_an_event_missing_a_date_time_attendance_or_layout_is_refused(self):
+        for missing in ({"date": None}, {"start_time": None}, {"end_time": None},
+                        {"expected_attendance": None}, {"layout": None}):
+            with self.subTest(missing=missing):
+                with self.assertRaises(booking_request.BookingRefused) as ctx:
+                    booking_request.needs_from_event(saved_event(**missing))
+                self.assertIn("Complete the event's date, times, attendance and layout", ctx.exception.message)
+
+    def test_an_event_that_ends_before_or_when_it_starts_is_refused(self):
+        for end in (time(10, 0), time(9, 0)):
+            with self.subTest(end=end):
+                with self.assertRaises(booking_request.BookingRefused) as ctx:
+                    booking_request.needs_from_event(saved_event(end_time=end))
+                self.assertEqual(ctx.exception.message, "The event's end time must be after its start time.")
 
 
 if __name__ == "__main__":

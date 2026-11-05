@@ -1,0 +1,14 @@
+Coverage report for test_us41_multiple_venue_bookings  (unit tests)
+Generated: 2026-11-04 22:13:07
+Test file: tests/unit/venue/test_us41_multiple_venue_bookings.py
+Result: 20 tests, all passed
+Measured code: booking_request.py:needs_from_event,require_new_venue_for_event, venue_bookings.py:event_bookings,summarise,save_request,require_holding,change,cancel, main.py:coordinators_event,coordinators_booking,change_booking,cancel_booking,cancel_all_bookings, schemas.py:BookingChange
+
+Name                                                                                               Stmts  Miss  Cover  Missing
+---------------------------------------------------------------------------------------------------------------------------------
+booking_request.py:needs_from_event,require_new_venue_for_event                                       11     2    82%  43, 45
+venue_bookings.py:event_bookings,summarise,save_request,require_holding,change,cancel                 39     0   100%  
+main.py:coordinators_event,coordinators_booking,change_booking,cancel_booking,cancel_all_bookings     54     1    98%  379
+schemas.py:BookingChange                                                                               5     0   100%  
+---------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                109     3    97%

@@ -177,7 +177,7 @@ STORY_DIRS = {
 # measuring the whole file marks a story down for code it does not own).
 STORY_FILES = {
     "us01": ["login/auth.py", "login/security.py", "login/schemas.py", "login/models.py", "login/set_password.py"],
-    "us02": ["login/security.py", "event_access.py", "main.py:event_view,list_events,get_event"],
+    "us02": ["login/security.py:get_current_user,require_roles", "event_access.py", "main.py:event_view,list_events,get_event"],
     "us03": ["main.py", "schemas.py", "models.py"],
     "us13": ["event_status.py", "event_access.py", "main.py:event_view,list_events,get_event,get_event_history",
              "schemas.py:StatusChangeResponse", "models.py:EventStatusChange"],

@@ -1,0 +1,57 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- D:\miniconda\python.exe
+rootdir: E:\Work\A65\SPM_G5T8
+plugins: anyio-4.12.1, cov-7.1.0
+collecting ... collected 43 items
+
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC6_US11_AC4_assigned_coordinator_is_notified PASSED [  2%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US08_AC4_organiser_is_notified_of_clarification PASSED [  4%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US10_AC5_organiser_is_notified_of_approval PASSED [  6%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US10_AC5_organiser_is_told_the_rejection_reason PASSED [  9%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US22_AC4_every_venue_staff_member_is_notified_of_a_request PASSED [ 11%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US23_AC5_coordinator_is_notified_of_booking_decision PASSED [ 13%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US39_AC5_coordinator_is_notified_when_venue_becomes_unavailable PASSED [ 16%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US42_AC3_coordinator_is_warned_once_then_told_when_hold_expires PASSED [ 18%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US16_AC3_significant_detail_change_notifies_the_organiser_not_the_editor PASSED [ 20%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US16_AC3_ordinary_edit_without_arrangements_sends_nothing PASSED [ 23%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US33_US34_change_request_reaches_coordinator_and_decision_reaches_organiser PASSED [ 25%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US43_every_lead_is_told_a_new_request_is_waiting PASSED [ 27%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US43_a_saved_draft_tells_nobody_until_it_is_submitted PASSED [ 30%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC1_US09_AC3_coordinator_is_told_the_organiser_replied PASSED [ 32%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC2_each_notice_names_the_event_and_what_changed PASSED [ 34%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC3_user_marks_one_notice_read_and_the_rest_stay_unread PASSED [ 37%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC3_user_marks_all_read PASSED [ 39%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC4_nobody_else_receives_or_can_read_the_notice PASSED [ 41%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC3_older_notifications_page_back_with_before PASSED [ 44%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC4_inbox_requires_sign_in PASSED [ 46%]
+tests/us36_notifications/test_us36_notifications_api.py::test_US36_AC5_notice_is_saved_with_the_step_so_it_is_there_on_the_next_poll PASSED [ 48%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_notify_once_does_not_repeat_the_same_notice PASSED [ 51%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_notify_skips_a_missing_recipient PASSED [ 53%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_inactive_venue_staff_are_not_notified PASSED [ 55%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US42_AC3_background_sweep_warns_without_anyone_using_the_app PASSED [ 58%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US42_AC3_sweeps_at_the_same_time_warn_only_once PASSED [ 60%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US42_background_sweep_keeps_running_after_a_failure PASSED [ 62%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US38_AC4_coordinator_is_told_a_booking_requires_reassessment PASSED [ 65%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC6_US12_AC4_reassignment_tells_both_coordinators_and_the_organiser PASSED [ 67%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US14_AC4_confirmation_reaches_organiser_and_involved_staff_not_the_confirmer PASSED [ 69%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US14_AC4_venue_staff_are_not_told_when_the_event_holds_no_venue PASSED [ 72%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC7_safety_check_ready_reaches_the_safety_officer_accounts_now_that_the_role_exists PASSED [ 74%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC7_safety_check_ready_reaches_every_safety_officer PASSED [ 76%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC7_coordinator_is_told_the_safety_outcome[approved-Safety check approved] PASSED [ 79%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC7_coordinator_is_told_the_safety_outcome[changes_requested-Safety changes requested] PASSED [ 81%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_AC7_coordinator_is_told_the_safety_outcome[rejected-Safety check rejected] PASSED [ 83%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US49_AC3_venue_staff_are_told_a_booking_needs_reassessing PASSED [ 86%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US50_AC3_assigned_technician_is_told_equipment_needs_reassessing PASSED [ 88%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US50_AC3_no_technician_means_no_notice PASSED [ 90%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US36_US51_AC3_only_registered_attendees_are_told PASSED [ 93%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US51_notification_does_not_include_registrations_for_other_events PASSED [ 95%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US51_recipient_filter_does_not_change_general_attendee_audience PASSED [ 97%]
+tests/us36_notifications/test_us36_notifications_unit.py::test_US51_notification_is_rolled_back_with_callers_transaction PASSED [100%]
+
+============================== warnings summary ===============================
+D:\miniconda\Lib\site-packages\fastapi\testclient.py:1
+  D:\miniconda\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 43 passed, 1 warning in 48.34s ========================
