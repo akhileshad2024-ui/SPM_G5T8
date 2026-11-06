@@ -16,6 +16,7 @@ export default function RegistrationsPage() {
   const rows = load.state === "ready" ? load.rows.filter((r) => status === "all" || r.status === status) : [];
 
   const exportCsv = () => {
+    /* v8 ignore next -- the Export CSV button is only rendered when an event is selected. @preserve */
     if (!selected) return;
     const csv = ["Name,Email,Status,Registered at", ...rows.map((r) => [r.attendeeName, r.attendeeEmail, r.status, r.registeredAt].map((v) => `"${String(v).replaceAll('"', '""')}"`).join(","))].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));

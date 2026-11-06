@@ -88,15 +88,15 @@ it("does not offer to resume a review whose reply cannot be loaded because the e
 });
 
 it("resumes the review once the organiser has replied, and ignores a second press while resuming", async () => {
-  let finish!: () => void;
+  let finish!: (ok: boolean) => void;
   setUp(makeEvent({ status: "pending_clarification", backendId: 7, clarification: { response: { message: "yes" } } as never }),
-    { resumeReview: vi.fn(() => new Promise<void>((a) => { finish = a; })) });
+    { resumeReview: vi.fn(() => new Promise<boolean>((a) => { finish = a; })) });
   const button = screen.getByRole("button", { name: "Resume review" });
   act(() => { button.dispatchEvent(new MouseEvent("click", { bubbles: true })); button.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
   expect(screen.getByRole("button", { name: "Resuming…" })).toBeTruthy();
   expect(app.resumeReview).toHaveBeenCalledTimes(1);
   expect(app.resumeReview).toHaveBeenCalledWith(7);
-  await act(async () => finish());
+  await act(async () => finish(true));
   expect(screen.getByRole("button", { name: "Resume review" })).toBeTruthy();
 });
 
