@@ -12,9 +12,12 @@ export function ChangeRequests({ eventId, canReview = false }: { eventId: number
   const [reason, setReason] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
   const pending = useRef(false);
+  // The event shown right now; a response for any other event is stale and must be dropped.
+  const latest = useRef(eventId);
   const [changes, setChanges] = useState<Record<number, EventDetailsUpdate>>({});
 
   useEffect(() => {
+    latest.current = eventId;
     let active = true;
     setRequests(null);
     setError("");
@@ -29,6 +32,7 @@ export function ChangeRequests({ eventId, canReview = false }: { eventId: number
     // Immediate lock also protects clicks before React redraws disabled buttons.
     if (pending.current) return;
     pending.current = true;
+    const forEvent = eventId;
     setSaving(true);
     setError("");
     try {
@@ -36,9 +40,13 @@ export function ChangeRequests({ eventId, canReview = false }: { eventId: number
         method: "POST", body: JSON.stringify({ outcome, reason: reason[requestId] ?? "",
           ...(outcome === "accepted" && Object.keys(changes[requestId] ?? {}).length ? {effective_changes: changes[requestId]} : {}) }),
       });
+      if (latest.current !== forEvent) return;
+      // The list is only null before the first load, and the guard above drops responses that arrive after a switch.
+      /* v8 ignore next -- @preserve */
       setRequests(old => old?.map(item => item.id === saved.id ? saved : item) ?? [saved]);
       window.dispatchEvent(new Event("arrangements-changed"));
     } catch {
+      if (latest.current !== forEvent) return;
       setError("Could not save the decision. Refresh to check the latest request before trying again.");
     } finally { pending.current = false; setSaving(false); }
   }
@@ -46,10 +54,14 @@ export function ChangeRequests({ eventId, canReview = false }: { eventId: number
   async function apply(requestId: number) {
     if (pending.current) return;
     pending.current = true; setSaving(true); setError("");
+    const forEvent = eventId;
     try {
       await apiFetch(`/events/${eventId}/change-requests/${requestId}/apply`, { method: "POST" });
+      if (latest.current !== forEvent) return;
       window.location.reload();
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not apply reviewed changes."); }
+    } catch (e) {
+      if (latest.current !== forEvent) return;
+      setError(e instanceof Error ? e.message : "Could not apply reviewed changes."); }
     finally { pending.current = false; setSaving(false); }
   }
 
