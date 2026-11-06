@@ -65,7 +65,7 @@ components/   React components, one folder per page plus shared layout and UI pi
 lib/          Frontend logic: types, API client, validation and rules (no React where possible)
 backend/      FastAPI app, business component packages, shared SQLAlchemy models and schemas
 tests/        All tests, one folder per story (tests/usXX_*), plus unit/, integration/ and functional/
-docs/         C4, formal workbooks, consolidated traceability and operation details
+docs/         C4, consolidated traceability, retained execution notes and operation details
 coverage_reports/   Timestamped project evidence and retained historical story reports
 ```
 
@@ -127,3 +127,7 @@ for the backend and `frontend/htmlcov/index.html` for the frontend).
 
 [Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio):
 system context, containers and backend components. Open the file in draw.io / diagrams.net.
+
+## Shared project records
+
+The team maintains the authoritative [TC specifications and execution records](https://docs.google.com/spreadsheets/d/1oFFQeaXos2mdzwWmufojRhmvWCXHESTP1bxHzSEaUFw/edit) and [Change Log](https://docs.google.com/spreadsheets/d/1aHLZDqpS9rIw5dZnVRdMgl5PbkAKtWyXl5YbQbM2qSc/edit) in Google Sheets. The team exports these separately for submission; outdated Excel copies are not kept in this repository. Automated test code and timestamped run/coverage evidence remain in the repository.
