@@ -92,7 +92,7 @@ export function EquipmentManager({ eventId, coordinator = false }: { eventId: nu
         </div>;
       })}
       {coordinator && <div style={{ display: "flex", gap: 10 }}>
-        <button className="btn btn-ghost" disabled={!data.editable || lines.length >= EQUIP.length} onClick={() => { const next = EQUIP.find((item) => !lines.some((line) => line.id === item.id)); if (next) setLines([...lines, { id: next.id, qty: 1, technicalRequirements: "", status: "pending" }]); }}>Add equipment</button>
+        <button className="btn btn-ghost" disabled={!data.editable || lines.length >= EQUIP.length} onClick={() => { const next = EQUIP.find((item) => !lines.some((line) => line.id === item.id)); /* v8 ignore else -- Add is disabled once every catalogue item is used, so next always exists. @preserve */ if (next) setLines([...lines, { id: next.id, qty: 1, technicalRequirements: "", status: "pending" }]); }}>Add equipment</button>
         <button className="btn btn-primary" disabled={!data.editable || !techId} onClick={() => void persist(endpoint, "PUT", { techId: Number(techId), lines: lines.map(({ id, qty, technicalRequirements }) => ({ id, qty, technicalRequirements })) })}>Submit equipment request</button>
       </div>}
       <button className="btn btn-ghost" onClick={() => void persist(endpoint, "GET")}>Refresh availability</button>
