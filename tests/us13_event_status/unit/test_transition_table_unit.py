@@ -10,7 +10,7 @@ import pytest
 from fastapi import HTTPException
 
 import models
-from event_status import can_change, change_status, label
+from event_requests.status import can_change, change_status, label
 
 from test_status_rules_unit import NOW, USER, FakeDB, event
 

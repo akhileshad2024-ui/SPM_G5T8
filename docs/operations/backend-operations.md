@@ -73,7 +73,7 @@ $env:TEMP = (Get-Location).Path
 .\.venv312\Scripts\python.exe -m pytest tests -q -p no:cacheprovider
 $env:DATABASE_URL = 'sqlite://'
 $env:JWT_SECRET = 'unit-discovery-only-secret-0123456789abcdef'
-.\.venv312\Scripts\python.exe -m unittest discover -s tests/unit -q
+.\.venv312\Scripts\python.exe -m unittest discover -s tests/unit -t tests -q
 npm test -- --reporter=dot
 npm run build
 $env:PYTHON = Join-Path (Get-Location).Path '.venv312\Scripts\python.exe'

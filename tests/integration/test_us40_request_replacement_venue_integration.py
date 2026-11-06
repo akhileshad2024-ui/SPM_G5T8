@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
 import models
-from login.models import Role
+from auth.models import Role
 
 PERIOD = {"start": f"{DAY}T08:00", "end": f"{DAY}T20:00", "reason": "maintenance"}
 

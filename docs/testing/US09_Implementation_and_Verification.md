@@ -158,7 +158,7 @@ npm run dev:all
 TC_SHARED_DB=1 npx playwright test --config=playwright.acceptance.config.ts
 ```
 
-The HTML command reports all measured backend files; inspect `event_review.py`
+The HTML command reports all measured backend files; inspect `event_review/service.py`
 for the shared review-module percentage. Never describe that scope as whole-
 project 100%. Identify automated TC results by their actual automated executor.
 

@@ -5,8 +5,8 @@ US01 — AC3: the user is temporarily locked out after 5 consecutive failed logi
 from datetime import timedelta
 
 from auth_testkit import email_for, get_user, login
-from login import security
-from login.models import Role
+from auth import security
+from auth.models import Role
 
 WRONG = "wrong-password"
 LOCKED_MESSAGE = "Too many failed attempts. Try again in a few minutes."

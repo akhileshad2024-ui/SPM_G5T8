@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from auth_testkit import PASSWORD, email_for, set_cookie_header
-from login.models import Role
+from auth.models import Role
 from main import app
 
 CREDENTIALS = {"email": email_for(Role.attendee), "password": PASSWORD}

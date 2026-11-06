@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
-from event_submission import prepare_submission
+from event_requests.submission import prepare_submission
 
 
 class TestEventSubmission(unittest.TestCase):

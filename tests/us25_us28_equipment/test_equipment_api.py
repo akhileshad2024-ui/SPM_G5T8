@@ -2,11 +2,11 @@
 from datetime import time, timedelta
 
 import pytest
-import equipment
+import equipment.service as equipment
 import models
 from auth_testkit import get_user, _PASSWORD_HASH, login
 from fastapi.testclient import TestClient
-from login.models import Role, User
+from auth.models import Role, User
 from main import app
 from schemas import campus_today
 

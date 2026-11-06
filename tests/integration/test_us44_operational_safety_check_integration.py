@@ -31,8 +31,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
-import equipment
-from login.models import Role
+import equipment.service as equipment
+from auth.models import Role
 
 SAFETY_STATUSES = ("pending_safety_review", "safety_changes_requested", "safety_approved", "safety_rejected")
 

@@ -37,10 +37,10 @@ from test_us22_submit_booking_request import COORDINATOR, OTHER_COORDINATOR, REP
 import main
 import models
 import schemas
-import venue_bookings
-from venue_availability import format_date
-from venue_conflicts import as_json
-from venue_reassessment import REASON, after_venue_change, bring_hold_into_line, build_flag, campus_now, has_happened, is_flagged, reconcile, refresh
+import bookings.service as venue_bookings
+from venues.availability import format_date
+from bookings.conflicts import as_json
+from bookings.reassessment import REASON, after_venue_change, bring_hold_into_line, build_flag, campus_now, has_happened, is_flagged, reconcile, refresh
 
 
 def a_monday_ahead(days=60) -> date:
@@ -593,7 +593,7 @@ class TestPageMatchesBackend(unittest.TestCase):
         self.assertIn("reassessed_bookings", self.interface("ApiVenue"))
         self.assertIn("reassessed_bookings", self.source("lib/state/app-context.tsx"))
         # Since US36 the coordinator's notification is saved by the server (messaging.bookings_flagged).
-        self.assertIn("Booking requires reassessment", self.source("backend/messaging.py"))
+        self.assertIn("Booking requires reassessment", self.source("backend/notifications/service.py"))
 
 
 if __name__ == "__main__":

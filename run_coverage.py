@@ -58,103 +58,103 @@ UNIT_TESTS = ROOT / "tests" / "unit"
 # The second form is for files shared by several stories (main.py holds US17 and US18 endpoints),
 # so each story is measured only on its own code.
 TARGETS = {
-    "test_us04_event_submission": ["event_submission.py"],
-    "test_us05_save_event_draft": ["event_drafts.py"],
-    "test_us06_edit_event_draft": ["event_drafts.py:can_edit_draft"],
+    "test_us04_event_submission": ["event_requests/submission.py"],
+    "test_us05_save_event_draft": ["event_requests/drafts.py"],
+    "test_us06_edit_event_draft": ["event_requests/drafts.py:can_edit_draft"],
     "test_us17_venue_validation": ["schemas.py:VenueCreate,VenueUpdate,UnavailabilityPeriod"],
-    "test_us17_venue_audit": ["venue_audit.py"],
+    "test_us17_venue_audit": ["venues/audit.py"],
     "test_us17_venue_endpoints": ["main.py:create_venue,update_venue,delete_venue,get_venue_history"],
     "test_us18_view_venue_details": ["main.py:get_venues,get_venue", "schemas.py:VenueResponse"],
     "test_us20_search_filter_venues": [
-        "venue_search.py",
-        "venue_availability.py",
+        "venues/search.py",
+        "venues/availability.py",
         "main.py:search_venues",
         "schemas.py:BookedPeriod,TimingFields,VenueSearchRequest,AppliedFilter,VenueSearchResponse,_blank_to_none,_clean_layout,_end_after_start",
     ],
     "test_us21_check_venue_suitability": [
-        "venue_suitability.py",
-        "venue_availability.py:availability_issues,describe_window,format_clock,format_date,format_stamp,to_datetime",
+        "venues/suitability.py",
+        "venues/availability.py:availability_issues,describe_window,format_clock,format_date,format_stamp,to_datetime",
         "main.py:check_venue_suitability",
         "schemas.py:SuitabilityRequest,RequirementCheck,VenueSuitability,SuitabilityResponse,UnmetRequirement,BookingOverride",
     ],
     "test_us22_submit_booking_request": [
-        "booking_request.py",
-        "venue_bookings.py:held_periods,to_record,event_bookings,summarise,save_request,decide",
+        "bookings/requests.py",
+        "bookings/service.py:held_periods,to_record,event_bookings,summarise,save_request,decide",
         "main.py:request_venue_booking,list_bookings,decide_booking",
         "schemas.py:BookingRequestCreate,VenueBooking,BookingNotification,BookingRequestResponse,BookingDecisionIn",
     ],
     "test_us11_assign_coordinator": [
-        "event_review.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign",
+        "event_review/service.py:ReviewError,not_allowed,coordinator_name,active_coordinators,assign",
         "main.py:utc,event_response,list_coordinators,review_step,assign_coordinator",
         "models.py:EventAssignment",
     ],
     "test_us14_confirm_event": [
-        "event_confirmation.py",
+        "event_review/confirmation.py",
         "main.py:confirm_event,event_confirmation_status",
         "schemas.py:ConfirmationResponse",
     ],
     # US49: its venue check. The shared accepted-change reassessment that runs it is US50/US51's (measured there).
     "test_us49_reassess_venue_bookings": [
-        "change_reassessment.py",
+        "event_changes/rules.py",
     ],
     "test_us12_reassign_coordinator": [
-        "event_review.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
+        "event_review/service.py:ReviewError,not_allowed,check_note,note_error,reassign,assignment_history",
         "main.py:reassign_coordinator,event_assignment_history",
         "schemas.py:ReassignCoordinatorIn,AssignmentHistoryEntry",
     ],
     "test_us43_lead_oversight": [
-        "event_access.py",
-        "event_fields.py",
+        "event_requests/access.py",
+        "event_requests/fields.py",
         "main.py:event_view,lead_queue",
-        "login/models.py",
+        "auth/models.py",
     ],
     # US46, US47 and US48 share backend/venue_conflicts.py: each function is measured under the story that owns it.
     "test_us38_flag_bookings_affected_by_venue_time_changes": [
-        "venue_reassessment.py",
-        "venue_conflicts.py:as_json",
-        "venue_bookings.py:_reassessment",
+        "bookings/reassessment.py",
+        "bookings/conflicts.py:as_json",
+        "bookings/service.py:_reassessment",
         "schemas.py:BookingReassessment",
     ],
     "test_us46_prevent_overlapping_confirmed_bookings": [
-        "venue_conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking",
-        "venue_availability.py:clash_text",
-        "venue_bookings.py:require_unobstructed",
+        "bookings/conflicts.py:Slot,window_of,_booking_conflict,booking_conflicts,blocking",
+        "venues/availability.py:clash_text",
+        "bookings/service.py:require_unobstructed",
         "schemas.py:BookingConflict",
     ],
     "test_us47_flag_conflicting_pending_requests": [
-        "venue_conflicts.py:conflicts_for",
-        "venue_bookings.py:staff_records",
+        "bookings/conflicts.py:conflicts_for",
+        "bookings/service.py:staff_records",
         "main.py:list_bookings",
     ],
     "test_us48_unavailable_periods_and_expired_holds": [
-        "venue_conflicts.py:aware,slot_of,holds_venue,period_conflicts",
-        "venue_availability.py:overlapping_periods,unavailability_text",
-        "venue_bookings.py:held_periods",
+        "bookings/conflicts.py:aware,slot_of,holds_venue,period_conflicts",
+        "venues/availability.py:overlapping_periods,unavailability_text",
+        "bookings/service.py:held_periods",
     ],
     # US44 Operational Safety Check: its rules, its three endpoints and their bodies.
     "test_us44_operational_safety_check": [
-        "safety_check.py",
+        "safety/checks.py",
         "main.py:list_safety_checks,request_safety_check,decide_safety_check",
         "schemas.py:SafetyDecisionIn,SafetyArea,SafetyReviewOut,SafetyCheck",
     ],
     # US39 Mark Venue Temporarily Unavailable: validating a period, finding and flagging the bookings it overlaps.
     "test_us39_mark_venue_unavailable": [
-        "venue_unavailability.py",
+        "venues/unavailability.py",
         "schemas.py:UnavailabilityPeriod",
     ],
     # US41 Manage Multiple Venue Bookings for an Event: each venue once per event, a booking's own needs, changing
     # or cancelling one booking (or all of them). Requesting a booking is shared with US22, so it is not measured here.
     "test_us41_multiple_venue_bookings": [
-        "booking_request.py:needs_from_event,require_new_venue_for_event",
-        "venue_bookings.py:event_bookings,summarise,save_request,require_holding,change,cancel",
+        "bookings/requests.py:needs_from_event,require_new_venue_for_event",
+        "bookings/service.py:event_bookings,summarise,save_request,require_holding,change,cancel",
         "main.py:coordinators_event,coordinators_booking,change_booking,cancel_booking,cancel_all_bookings",
         "schemas.py:BookingChange",
     ],
     # US40 Request Replacement Venue: the replacement rules, releasing the original, and the approval notice.
     "test_us40_request_replacement_venue": [
-        "booking_request.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification",
-        "venue_bookings.py:open_replacement,release_replaced",
-        "messaging.py:booking_decided",
+        "bookings/requests.py:replacement_needs,require_replaceable,require_bookable_event,build_booking,build_notification",
+        "bookings/service.py:open_replacement,release_replaced",
+        "notifications/service.py:booking_decided",
     ],
 }
 
@@ -189,27 +189,27 @@ STORY_SELECT = {
 # functions or classes, for files shared by several stories (main.py now holds every story's endpoints, so
 # measuring the whole file marks a story down for code it does not own).
 STORY_FILES = {
-    "us01": ["login/auth.py", "login/security.py", "login/schemas.py", "login/models.py", "login/set_password.py"],
-    "us02": ["login/security.py:get_current_user,require_roles", "event_access.py", "main.py:event_view,list_events,get_event"],
+    "us01": ["auth/auth.py", "auth/security.py", "auth/schemas.py", "auth/models.py", "auth/set_password.py"],
+    "us02": ["auth/security.py:get_current_user,require_roles", "event_requests/access.py", "main.py:event_view,list_events,get_event"],
     "us03": ["main.py", "schemas.py", "models.py"],
-    "us13": ["event_status.py", "event_access.py", "main.py:event_view,list_events,get_event,get_event_history",
+    "us13": ["event_requests/status.py", "event_requests/access.py", "main.py:event_view,list_events,get_event,get_event_history",
              "schemas.py:StatusChangeResponse", "models.py:EventStatusChange"],
-    "us15": ["event_fields.py", "main.py:event_view,event_response,list_events,get_event", "schemas.py:EventResponse,EventView"],
-    "us19": ["venue_calendar.py"],
-    "us29": ["registrations.py", "main.py", "schemas.py", "models.py"],
-    "us36": ["messaging.py"],
+    "us15": ["event_requests/fields.py", "main.py:event_view,event_response,list_events,get_event", "schemas.py:EventResponse,EventView"],
+    "us19": ["venues/calendar.py"],
+    "us29": ["registrations/service.py", "main.py", "schemas.py", "models.py"],
+    "us36": ["notifications/service.py"],
     # US07 starts the review; US08 asks for clarification; US10 decides. Each is measured on its own rule and endpoint.
-    "us07": ["event_review.py:start_review", "main.py:start_review"],
-    "us08": ["event_review.py:note_error,check_note,check_decision_allowed,request_clarification",
+    "us07": ["event_review/service.py:start_review", "main.py:start_review"],
+    "us08": ["event_review/service.py:note_error,check_note,check_decision_allowed,request_clarification",
              "main.py:request_clarification", "schemas.py:ClarificationIn"],
-    "us10": ["event_review.py:note_error,check_note,check_decision_allowed,decide",
+    "us10": ["event_review/service.py:note_error,check_note,check_decision_allowed,decide",
              "main.py:decide_request", "schemas.py:DecisionIn"],
     # US23 Venue Staff approve or reject a pending booking request, and the coordinator is told.
-    "us23": ["venue_bookings.py:decide,decision_notice", "main.py:decide_booking", "schemas.py:BookingDecisionIn",
-             "messaging.py:booking_decided"],
+    "us23": ["bookings/service.py:decide,decision_notice", "main.py:decide_booking", "schemas.py:BookingDecisionIn",
+             "notifications/service.py:booking_decided"],
     # US42 tentative holds expire: the hold rules, setting an expiry, expiring lapsed holds and the coordinator's notices.
-    "us42": ["hold_expiry.py", "main.py:expire_lapsed_holds,set_hold_expiry", "schemas.py:BookingHoldIn",
-             "messaging.py:sweep_holds"],
+    "us42": ["bookings/hold_expiry.py", "main.py:expire_lapsed_holds,set_hold_expiry", "schemas.py:BookingHoldIn",
+             "notifications/service.py:sweep_holds"],
 }
 
 # Frontend files each story's Vitest unit tests are meant to cover.

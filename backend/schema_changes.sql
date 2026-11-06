@@ -79,7 +79,7 @@ ALTER TABLE event_status_changes ADD CONSTRAINT event_status_to CHECK (to_status
     'draft', 'submitted', 'under_review', 'pending_clarification', 'approved', 'confirmed', 'rejected', 'cancelled',
     'pending_safety_review', 'safety_changes_requested', 'safety_approved', 'safety_rejected'));
 -- A Safety Officer account is created like the others, in the users table; then give it a password with
---   python -m login.set_password <email>      (run from backend/)
+--   python -m auth.set_password <email>      (run from backend/)
 -- Example (the password_hash is replaced by set_password):
 -- INSERT INTO users (email, name, role, password_hash, is_active, failed_login_attempts, session_version)
 -- VALUES ('hannah.lau@connectsphere.edu', 'Hannah Lau', 'safety', 'set-with-set_password', true, 0, 0);

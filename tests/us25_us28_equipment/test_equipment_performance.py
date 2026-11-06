@@ -1,9 +1,9 @@
 """US27 AC5 local API latency evidence; does not claim deployed SLA coverage."""
 from datetime import datetime, time, timedelta
 from time import perf_counter
-import equipment, models
+import equipment.service as equipment, models
 from test_equipment_api import event, request
-from login.models import Role
+from auth.models import Role
 
 
 def test_availability_under_three_seconds_with_1000_reservations(db, signed_in):

@@ -44,15 +44,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import booking_request
+import bookings.requests as booking_request
 import main
 import models
 import schemas
-import venue_availability
-import venue_bookings
+import venues.availability as venue_availability
+import bookings.service as venue_bookings
 from database import Base
-from login.models import Role
-from login.security import require_roles
+from auth.models import Role
+from auth.security import require_roles
 
 COORDINATOR = SimpleNamespace(id=5, email="priya.tan@connectsphere.edu", role=Role.coordinator)
 OTHER_COORDINATOR = SimpleNamespace(id=6, email="marcus.lee@connectsphere.edu", role=Role.coordinator)

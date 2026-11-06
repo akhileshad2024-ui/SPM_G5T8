@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import venue_bookings
-from booking_request import BookingRefused
+import bookings.service as venue_bookings
+from bookings.requests import BookingRefused
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 

@@ -11,7 +11,7 @@ import models
 import main
 import schemas
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 
 # Use the same Singapore date as the API, not the CI runner's UTC date.
 # Capture time once so collection and requests cannot disagree across midnight.

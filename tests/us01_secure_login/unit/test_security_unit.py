@@ -1,5 +1,5 @@
 """
-US01 unit tests for backend/login/security.py: password hashing (AC6), session
+US01 unit tests for backend/auth/security.py: password hashing (AC6), session
 tokens and the idle timeout (AC4), and the session cookie (AC5).
 
 Each function is called directly with stand-in objects (no HTTP, no database).
@@ -13,8 +13,8 @@ import jwt
 import pytest
 from fastapi import HTTPException, Response
 
-from login import security
-from login.models import Role
+from auth import security
+from auth.models import Role
 
 
 def make_user(**overrides):

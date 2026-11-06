@@ -21,11 +21,11 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-import event_review
+import event_review.service as event_review
 import models
 from auth_testkit import PASSWORD, get_user, login
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 from main import app
 
 S = models.EventStatus

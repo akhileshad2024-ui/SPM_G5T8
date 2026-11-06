@@ -5,7 +5,7 @@ named safety flags. No new flag schema, safety target or invalidity rule is used
 """
 from tests.integration import test_us44_operational_safety_check_integration as safety
 import models
-from login.models import Role
+from auth.models import Role
 
 
 class TestExistingVenueReassessment(safety.US44TestCase):

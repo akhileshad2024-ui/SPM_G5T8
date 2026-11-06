@@ -13,7 +13,7 @@ AC2 depends on US42 (Expire Tentative Venue Holds), which is not built: nothing 
 expiry time yet (the column venue_bookings.hold_expires_at is what US42 will fill). These tests save holds
 that have expired straight into the database.
 
-The rules (backend/venue_conflicts.py, backend/venue_availability.py) are called directly on plain values.
+The rules (backend/bookings/conflicts.py, backend/venues/availability.py) are called directly on plain values.
 The Venue Staff checks run on a real in-memory SQLite database, never Supabase, reusing the US22 test
 setup. The integration tests check the same through the API.
 
@@ -35,8 +35,8 @@ from test_us22_submit_booking_request import COORDINATOR, MON, DatabaseTestCase
 import main
 import models
 import schemas
-import venue_bookings
-from venue_conflicts import UNAVAILABLE_PERIOD, Slot, aware, booking_conflicts, holds_venue, period_conflicts, slot_of
+import bookings.service as venue_bookings
+from bookings.conflicts import UNAVAILABLE_PERIOD, Slot, aware, booking_conflicts, holds_venue, period_conflicts, slot_of
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 MAINTENANCE = {"start": "2027-01-04T08:00:00", "end": "2027-01-04T20:00:00", "reason": "maintenance", "note": "Floor repairs"}

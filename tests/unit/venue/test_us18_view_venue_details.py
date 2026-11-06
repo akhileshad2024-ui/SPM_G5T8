@@ -40,8 +40,8 @@ from fastapi import HTTPException
 import main
 import models
 import schemas
-from login.models import Role
-from login.security import get_current_user
+from auth.models import Role
+from auth.security import get_current_user
 
 COORDINATOR = SimpleNamespace(email="priya.tan@connectsphere.edu", role=Role.coordinator)
 

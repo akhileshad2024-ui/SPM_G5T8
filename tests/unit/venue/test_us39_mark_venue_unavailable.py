@@ -9,7 +9,7 @@ AC3: every booking overlapping the period is flagged ........... TestClashingPer
 AC4: no booking or event is cancelled; only the flag changes ... TestFlagAffectedBookings
 AC6: edit a period or end it early (the flag follows) .......... TestFlagAffectedBookings
 
-backend/venue_unavailability.py is called directly; the database query is a MagicMock returning
+backend/venues/unavailability.py is called directly; the database query is a MagicMock returning
 plain objects. The integration tests (tests/integration/test_us39_*.py) check it through the API.
 
 Run from the repo root:
@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
 from pydantic import ValidationError
 
 import schemas
-from venue_unavailability import FLAG_KIND, build_flag, clashing_period, flag_affected_bookings
+from venues.unavailability import FLAG_KIND, build_flag, clashing_period, flag_affected_bookings
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 # A booking held 09:30–12:45 on Mon 4 Jan 2027 (setup and turnaround included).

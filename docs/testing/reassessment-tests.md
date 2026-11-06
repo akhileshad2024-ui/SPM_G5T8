@@ -253,14 +253,14 @@ $env:TEMP = (Get-Location).Path
 
 ### AC → 代码 → TC／测试 → 实际结果
 
-功能规格 FT ID 定义在 [功能测试规格](SPRINT4-YANGBO-functional-tests.md)；“规格已写”不表示已有可执行自动化或通过记录。
+功能规格 FT ID 定义在 [功能测试规格](reassessment-tests.md)；“规格已写”不表示已有可执行自动化或通过记录。
 
 | AC | 状态 | 已有代码及缺口 | 测试关联与真实执行证据 |
 |---|---|---|---|
 | US50-1 | 阻塞 | `main.py:review_event_change` 接受后只保存决定／通知；没有 US50 重评调用或有效新值。main 最新源码也相同 | FT50-01、FTX-01 规格已写，自动重评流程未执行；US34 历史 T6 接受边界通过不等于本 AC |
 | US50-2 | 阻塞 | `VenueBooking.reassessment` 是场地标记，设备预留模型／schema／视图尚无相应标记 | FT50-01/02 规格已写；设备标记执行证据无 |
 | US50-3 | 部分满足 | `messaging.equipment_reassess` 能找活动 assigned technician，但 accepted 未调用，通知未关联每个被标记预留 | `test_US36_US50_AC3_assigned_technician_is_told_equipment_needs_reassessing`、`...no_technician_means_no_notice` 本轮 T7 通过；仅辅助函数。FT50-03 未执行 |
-| US51-1 | 阻塞 | US34 无新值／报名重评调用；`registrations.py` 原有报名规则不等于变更重评 | FT51-01、FTX-01 规格已写；自动重评无执行证据 |
+| US51-1 | 阻塞 | US34 无新值／报名重评调用；`registrations/service.py` 原有报名规则不等于变更重评 | FT51-01、FTX-01 规格已写；自动重评无执行证据 |
 | US51-2 | 阻塞 | 无报名设置重评标记及显示／解决链路 | FT51-01/02 规格已写；无执行证据 |
 | US51-3 | 部分满足 | `messaging.attendees_affected` 本分支限定本活动 registered，保留通用候补通知函数；未接 accepted 或影响判断 | 本轮 T7 中 `test_US36_US51_AC3_only_registered_attendees_are_told`、`test_US51_notification_does_not_include_registrations_for_other_events`、`test_US51_recipient_filter_does_not_change_general_attendee_audience`、`test_US51_notification_is_rolled_back_with_callers_transaction` 通过；FT51-03/04 真正变更通知未执行 |
 | US45-1 | 部分满足 | `safety_check.decide` 两类结果／历史均已有；`event_updates.PLANNING_STATUSES`、`equipment.PLANNING` 不含安全返工状态，相关可编辑规划阶段仍缺 | FT45-01R/01C/02 规格已写；T6/T7 覆盖两类结果，但没有目标规划阶段及返工编辑验收 |

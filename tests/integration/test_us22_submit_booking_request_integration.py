@@ -33,12 +33,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import models
-import venue_bookings
+import bookings.service as venue_bookings
 from database import Base, get_db
-from login.models import Role, User
-from login.security import COOKIE_NAME, create_session_token
+from auth.models import Role, User
+from auth.security import COOKIE_NAME, create_session_token
 from main import app
-from venue_availability import event_window, occupied_window, to_datetime
+from venues.availability import event_window, occupied_window, to_datetime
 
 
 def a_monday_ahead(days=60) -> date:

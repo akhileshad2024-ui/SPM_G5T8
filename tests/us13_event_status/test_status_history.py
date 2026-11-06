@@ -19,9 +19,9 @@ from sqlalchemy.exc import IntegrityError, StatementError
 
 import models
 from auth_testkit import PASSWORD, get_user, login
-from event_status import change_status
-from login import security
-from login.models import Role, User
+from event_requests.status import change_status
+from auth import security
+from auth.models import Role, User
 from main import app
 
 S = models.EventStatus

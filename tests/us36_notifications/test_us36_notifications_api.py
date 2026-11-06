@@ -17,8 +17,8 @@ from fastapi.testclient import TestClient
 
 import models
 from auth_testkit import PASSWORD, get_user, login
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 from main import app
 
 MON = "2027-01-04"  # a Monday
@@ -310,7 +310,7 @@ def test_US36_AC4_nobody_else_receives_or_can_read_the_notice(assigned, coordina
 
 
 def test_US36_AC3_older_notifications_page_back_with_before(approved, organiser, monkeypatch):
-    import messaging
+    import notifications.service as messaging
     monkeypatch.setattr(messaging, "PAGE_SIZE", 2)
     for name in ("First", "Second", "Third"):
         approved(name)

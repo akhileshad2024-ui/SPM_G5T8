@@ -13,8 +13,8 @@ A second pending request for the same venue and time is refused when it is made 
 pending requests only end up in conflict when a venue's setup or turnaround time changes (US38) or two
 coordinators ask at the same moment. These tests save such bookings straight into the database.
 
-The flag rule (backend/venue_conflicts.py) is called directly on plain values; the Venue Staff list
-(backend/venue_bookings.py, main.list_bookings) runs on a real in-memory SQLite database, never Supabase,
+The flag rule (backend/bookings/conflicts.py) is called directly on plain values; the Venue Staff list
+(backend/bookings/service.py, main.list_bookings) runs on a real in-memory SQLite database, never Supabase,
 reusing the US22 test setup. The integration tests check the same through the API.
 
 Run from the repo root:
@@ -34,8 +34,8 @@ from fastapi import HTTPException
 from test_us22_submit_booking_request import COORDINATOR, MON, OTHER_COORDINATOR, REPO, STAFF, DatabaseTestCase
 import main
 import models
-import venue_bookings
-from venue_conflicts import CONFIRMED_BOOKING, PENDING_REQUEST, Slot, conflicts_for
+import bookings.service as venue_bookings
+from bookings.conflicts import CONFIRMED_BOOKING, PENDING_REQUEST, Slot, conflicts_for
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 VENUE = SimpleNamespace(id=1, name="Lecture Theatre 1", setupMinutes=30, turnaroundMinutes=45, unavailability=[])

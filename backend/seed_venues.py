@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 import models
 from database import Base, SessionLocal, engine
-from venue_audit import creation_changes, record_change
+from venues.audit import creation_changes, record_change
 
 SEEDED_BY = "seed@connectsphere.edu"
 EVERY_DAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

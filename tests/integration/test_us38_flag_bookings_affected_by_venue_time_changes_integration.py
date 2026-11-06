@@ -32,8 +32,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
 import models
-from login.models import Role, User
-from venue_availability import format_date
+from auth.models import Role, User
+from venues.availability import format_date
 
 WHEN = format_date(DAY)
 

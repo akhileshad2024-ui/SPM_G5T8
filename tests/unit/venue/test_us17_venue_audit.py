@@ -1,6 +1,6 @@
 """
 Unit tests for US17 — Maintain Venue Catalogue: recording each change
-(backend/venue_audit.py).
+(backend/venues/audit.py).
 Plain objects stand in for the database; no API is involved.
 
 AC1: can create, edit and deactivate venue records
@@ -24,7 +24,7 @@ os.environ.setdefault("JWT_SECRET", "test-secret-for-us17-unit-tests-only-012345
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
 
 import models
-from venue_audit import AUDITED_FIELDS, apply_update, change_action, creation_changes, record_change
+from venues.audit import AUDITED_FIELDS, apply_update, change_action, creation_changes, record_change
 
 NOW = datetime(2026, 10, 3, 9, 30, tzinfo=timezone.utc)
 LATER = datetime(2026, 10, 3, 10, 0, tzinfo=timezone.utc)

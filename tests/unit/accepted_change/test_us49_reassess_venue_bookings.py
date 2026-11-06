@@ -9,9 +9,9 @@ AC2: bookings that are no longer valid flagged as "Requires Reassessment" ......
 AC3: the responsible Venue Staff notified of each flagged booking ................................ TestVenueStaffNotified
 AC4: confirming the event prevented while flagged arrangements remain unresolved (US50/US51 too) . TestConfirmationBlocked
 
-US49's venue check (backend/change_reassessment.py) runs inside the shared reassessment of an accepted change
-(backend/arrangement_reassessment.py, US50/US51/US45), which saves the flags and resolves them. The endpoint
-functions in backend/main.py and backend/reassessment_routes.py run on a real in-memory SQLite database (never
+US49's venue check (backend/event_changes/rules.py) runs inside the shared reassessment of an accepted change
+(backend/event_changes/reassessment.py, US50/US51/US45), which saves the flags and resolves them. The endpoint
+functions in backend/main.py and backend/event_changes/routes.py run on a real in-memory SQLite database (never
 Supabase), reusing the US44 set-up (tests/unit/safety/safety_testcase.py).
 
 Run from the repo root:
@@ -26,15 +26,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "safety"))
 
 from safety_testcase import NOW, S, SafetyTestCase
-import arrangement_reassessment
-import change_reassessment
-import event_confirmation
+import event_changes.reassessment as arrangement_reassessment
+import event_changes.rules as change_reassessment
+import event_review.confirmation as event_confirmation
 import main
 import models
-import reassessment_routes
+import event_changes.routes as reassessment_routes
 import schemas
-import venue_bookings
-from login.models import Role
+import bookings.service as venue_bookings
+from auth.models import Role
 
 TUE = date(2027, 1, 5)
 SAT = date(2027, 1, 9)

@@ -1,5 +1,5 @@
 """
-US29-US32: attendee registration saved on the server (backend/registrations.py).
+US29-US32: attendee registration saved on the server (backend/registrations/service.py).
 
     US29  register for a confirmed event open for registration; waitlisted when full
     US30  the attendee's own registrations and their status
@@ -14,9 +14,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 import models
-import registrations
+import registrations.service as registrations
 from auth_testkit import PASSWORD, _PASSWORD_HASH, get_user, login
-from login.models import Role, User
+from auth.models import Role, User
 from main import app
 from schemas import campus_today
 

@@ -1,6 +1,6 @@
 """
 US02 unit tests for the server-side permission check, require_roles() in
-backend/login/security.py: it allows only the listed roles and refuses
+backend/auth/security.py: it allows only the listed roles and refuses
 everyone else with an authorisation error.
 """
 
@@ -9,8 +9,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from login.models import Role
-from login.security import require_roles
+from auth.models import Role
+from auth.security import require_roles
 
 ALL_ROLES = list(Role)
 

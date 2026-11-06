@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-import event_review as rules
-from login.models import Role
+import event_review.service as rules
+from auth.models import Role
 
 NOW = datetime(2026, 10, 23, 8, 0, tzinfo=timezone.utc)
 
