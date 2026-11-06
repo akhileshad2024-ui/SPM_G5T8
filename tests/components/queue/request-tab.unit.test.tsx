@@ -214,12 +214,12 @@ it("shows nothing for the confirmation when it cannot be loaded or the status do
 });
 
 it("ignores a confirmation that arrives after the tab is closed", async () => {
-  let resolve!: (v: unknown) => void;
+  let resolve!: (v: ConfirmationStatus) => void;
   let reject!: (e: unknown) => void;
-  const first = setUp(makeEvent({ status: "approved", backendId: 1 }), { loadConfirmation: vi.fn(() => new Promise((a) => { resolve = a; })) });
+  const first = setUp(makeEvent({ status: "approved", backendId: 1 }), { loadConfirmation: vi.fn(() => new Promise<ConfirmationStatus>((a) => { resolve = a; })) });
   first.unmount();
   await act(async () => resolve(confirmation()));
-  const second = setUp(makeEvent({ status: "approved", backendId: 1 }), { loadConfirmation: vi.fn(() => new Promise((_a, b) => { reject = b; })) });
+  const second = setUp(makeEvent({ status: "approved", backendId: 1 }), { loadConfirmation: vi.fn(() => new Promise<ConfirmationStatus>((_a, b) => { reject = b; })) });
   second.unmount();
   await act(async () => reject(new Error("late")));
   expect(screen.queryByLabelText("Confirmation")).toBeNull();

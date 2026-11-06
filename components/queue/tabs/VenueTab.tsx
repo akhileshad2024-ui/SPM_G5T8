@@ -241,6 +241,7 @@ export function VenueTab({ event }: { event: EventRecord }) {
   const problems = bookingProblems(app.state.events, app.state.venues)[event.id] ?? [];
   const notBookable = bookingProblem(event, replacing !== null);
   const held = holdingBookings(event);
+  const overrides = event.venueOverrides ?? [];
   const flagged = held.filter((b) => b.flag);
   const toReplace = replacing === null ? undefined : (event.bookings ?? []).find((b) => b.id === replacing);
   const startReplacing = (booking: VenueBookingRecord) => {
@@ -309,11 +310,11 @@ export function VenueTab({ event }: { event: EventRecord }) {
           </ul>
         </div>
       )}
-      {(event.venueOverrides ?? []).length > 0 && (
+      {overrides.length > 0 && (
         <div className="callout">
           <strong>Overrides recorded against this event</strong>
           <ul style={{ margin: "6px 0 0 16px" }}>
-            {(event.venueOverrides ?? []).map((o, i) => (
+            {overrides.map((o, i) => (
               <li key={i}>
                 {o.acknowledged_by} went ahead with a venue that was {VERDICT_LABEL[o.verdict].toLowerCase()} ({new Date(o.acknowledged_at).toLocaleString("en-GB")}):{" "}
                 {o.unmet.map((u) => u.reason).join(" ")}
