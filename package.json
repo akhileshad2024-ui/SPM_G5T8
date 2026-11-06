@@ -21,7 +21,10 @@
     "test:us02": "vitest run tests/us02_rbac",
     "test:registration": "vitest run tests/us29_us32_registration",
     "test:review": "vitest run tests/us07_us11_event_review",
-    "test:functional": "playwright test"
+    "test:functional": "playwright test",
+    "test:evidence:backend": "python scripts/test_evidence.py run --kind backend",
+    "test:evidence:frontend": "python scripts/test_evidence.py run --kind frontend",
+    "test:evidence:functional": "python scripts/test_evidence.py run --kind functional"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
