@@ -1,6 +1,6 @@
 # US29-US32 Functional Test Cases
 
-These cases cover the Sprint 2 attendee registration workflow. Record the deployed result and tester before marking a story Done.
+These cases cover the Sprint 2 attendee registration workflow. These original FT identifiers are not present in the local formal TC workbook; retain these specifications until their coverage has been reconciled. Current Story/AC and DoD status are maintained in Notion.
 
 | ID | Story | Preconditions | Steps | Expected result |
 |---|---|---|---|---|
@@ -20,6 +20,6 @@ These cases cover the Sprint 2 attendee registration workflow. Record the deploy
 
 ## Storage and rules
 
-Registrations are saved in the database (`registrations` table) and survive reloads; every user sees the same records and places-taken count. The server (`backend/registrations.py`) checks the rules, counts places while the event is locked so two attendees can't take the last place, and moves the longest-waiting attendee up when a registered attendee withdraws. Withdrawal closes 7 days before registration closes (or on the event date when there is no closing date).
+Registrations are saved in the database (`registrations` table) and survive reloads; every user sees the same records and places-taken count. The server (`backend/registrations/service.py`) checks the rules, counts places while the event is locked so two attendees can't take the last place, and moves the longest-waiting attendee up when a registered attendee withdraws. Withdrawal closes 7 days before registration closes (or on the event date when there is no closing date).
 
 Successful registration now stores a durable recipient-scoped notice and SMTP outbox entry in the same transaction. Delivery and retries are implemented in `backend/mail_worker.py`; see [deployment and evidence](operations/backend-operations.md). A real SMTP provider must be configured and actual mailbox receipt verified before signing off the email acceptance criterion.

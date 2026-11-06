@@ -108,7 +108,7 @@ $env:TEMP = (Get-Location).Path
 
 ### T2 — 2026-10-31 收件人函数及既有 API 回归
 
-版本：HEAD cae52735af7f86595949a56e4ae74cd6cd463fa0 + 未提交的 `backend/messaging.py`、US36 单测及文档补丁。没有对应实现提交，不引用 HEAD 为包含本轮改动的提交。
+版本：HEAD cae52735af7f86595949a56e4ae74cd6cd463fa0 + 未提交的 `backend/notifications/service.py`、US36 单测及文档补丁。没有对应实现提交，不引用 HEAD 为包含本轮改动的提交。
 
 ```powershell
 $env:TMP = (Get-Location).Path
@@ -180,7 +180,7 @@ $env:TC_SHARED_DB = '0'
 
 ### T5 — 2026-11-03 US45 现有场地重评标记接入
 
-版本：438c581 + 未提交的 `backend/safety_check.py` 和 `tests/integration/test_us45_existing_venue_reassessment.py`；无新实现提交。
+版本：438c581 + 未提交的 `backend/safety/checks.py` 和 `tests/integration/test_us45_existing_venue_reassessment.py`；无新实现提交。
 
 ```powershell
 $env:TMP = (Get-Location).Path
@@ -284,3 +284,17 @@ $env:TEMP = (Get-Location).Path
 
 在 364999c + 此补丁上实测：`pytest test_sprint4_reassessment_workflows.py test_us45_existing_venue_reassessment.py test_us45_confirmation_gate.py test_event_changes_integration.py -q`，**33 passed、24 subtests passed，11.86s**；相同源码随后提交为 **2bb5aa6**。新增 `test_reviewed_period_change_cannot_bypass_the_shared_venue_gate` 真实覆盖接受→应用新时段→旧订不能解决／送审→取消／换订／批准→解决→送审；“报名设置有效但时间影响参会者”测试明确允许 venue 标记、仍不误标 registration。[该版全量 PR CI](https://github.com/akhileshad2024-ui/SPM_G5T8/actions/runs/41624901570) 与最新文档 head 的 Checks 分开核查，旧 561b70d 全绿只作为前一版证据。
 
+
+## Original equipment registration and SMTP verification
+
+Copied from the original US25–US32 delivery notes; these are historical measurements, not a new execution or current sign-off.
+
+- Frontend unit tests: 351 passed, 21 files.
+- TypeScript: passed.
+- Production `npm run build`: passed, without font mocks.
+- Equipment + registration tests: 75 passed; opt-in PostgreSQL test skipped (no local PostgreSQL available).
+- US27 local API performance: 1,000 historical reservations, 5 requests; measured maximum 0.0391 seconds. This verifies local API latency, not a deployed end-to-end SLA.
+- Full backend regression: 1,434 tests passed and 609 subtests passed; one opt-in PostgreSQL test skipped.
+- The full browser run exposed two legacy equipment-card tests that assumed all requests were displayed at once. US13/US15 now explicitly select the assigned event before inspecting its card; these updates need a fresh run.
+- Revised module browser suite: 13 passed on Chromium Headless Shell 134. The full 180-test browser suite is being verified separately; GitHub uses its own installed browser version.
+- SMTP delivery tests: a real SMTP connection to a local test receiver passed (no external mail sent). Adapter tests: verify TLS usage, saved recipient, message body, durable retry after transport failure and no resend after successful delivery. TLS/failure adapter tests use mocked transport; the local receiver test uses a real socket. External mailbox receipt is NOT verified.

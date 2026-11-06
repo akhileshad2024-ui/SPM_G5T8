@@ -15,7 +15,7 @@ notification. Original AC1 is retained, AC2/AC5 removed, AC3/AC4 rewritten.
 
 | File | Responsibility and traceability |
 |---|---|
-| `backend/event_review.py` | AC2: save a trimmed reply using session identity; preserve prior answered rounds. AC3: validate assigned coordinator and explicitly resume review. Existing US08 opens questions; US13 records the resumed status. |
+| `backend/event_review/service.py` | AC2: save a trimmed reply using session identity; preserve prior answered rounds. AC3: validate assigned coordinator and explicitly resume review. Existing US08 opens questions; US13 records the resumed status. |
 | `backend/schemas.py` | Only reply text is accepted; client-supplied identity/event fields are rejected. The existing review-note size limit is a technical convention, not a new AC. |
 | `backend/main.py` | Authenticated POST `/events/{id}/clarification-response` and `/events/{id}/resume-review`; reuse the current transaction/error handler. |
 | `lib/types.ts` | Shared question, reply and earlier-round data shape. No duplicate business type file. |
@@ -109,7 +109,7 @@ Verified on 23 October 2026 (SGT):
 - Frontend regression: 296 tests across 18 files passed, including five new
   US09 presentation unit tests.
 - Type check and Next.js production build passed.
-- Shared `backend/event_review.py`: 96/96 statements, 40/40 branch outcomes,
+- Shared `backend/event_review/service.py`: 96/96 statements, 40/40 branch outcomes,
   measured using combined backend regression and final US09 focused coverage.
   This is module coverage, not entire-backend or frontend 100% coverage.
 - Reports: `coverage_reports/us09/archived/backend/index.html` and
@@ -144,7 +144,7 @@ From the project root, using the existing virtual environment:
 ```bash
 .venv/bin/python -m pytest tests/us09_clarification -q
 TZ=UTC .venv/bin/python -m coverage run --branch --source=backend -m pytest tests -q
-.venv/bin/python -m coverage report --include='backend/event_review.py' --show-missing
+.venv/bin/python -m coverage report --include='backend/event_review/service.py' --show-missing
 .venv/bin/python -m coverage html -d coverage_reports/us09/archived/backend
 npm test
 npx tsc --noEmit

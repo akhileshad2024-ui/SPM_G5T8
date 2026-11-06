@@ -34,8 +34,7 @@ python -m auth.set_password wei.lim@connectsphere.edu
 ```
 
 To add five demo venues to the catalogue, run `python -m seed_venues` (from `backend/`).
-For schema changes, review `backend/schema_changes.sql` and
-`backend/migrations/sprint4_yangbo_reassessment.sql` before applying them with
+For schema changes, review `backend/schema_changes.sql` before applying them with
 authorised database access. See [backend operation notes](docs/operations/backend-operations.md).
 
 **Frontend** (from the project root):
@@ -44,6 +43,8 @@ authorised database access. See [backend operation notes](docs/operations/backen
 npm install
 npm run dev
 ```
+
+Once `.venv` and `backend/.env` are configured, `npm run dev:all` starts both applications from the project root.
 
 Open http://localhost:3000 and sign in with one of these accounts (ask the team for the
 passwords; they are not stored in the repo):
@@ -64,7 +65,7 @@ components/   React components, one folder per page plus shared layout and UI pi
 lib/          Frontend logic: types, API client, validation and rules (no React where possible)
 backend/      FastAPI app, business component packages, shared SQLAlchemy models and schemas
 tests/        All tests, one folder per story (tests/usXX_*), plus unit/, integration/ and functional/
-docs/         Architecture, requirements, testing and operation notes
+docs/         C4, formal workbooks, consolidated traceability and operation details
 coverage_reports/   Timestamped project evidence and retained historical story reports
 ```
 
