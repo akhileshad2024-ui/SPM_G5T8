@@ -8,7 +8,9 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
   },
   test: {
-    include: ["tests/**/*.unit.test.ts"],
+    // .tsx so component and page tests can contain JSX.
+    include: ["tests/**/*.unit.test.{ts,tsx}"],
+    setupFiles: ["tests/helpers/setup.ts"],
     coverage: {
       provider: "v8",
       // Include untested pages/components/context, not just the already-tested helpers.
