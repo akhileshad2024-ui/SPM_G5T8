@@ -6,6 +6,7 @@ row-lock semantics or Supabase deployment configuration.
 """
 
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from tests.integration.test_us05_save_event_draft_integration import US05DraftApiTestCase
 from fastapi.testclient import TestClient
@@ -55,6 +56,51 @@ class TestEventDraftEditingApi(US05DraftApiTestCase):
                              (information, "draft", owner))
             self.assertEqual((saved.name, saved.purpose), (name, "Revised purpose"))
         self.assertEqual(self.db.query(models.Event).count(), 1)
+
+    def test_ac3_resave_persists_typed_details_without_submitting_or_duplicating(self):
+        # US06-TC01: exercise the API's optional event_details mapping, not only raw form storage.
+        event_id = self.draft_id()
+        owner = self.db.get(models.Event, event_id).organiser_id
+        history_count = self.db.query(models.EventStatusChange).count()
+        # Capture the campus date once: these inputs do not expire after a fixed calendar date.
+        event_date = datetime.now(timezone(timedelta(hours=8))).date()
+        information = {"name": "Revised draft", "purpose": "Updated purpose", "pax": "85"}
+        details = {
+            "submit": True,  # The draft endpoint must ignore a nested submission instruction.
+            "name": information["name"], "description": information["purpose"],
+            "eventType": "Workshop", "expectedAttendance": 85,
+            "preferredDate": event_date.isoformat(), "startTime": "09:00", "endTime": "10:00",
+            "venue": {"location": "Campus", "capacity": 100,
+                      "facilities": ["Projector"], "accessibility": ["Step-free access"]},
+            "equipment": [{"type": "E1", "quantity": 2, "technicalRequirements": "Two microphones"}],
+            "registration": {"required": True, "capacityLimit": 80,
+                             "closingDate": event_date.isoformat()},
+        }
+
+        response = self.organiser.put(f"/event-requests/drafts/{event_id}", json={
+            "event_information": information, "event_details": details})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["id"], event_id)
+
+        # Reload committed values so the assertions cannot pass on an unchanged cached ORM object.
+        self.db.expire_all()
+        saved = self.db.get(models.Event, event_id)
+        self.assertEqual((saved.status, saved.organiser_id, saved.submitted_at), ("draft", owner, None))
+        self.assertEqual((saved.name, saved.purpose, saved.event_type),
+                         ("Revised draft", "Updated purpose", "Workshop"))
+        self.assertEqual((saved.expected_attendance, saved.date), (85, event_date))
+        self.assertEqual((saved.start_time.isoformat(), saved.end_time.isoformat()), ("09:00:00", "10:00:00"))
+        self.assertEqual((saved.venue_location, saved.venue_capacity), ("Campus", 100))
+        self.assertEqual((saved.facilities, saved.accessibility), (["Projector"], ["Step-free access"]))
+        self.assertEqual(saved.equipment, [{"id": "E1", "qty": 2, "technicalRequirements": "Two microphones"}])
+        self.assertEqual(saved.equipment_state, "requested")
+        self.assertEqual((saved.registration_required, saved.registration_cap, saved.registration_close),
+                         (True, 80, event_date))
+        self.assertEqual(self.db.query(models.Event).count(), 1)
+        self.assertEqual(self.db.query(models.EventStatusChange).count(), history_count)
+        reopened = self.organiser.get(f"/event-requests/drafts/{event_id}")
+        self.assertEqual(reopened.status_code, 200, reopened.text)
+        self.assertEqual(reopened.json()["draft_form"], information)
 
     def test_ac3_incomplete_information_can_be_resaved(self):
         event_id = self.draft_id()
