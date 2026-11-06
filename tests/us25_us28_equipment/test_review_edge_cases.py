@@ -1,9 +1,9 @@
 from test_equipment_api import event, request
 from auth_testkit import get_user, _PASSWORD_HASH, login
-from login.models import Role, User
+from auth.models import Role, User
 from fastapi.testclient import TestClient
 from main import app
-import equipment
+import equipment.service as equipment
 
 
 def test_unassigned_tech_cannot_read_request_via_any_event_endpoint(db, signed_in):

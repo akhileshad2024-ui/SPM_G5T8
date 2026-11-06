@@ -1,0 +1,53 @@
+
+> connectsphere@0.1.0 build
+> next build
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/user/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/user/Desktop/SPM_G5T8/package-lock.json
+
+   ▲ Next.js 15.5.25
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 2.7s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/18) ...
+   Generating static pages (4/18) 
+   Generating static pages (8/18) 
+   Generating static pages (13/18) 
+ ✓ Generating static pages (18/18)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      407 B         120 kB
+├ ○ /_not-found                            992 B         104 kB
+├ ○ /assignments                          4.2 kB         124 kB
+├ ○ /board                               2.83 kB         122 kB
+├ ○ /bookings                            3.42 kB         130 kB
+├ ○ /browse                              4.47 kB         124 kB
+├ ○ /calendar                              369 B         123 kB
+├ ○ /catalogue                           4.81 kB         124 kB
+├ ○ /equipment                             920 B         127 kB
+├ ○ /login                               1.72 kB         121 kB
+├ ○ /my-events                            2.7 kB         126 kB
+├ ƒ /my-events/[id]                       3.5 kB         130 kB
+├ ○ /new-request                         3.37 kB         123 kB
+├ ○ /queue                                 13 kB         142 kB
+├ ○ /registrations                       1.77 kB         121 kB
+├ ○ /safety                              2.48 kB         122 kB
+└ ○ /venues                              3.47 kB         123 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-37e0f0325134c4d7.js       46.4 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)          1.98 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 BACKEND = Path(__file__).resolve().parents[3] / "backend"
 sys.path.insert(0, str(BACKEND))
-from event_changes import ChangeRequestError, prepare_request, prepare_decision
+from event_changes.requests import ChangeRequestError, prepare_request, prepare_decision
 
 
 class TestEventChanges(unittest.TestCase):
@@ -48,7 +48,7 @@ class TestEventChanges(unittest.TestCase):
     def test_pure_module_import_needs_no_database_configuration(self):
         # CI unittest discovery has no database env or pytest conftest.
         env = {k: v for k, v in os.environ.items() if k not in {"DATABASE_URL", "JWT_SECRET"}}
-        result = subprocess.run([sys.executable, "-c", "import event_changes, sys; assert 'database' not in sys.modules"],
+        result = subprocess.run([sys.executable, "-c", "import event_changes.requests as event_changes, sys; assert 'database' not in sys.modules"],
                                 cwd=BACKEND, env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 

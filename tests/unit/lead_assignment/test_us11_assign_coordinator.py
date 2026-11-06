@@ -10,7 +10,7 @@ AC3: the assigning user and the time are recorded .................... TestAssig
 AC4: the assigned coordinator is given access ........................ TestAssignedCoordinatorGetsAccess
 AC5: someone who isn't an Event Coordinator can't be assigned ........ TestOnlyCoordinators
 
-The rules (backend/event_review.py) and the endpoint functions in backend/main.py are called directly on
+The rules (backend/event_review/service.py) and the endpoint functions in backend/main.py are called directly on
 a real in-memory SQLite database (never Supabase). Who may assign (only the Lead) and what each role sees
 is US43 (test_us43_lead_oversight.py). The "Event assigned to you" notice is a frontend unit test
 (tests/unit/event-review/lead.unit.test.ts).
@@ -27,12 +27,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lead_testcase import NOW, LeadTestCase, S
-import event_review
+import event_review.service as event_review
 import main
 import models
 import schemas
-from event_access import LIVE, is_involved
-from login.models import Role
+from event_requests.access import LIVE, is_involved
+from auth.models import Role
 
 
 class TestCoordinatorList(LeadTestCase):

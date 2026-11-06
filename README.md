@@ -30,12 +30,12 @@ User accounts already exist in the team's shared Supabase database, so there is 
 to seed. To set one account's password (from `backend/`):
 
 ```bash
-python -m login.set_password wei.lim@connectsphere.edu
+python -m auth.set_password wei.lim@connectsphere.edu
 ```
 
 To add five demo venues to the catalogue, run `python -m seed_venues` (from `backend/`).
-If your database is older than the current code, run the steps in
-`backend/schema_changes.sql` once in the Supabase SQL Editor.
+For schema changes, review `backend/schema_changes.sql` before applying them with
+authorised database access. See [backend operation notes](docs/operations/backend-operations.md).
 
 **Frontend** (from the project root):
 
@@ -43,6 +43,8 @@ If your database is older than the current code, run the steps in
 npm install
 npm run dev
 ```
+
+Once `.venv` and `backend/.env` are configured, `npm run dev:all` starts both applications from the project root.
 
 Open http://localhost:3000 and sign in with one of these accounts (ask the team for the
 passwords; they are not stored in the repo):
@@ -61,20 +63,56 @@ passwords; they are not stored in the repo):
 app/          Next.js pages, one folder per role's screens
 components/   React components, one folder per page plus shared layout and UI pieces
 lib/          Frontend logic: types, API client, validation and rules (no React where possible)
-backend/      FastAPI app (main.py), business rules, database models, login/ (authentication and RBAC)
+backend/      FastAPI app, business component packages, shared SQLAlchemy models and schemas
 tests/        All tests, one folder per story (tests/usXX_*), plus unit/, integration/ and functional/
-docs/         Architecture diagram
-coverage_reports/   Saved test and coverage runs, one folder per story
+docs/         C4, consolidated traceability, retained execution notes and operation details
+coverage_reports/   Timestamped project evidence and retained historical story reports
 ```
+
+## Backend components
+
+The backend remains one FastAPI application. Packages group related business code;
+they are not separate services. `main.py` currently retains most HTTP endpoints and
+registers the existing routers. `models.py`, `schemas.py` and `database.py` remain shared.
+
+| Package | Responsibility |
+|---|---|
+| `auth/` | Passwords, sessions, roles and access checks |
+| `event_requests/` | Drafts, submission, event information, visibility and status |
+| `event_review/` | Review, clarification, assignment and confirmation |
+| `event_changes/` | Change requests and shared arrangement reassessment |
+| `venues/` | Catalogue, availability, search, suitability and calendar |
+| `bookings/` | Requests, decisions, conflicts, hold expiry and booking flags |
+| `equipment/` | Equipment requests, stock and reservations |
+| `registrations/` | Registration, waitlisting, withdrawal and lists |
+| `safety/` | Operational safety review and rework |
+| `notifications/` | Recipient-scoped notices and hold reminders |
+
+Notion M1–M5 identify historical planning workstreams. They are not deployment
+containers or a one-to-one mapping to these implementation components.
 
 ## Running the tests
 
 ```bash
 npm test                      # frontend unit tests (Vitest)
-python -m pytest tests        # backend tests (pip install pytest pytest-cov once)
+python -m pip install -r backend/requirements-test.txt
+python -m pytest tests        # backend unit and integration tests
 npx playwright install chromium   # once
 npm run test:functional       # end-to-end tests (Playwright starts both servers itself)
 ```
+
+For timestamped execution evidence, activate the project's Python environment first:
+
+```bash
+npm run test:evidence:backend
+npm run test:evidence:frontend
+npm run test:evidence:functional
+```
+
+These commands execute the tests themselves; do not run an extra full suite first.
+They retain local runs under `coverage_reports/project/history/` (Git-ignored).
+For a complete versionable project session, use `python scripts/test_evidence.py all`.
+CI uploads its reports and execution records as Actions artifacts with 90-day retention.
 
 To run one story's tests under coverage (from the project root):
 
@@ -89,3 +127,7 @@ for the backend and `frontend/htmlcov/index.html` for the frontend).
 
 [Editable C4 diagrams (.drawio)](docs/architecture/ConnectSphere_C4_Editable.drawio):
 system context, containers and backend components. Open the file in draw.io / diagrams.net.
+
+## Shared project records
+
+The team maintains the authoritative [TC specifications and execution records](https://docs.google.com/spreadsheets/d/1oFFQeaXos2mdzwWmufojRhmvWCXHESTP1bxHzSEaUFw/edit) and [Change Log](https://docs.google.com/spreadsheets/d/1aHLZDqpS9rIw5dZnVRdMgl5PbkAKtWyXl5YbQbM2qSc/edit) in Google Sheets. The team exports these separately for submission; outdated Excel copies are not kept in this repository. Automated test code and timestamped run/coverage evidence remain in the repository.

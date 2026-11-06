@@ -22,7 +22,7 @@ if not os.environ.get("DATABASE_URL", "").startswith("sqlite:///"):
 
 import models  # noqa: E402
 from database import SessionLocal  # noqa: E402
-from login.models import User  # noqa: E402
+from auth.models import User  # noqa: E402
 
 S = models.EventStatus
 suffix = sys.argv[1]

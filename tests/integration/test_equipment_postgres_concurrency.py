@@ -18,9 +18,9 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
-import equipment, models
+import equipment.service as equipment, models
 from database import Base
-from login.models import Role, User
+from auth.models import Role, User
 
 
 def test_competing_postgres_reservations_allocate_last_unit_once():

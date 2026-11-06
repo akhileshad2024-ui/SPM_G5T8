@@ -1,0 +1,15 @@
+{
+  "verification_revision": "f8f185d",
+  "collected_at": "2026-11-06T21:59:49.829275+08:00",
+  "note": "Original per-run revisions, dirty flags, commands and execution times are retained in each run-info.json. Suites ran at the recorded stages; the manifest does not replace those revisions. Notion records and shared database were not changed.",
+  "backend_passed": 2137,
+  "backend_subtests_passed": 1037,
+  "backend_skipped": 1,
+  "frontend_passed": 1014,
+  "functional_passed": 237,
+  "functional_skipped": 1,
+  "standalone_unittest_passed": 681,
+  "typecheck_exit_code": 0,
+  "build_exit_code": 0,
+  "scoped_story_tool": "US06: 3 passed; 100% scoped coverage; temporary output not a whole-project report"
+}

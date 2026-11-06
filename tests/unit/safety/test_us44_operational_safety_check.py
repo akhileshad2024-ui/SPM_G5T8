@@ -16,7 +16,7 @@ AC6: the Event Coordinator is notified of the outcome ..........................
 AC7: a rejected safety arrangement returns the event to rework (US45), it does not end it . TestRejectionIsNotTheEnd
 And the page agreeing with the backend ................................................. TestPageMatchesBackend
 
-The rules (backend/safety_check.py) run on a real in-memory SQLite database, never Supabase, reusing the US22
+The rules (backend/safety/checks.py) run on a real in-memory SQLite database, never Supabase, reusing the US22
 test setup. Boundaries are tested on both sides of the line. The integration tests check the same through the API.
 
 Run from the repo root:
@@ -37,14 +37,14 @@ from safety_testcase import NOW, S, SafetyTestCase
 from test_us22_submit_booking_request import MON, REPO
 import main
 import models
-import safety_check
+import safety.checks as safety_check
 import schemas
-from event_access import LIVE, involved_events, is_involved
-from event_fields import VISIBLE_FIELDS, for_role
-from event_review import ReviewError
-from event_status import SAFETY_STATUSES, TRANSITIONS, can_change, label
-from login.models import Role
-from login.security import require_roles
+from event_requests.access import LIVE, involved_events, is_involved
+from event_requests.fields import VISIBLE_FIELDS, for_role
+from event_review.service import ReviewError
+from event_requests.status import SAFETY_STATUSES, TRANSITIONS, can_change, label
+from auth.models import Role
+from auth.security import require_roles
 
 HANNAH_ONLY = {Role.safety}
 

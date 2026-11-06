@@ -25,7 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
-from venue_availability import format_date
+from venues.availability import format_date
 
 WHEN = format_date(DAY)
 

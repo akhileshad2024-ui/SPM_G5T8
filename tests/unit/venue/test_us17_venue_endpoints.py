@@ -36,8 +36,8 @@ from fastapi import HTTPException
 import main
 import models
 import schemas
-from login.models import Role
-from login.security import require_roles
+from auth.models import Role
+from auth.security import require_roles
 
 EDITOR = SimpleNamespace(email="daniel.ortiz@connectsphere.edu", role=Role.venue)
 

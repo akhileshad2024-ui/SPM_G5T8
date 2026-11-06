@@ -27,7 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
-from venue_availability import format_date
+from venues.availability import format_date
 
 WHEN = format_date(DAY)
 GALA_CLASH = f"Clashes with Gala, already booked on {WHEN} (venue occupied 09:30–12:45 incl. 30 min setup and 45 min turnaround)."

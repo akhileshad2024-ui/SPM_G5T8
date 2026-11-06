@@ -29,11 +29,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fastapi import HTTPException
 
 from test_us22_submit_booking_request import COORDINATOR, OTHER_COORDINATOR, STAFF, DatabaseTestCase
-import booking_request
+import bookings.requests as booking_request
 import main
 import models
 import schemas
-import venue_bookings
+import bookings.service as venue_bookings
 
 
 class US41TestCase(DatabaseTestCase):

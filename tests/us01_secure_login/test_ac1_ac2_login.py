@@ -21,7 +21,7 @@ from auth_testkit import (
     session_cookie,
     set_cookie_header,
 )
-from login.models import Role
+from auth.models import Role
 
 INVALID_CREDENTIALS = "Incorrect email or password"
 
@@ -173,7 +173,7 @@ def test_backend_refuses_to_start_without_a_strong_session_secret(secret):
     """Without a strong JWT_SECRET anyone could forge session tokens, so startup must fail."""
     env = {**os.environ, "JWT_SECRET": secret, "PYTHONIOENCODING": "utf-8"}
     result = subprocess.run(
-        [sys.executable, "-c", "import login.security"],
+        [sys.executable, "-c", "import auth.security"],
         cwd=BACKEND_DIR, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
 

@@ -19,8 +19,8 @@ from fastapi.testclient import TestClient
 
 import models
 from auth_testkit import PASSWORD, get_user, login
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 from main import app
 
 MON = "2027-01-04"  # a Monday

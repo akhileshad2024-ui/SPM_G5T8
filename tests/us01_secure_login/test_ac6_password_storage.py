@@ -10,8 +10,8 @@ from argon2 import PasswordHasher
 from sqlalchemy import text
 
 from auth_testkit import PASSWORD, email_for, get_user, login
-from login import security, set_password
-from login.models import Role
+from auth import security, set_password
+from auth.models import Role
 
 NEW_PASSWORD = "Brand-New-Pass-9"
 
@@ -158,12 +158,12 @@ def test_set_password_script_requires_exactly_one_email(monkeypatch):
 
 
 def test_set_password_script_runs_main_when_started_from_the_command_line(monkeypatch):
-    """`python -m login.set_password <email>` reaches main(): an unknown account stops it with a message."""
+    """`python -m auth.set_password <email>` reaches main(): an unknown account stops it with a message."""
     monkeypatch.setattr(sys, "argv", ["set_password", "nobody@connectsphere.edu"])
     monkeypatch.setenv("NEW_PASSWORD", NEW_PASSWORD)
 
     with pytest.warns(RuntimeWarning), pytest.raises(SystemExit, match="No account found"):
-        runpy.run_module("login.set_password", run_name="__main__")
+        runpy.run_module('auth.set_password', run_name="__main__")
 
 
 def test_session_cookie_does_not_contain_the_password(client):

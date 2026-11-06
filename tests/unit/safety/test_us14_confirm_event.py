@@ -12,7 +12,7 @@ AC5: specified event fields locked from further editing after confirmation .....
 AC6: refused while any venue booking is flagged as needing alternative arrangements ......... TestFlaggedBookings
 AC7: only after the Safety Officer has approved the Operational Safety Check (US44) ......... TestSafetyApproved
 
-The rules (backend/event_confirmation.py) and the endpoint functions in backend/main.py run on a real in-memory
+The rules (backend/event_review/confirmation.py) and the endpoint functions in backend/main.py run on a real in-memory
 SQLite database (never Supabase), reusing the US44 set-up (safety_testcase.py).
 
 Run from the repo root:
@@ -26,13 +26,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from safety_testcase import NOW, S, SafetyTestCase
-import event_confirmation
+import event_review.confirmation as event_confirmation
 import main
 import models
 import schemas
-from equipment import RequestIn, save_request
-from event_review import ReviewError
-from login.models import Role
+from equipment.service import RequestIn, save_request
+from event_review.service import ReviewError
+from auth.models import Role
 
 
 class ConfirmTestCase(SafetyTestCase):

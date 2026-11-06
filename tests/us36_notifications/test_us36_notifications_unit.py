@@ -1,5 +1,5 @@
 """
-US36 — the notification functions in backend/messaging.py, called directly on a throwaway SQLite database.
+US36 — the notification functions in backend/notifications/service.py, called directly on a throwaway SQLite database.
 
 Covers the functions ready for stories still being built (US12 reassign, US14 confirm, US44 safety check
 for US36-AC7, US49-US51 reassessment), US38's reassessment notice, and the rules every notice follows:
@@ -12,11 +12,11 @@ from types import SimpleNamespace
 
 import pytest
 
-import messaging
+import notifications.service as messaging
 import models
 from auth_testkit import PASSWORD, get_user
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 
 
 def notices(db, role_or_id):

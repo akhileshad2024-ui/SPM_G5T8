@@ -1,10 +1,10 @@
 """Recipient scoping, durable notices and actual SMTP adapter behavior (transport mocked)."""
 from datetime import timedelta
 import pytest
-import equipment, mail_worker, models
+import equipment.service as equipment, mail_worker, models
 from test_equipment_api import event, request, progress
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 from schemas import campus_today
 
 

@@ -11,10 +11,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
-import messaging
+import notifications.service as messaging
 import models
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 
 
 def test_application_starts_the_hold_sweeper_and_stops_it_on_shutdown(monkeypatch):

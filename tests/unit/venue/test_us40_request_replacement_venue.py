@@ -13,7 +13,7 @@ AC4: keeps the original event information and the original booking record for re
 AC5: has the flag cleared once the replacement booking is approved ..................... TestFlagClears
 And the page agreeing with the backend ................................................. TestPageMatchesBackend
 
-The rules (backend/booking_request.py, backend/venue_bookings.py) run on a real in-memory SQLite database, never
+The rules (backend/bookings/requests.py, backend/bookings/service.py) run on a real in-memory SQLite database, never
 Supabase, reusing the US22 test setup; boundaries are tested on both sides of the line. Dates are a Monday at least
 60 days ahead, so the holds do not lapse whenever the tests are run. The integration tests check it through the API.
 
@@ -32,16 +32,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fastapi import HTTPException
 
 from test_us22_submit_booking_request import COORDINATOR, OTHER_COORDINATOR, REPO, STAFF, DatabaseTestCase
-import booking_request
+import bookings.requests as booking_request
 import main
-import messaging
+import notifications.service as messaging
 import models
 import schemas
-import venue_availability
-import venue_bookings
-import venue_unavailability
-from login.models import Role, User
-from booking_request import BookingRefused, replacement_needs, require_bookable_event, require_replaceable
+import venues.availability as venue_availability
+import bookings.service as venue_bookings
+import venues.unavailability as venue_unavailability
+from auth.models import Role, User
+from bookings.requests import BookingRefused, replacement_needs, require_bookable_event, require_replaceable
 
 Status = models.EventStatus
 

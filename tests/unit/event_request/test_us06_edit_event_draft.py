@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
-from event_drafts import can_edit_draft
+from event_requests.drafts import can_edit_draft
 
 
 class TestDraftEditingPermission(unittest.TestCase):

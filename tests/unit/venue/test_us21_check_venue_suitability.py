@@ -16,8 +16,8 @@ Also: the endpoint and who may use it ....................... TestSuitabilityEnd
       the request the page sends ............................. TestSuitabilityRequest
       the page and the backend agree ......................... TestPageMatchesBackend
 
-The rules are in backend/venue_suitability.py (with the availability reasons from
-backend/venue_availability.py) and the endpoint function in backend/main.py is called directly,
+The rules are in backend/venues/suitability.py (with the availability reasons from
+backend/venues/availability.py) and the endpoint function in backend/main.py is called directly,
 with a MagicMock standing in for the database session. So these tests check what the code
 decides and asks the database to do. They cannot show that the SQL really returns only active
 venues, or that a request without a login gets a 401; the integration tests check those.
@@ -47,10 +47,10 @@ from pydantic import ValidationError
 import main
 import models
 import schemas
-import venue_availability
-import venue_suitability
-from login.models import Role
-from login.security import require_roles
+import venues.availability as venue_availability
+import venues.suitability as venue_suitability
+from auth.models import Role
+from auth.security import require_roles
 
 COORDINATOR = SimpleNamespace(email="priya.tan@connectsphere.edu", role=Role.coordinator)
 
@@ -296,7 +296,7 @@ class TestComparison(unittest.TestCase):
 class TestAcknowledgementIsNeeded(unittest.TestCase):
     def test_only_a_fully_suitable_venue_can_be_requested_without_acknowledging(self):
         # The refusal itself (and its message) is tested in test_us22; here, which verdicts need it.
-        import booking_request
+        import bookings.requests as booking_request
 
         for verdict, needs_it in (("suitable", False), ("partially_suitable", True), ("unsuitable", True)):
             with self.subTest(verdict=verdict):

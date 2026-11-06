@@ -1,5 +1,5 @@
 """
-US19 — the calendar's rules on their own (backend/venue_calendar.py), without the app or a database.
+US19 — the calendar's rules on their own (backend/venues/calendar.py), without the app or a database.
 The criterion each test covers is in its name. Through the API: test_us19_calendar_api.py.
 """
 
@@ -11,9 +11,9 @@ from fastapi import HTTPException
 
 import main
 import models
-import venue_calendar
+import venues.calendar as venue_calendar
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 
 NOW = datetime(2027, 1, 1, tzinfo=timezone.utc)
 MON = date(2027, 1, 4)

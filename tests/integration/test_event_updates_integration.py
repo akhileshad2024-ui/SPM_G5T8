@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 
 from tests.integration.test_us05_save_event_draft_integration import US05DraftApiTestCase
-from login.models import Role, User
+from auth.models import Role, User
 import models
 
 

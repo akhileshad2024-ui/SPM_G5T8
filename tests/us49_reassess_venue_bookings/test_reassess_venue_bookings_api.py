@@ -18,7 +18,7 @@ session cookies, a throwaway SQLite database, never Supabase. Criterion IDs (US4
 import pytest
 
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 
 MON = "2027-01-04"  # a Monday
 TUE = "2027-01-05"

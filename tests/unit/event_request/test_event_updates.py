@@ -8,7 +8,7 @@ import subprocess
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
 
 import pytest
-import event_updates as rules
+import event_requests.updates as rules
 
 
 def event(**overrides):
@@ -79,9 +79,9 @@ def test_technical_import_needs_no_database_or_auth_configuration():
     """
     backend = str(Path(__file__).resolve().parents[3] / "backend")
     script = (
-        f"import sys; sys.path.insert(0, {backend!r}); import event_updates; "
+        f"import sys; sys.path.insert(0, {backend!r}); import event_requests.updates as event_updates; "
         "assert 'database' not in sys.modules; assert 'models' not in sys.modules; "
-        "assert 'login.models' not in sys.modules"
+        "assert 'auth.models' not in sys.modules"
     )
     result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True,
         env={**os.environ, "DATABASE_URL": "", "JWT_SECRET": ""})

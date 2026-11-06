@@ -30,8 +30,8 @@ from sqlalchemy.pool import StaticPool
 
 import models
 from database import Base, engine as application_engine, get_db
-from login.models import Role, User
-from login.security import COOKIE_NAME, create_session_token
+from auth.models import Role, User
+from auth.security import COOKIE_NAME, create_session_token
 from main import app
 
 

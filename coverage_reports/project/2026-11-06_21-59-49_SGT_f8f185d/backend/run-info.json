@@ -1,0 +1,21 @@
+{
+  "record_id": "20261106T135625Z-5a20ab0d",
+  "sprint": "Unrecorded",
+  "scope": "project",
+  "kind": "backend",
+  "executor": "",
+  "started_at": "2026-11-06T13:56:25.470922+00:00",
+  "timezone": "UTC (convert +08:00 for SGT)",
+  "commit": "f8f185d20918e6f162258146fc9e08c80a1d925b",
+  "dirty": false,
+  "result": "Pass",
+  "command": "/Users/user/Desktop/SPM_G5T8/.venv/bin/python -m coverage run --branch --source=backend --data-file=coverage_reports/project/latest/backend/.coverage -m pytest tests -v -ra -p no:cacheprovider",
+  "source": "local execution",
+  "exit_code": 0,
+  "subtests_passed": 1037,
+  "passed": 2137,
+  "skipped": 1,
+  "statement_percent": 98.24,
+  "branch_percent": 95.81,
+  "ended_at": "2026-11-06T13:58:47.273199+00:00"
+}

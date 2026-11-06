@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from tests.integration.test_us05_save_event_draft_integration import US05DraftApiTestCase
 import models
-from login.models import Role
+from auth.models import Role
 from main import app
 
 LEAD_EMAIL = "grace.ong@connectsphere.edu"

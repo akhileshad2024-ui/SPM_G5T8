@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 import pytest
-from equipment import peak_reserved
+from equipment.service import peak_reserved
 
 START = datetime(2027, 1, 4, 9)
 

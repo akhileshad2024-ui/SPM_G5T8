@@ -15,8 +15,8 @@ AC4: the conflict check is performed again at the moment of confirmation, not on
 The backlog's test case: an event from 10:00 to 12:00 at a venue with 30 minutes setup and 45 minutes
 turnaround occupies the venue from 09:30 to 12:45.
 
-The overlap rule (backend/venue_conflicts.py) is called directly on plain values. The confirmation guard
-(backend/venue_bookings.py, through main.decide_booking) runs on a real in-memory SQLite database, never
+The overlap rule (backend/bookings/conflicts.py) is called directly on plain values. The confirmation guard
+(backend/bookings/service.py, through main.decide_booking) runs on a real in-memory SQLite database, never
 Supabase, reusing the US22 test setup. The integration tests check the same through the API.
 
 Run from the repo root:
@@ -36,9 +36,9 @@ from fastapi import HTTPException
 from test_us22_submit_booking_request import MON, REPO, STAFF, DatabaseTestCase
 import models
 import schemas
-import venue_bookings
-from venue_availability import clash_text, format_clock
-from venue_conflicts import CONFIRMED_BOOKING, PENDING_REQUEST, Slot, blocking, booking_conflicts, window_of
+import bookings.service as venue_bookings
+from venues.availability import clash_text, format_clock
+from bookings.conflicts import CONFIRMED_BOOKING, PENDING_REQUEST, Slot, blocking, booking_conflicts, window_of
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)
 # The backlog's venue: 30 minutes setup, 45 minutes turnaround.

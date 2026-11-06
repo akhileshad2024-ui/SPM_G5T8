@@ -11,7 +11,7 @@ AC4: coordinators see and manage only the events assigned to them ... TestCoordi
 AC5: every permission check is on the server ........................ TestServerChecks
 The other roles' visibility rules, in the same module ............... TestEveryRolesVisibility
 
-The rules (backend/event_access.py, event_fields.py) and the endpoint functions in backend/main.py are
+The rules (backend/event_requests/access.py, event_fields.py) and the endpoint functions in backend/main.py are
 called directly on a real in-memory SQLite database (never Supabase). Assigning itself is US11
 (test_us11_assign_coordinator.py). The integration and functional tests check the same through the API
 and the browser.
@@ -30,10 +30,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lead_testcase import CLOSED, NOW, LeadTestCase, S
 import main
 import models
-from event_access import LIVE, is_involved
-from event_fields import VISIBLE_FIELDS, for_role
-from login.models import Role, User
-from login.security import require_roles
+from event_requests.access import LIVE, is_involved
+from event_requests.fields import VISIBLE_FIELDS, for_role
+from auth.models import Role, User
+from auth.security import require_roles
 
 
 class TestLeadRole(unittest.TestCase):
