@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
 import { useApp } from "@/lib/state/app-context";
 
@@ -13,6 +13,8 @@ export function ReassessmentPanel({ eventId, kind, preparation = false, heading 
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Set at once, so two clicks before React redraws the disabled button still send one request.
+  const working = useRef(false);
   const stored = app.state.events.find(event => event.backendId === eventId);
   const revision = `${stored?.status ?? ""}:${stored?.updatedAt ?? ""}`;
   async function reload() { setSummary(await apiFetch<Summary>(`/events/${eventId}/reassessments`)); }
@@ -24,11 +26,12 @@ export function ReassessmentPanel({ eventId, kind, preparation = false, heading 
     return () => { live = false; window.removeEventListener("arrangements-changed", load); };
   }, [eventId, revision]);
   async function act(path: string, body?: object) {
-    if (busy) return;
+    if (working.current) return;
+    working.current = true;
     setBusy(true); setError("");
     try { await apiFetch(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }); await reload(); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not save. Refresh to check the current state."); }
-    finally { setBusy(false); }
+    finally { working.current = false; setBusy(false); }
   }
   if (!summary && !error) return null;
   const flags = summary?.flags.filter(flag => !kind || flag.targetType === kind) ?? [];
