@@ -3,3 +3,4 @@
 -r requirements.txt
 coverage
 httpx2
+pytest
