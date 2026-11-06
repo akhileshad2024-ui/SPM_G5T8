@@ -33,7 +33,6 @@ to seed. To set one account's password (from `backend/`):
 python -m login.set_password wei.lim@connectsphere.edu
 ```
 
-To add five demo venues to the catalogue, run `python -m seed_venues` (from `backend/`).
 If your database is older than the current code, run the steps in
 `backend/schema_changes.sql` once in the Supabase SQL Editor.
 
