@@ -17,8 +17,8 @@ from test_us22_submit_booking_request import DatabaseTestCase
 import main
 import models
 import schemas
-from event_access import involved_events
-from login.models import Role, User
+from event_requests.access import involved_events
+from auth.models import Role, User
 
 S = models.EventStatus
 NOW = datetime(2027, 1, 4, 9, 30, tzinfo=timezone.utc)

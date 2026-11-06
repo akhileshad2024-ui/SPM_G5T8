@@ -17,7 +17,7 @@ AC5: results within 3 seconds ........................ TestResponseTime
 Also: only Event Coordinators may search ............. TestWhoMaySearch
       the page and the backend agree ................. TestPageMatchesBackend
 
-The search rules are in backend/venue_search.py and the endpoint function in backend/main.py
+The search rules are in backend/venues/search.py and the endpoint function in backend/main.py
 is called directly, with a MagicMock standing in for the database session. So these tests check
 what the code decides and asks the database to do. They cannot show that the SQL really returns
 only active venues, or that a request without a login gets a 401.
@@ -49,10 +49,10 @@ from pydantic import ValidationError
 import main
 import models
 import schemas
-import venue_availability
-import venue_search
-from login.models import Role
-from login.security import require_roles
+import venues.availability as venue_availability
+import venues.search as venue_search
+from auth.models import Role
+from auth.security import require_roles
 
 COORDINATOR = SimpleNamespace(email="priya.tan@connectsphere.edu", role=Role.coordinator)
 

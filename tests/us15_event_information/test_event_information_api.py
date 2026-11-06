@@ -14,7 +14,7 @@ import pytest
 
 import models
 from auth_testkit import get_user
-from login.models import Role
+from auth.models import Role
 
 S = models.EventStatus
 

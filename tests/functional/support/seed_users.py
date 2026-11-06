@@ -24,8 +24,8 @@ db_file.unlink(missing_ok=True)
 
 import main  # noqa: E402,F401  (creates every table)
 from database import SessionLocal  # noqa: E402
-from login.models import Role, User  # noqa: E402
-from login.security import hash_password  # noqa: E402
+from auth.models import Role, User  # noqa: E402
+from auth.security import hash_password  # noqa: E402
 
 # Keep in sync with tests/functional/support/accounts.ts.
 PASSWORD = "Functional-Test-1"

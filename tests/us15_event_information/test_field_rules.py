@@ -1,5 +1,5 @@
 """
-US15 AC1/AC2: which event fields each role may see, in backend/event_fields.py.
+US15 AC1/AC2: which event fields each role may see, in backend/event_requests/fields.py.
 
 The expected fields for each role are written out here independently of the module, from
 the field table agreed for US15, so a change to the rules has to be made in both places.
@@ -10,8 +10,8 @@ from types import SimpleNamespace
 import pytest
 
 import schemas
-from event_fields import VISIBLE_FIELDS, for_role, visible_fields
-from login.models import Role
+from event_requests.fields import VISIBLE_FIELDS, for_role, visible_fields
+from auth.models import Role
 
 ALL_FIELDS = set(schemas.EventResponse.model_fields)
 

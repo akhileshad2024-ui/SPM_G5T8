@@ -22,8 +22,8 @@ import jwt  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from database import Base, SessionLocal, engine  # noqa: E402
-from login import auth, security  # noqa: E402
-from login.models import Role, User  # noqa: E402
+from auth import auth, security  # noqa: E402
+from auth.models import Role, User  # noqa: E402
 from main import app  # noqa: E402
 
 assert engine.url.get_backend_name() == "sqlite", "tests must never run against a real database"

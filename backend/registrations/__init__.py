@@ -1,0 +1,1 @@
+"""Registrations business component."""

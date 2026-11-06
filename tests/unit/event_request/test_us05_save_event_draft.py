@@ -1,6 +1,6 @@
 """Unit tests for US05 — Save Event Request as Draft.
 
-Module under test: ``backend/event_drafts.py`` → ``prepare_draft``.
+Module under test: ``backend/event_requests/drafts.py`` → ``prepare_draft``.
 Story-level test case traced here: ``US05-TC01`` (save an incomplete event
 request as a draft). Each method below identifies its matching acceptance
 criterion and the condition it checks.
@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO_ROOT / "backend"))
 
 def prepare_draft(saved_event_information):
     """Call the US05 module function being tested."""
-    from event_drafts import prepare_draft as prepare
+    from event_requests.drafts import prepare_draft as prepare
 
     return prepare(saved_event_information)
 

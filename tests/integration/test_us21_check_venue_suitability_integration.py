@@ -30,8 +30,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
-from login.models import Role, User
-from login.security import COOKIE_NAME, create_session_token
+from auth.models import Role, User
+from auth.security import COOKIE_NAME, create_session_token
 from main import app
 
 MON = "2027-01-04"  # a Monday

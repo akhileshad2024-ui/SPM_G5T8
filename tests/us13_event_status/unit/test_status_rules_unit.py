@@ -1,5 +1,5 @@
 """
-US13 unit tests for backend/event_status.py: the defined status set (AC2), which status
+US13 unit tests for backend/event_requests/status.py: the defined status set (AC2), which status
 changes the workflow allows, and that every change is recorded with who and when (AC3).
 """
 
@@ -10,7 +10,7 @@ import pytest
 from fastapi import HTTPException
 
 import models
-from event_status import TRANSITIONS, can_change, change_status, label, record_initial_status
+from event_requests.status import TRANSITIONS, can_change, change_status, label, record_initial_status
 
 S = models.EventStatus
 NOW = datetime(2026, 10, 8, 9, 0, tzinfo=timezone.utc)

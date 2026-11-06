@@ -6,7 +6,7 @@ from datetime import date, datetime, time
 from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import safety_testcase  # establishes the existing isolated backend import environment
-from arrangement_reassessment import equipment_reasons, registration_reasons
+from event_changes.reassessment import equipment_reasons, registration_reasons
 
 
 class TestReassessmentComparisons(unittest.TestCase):

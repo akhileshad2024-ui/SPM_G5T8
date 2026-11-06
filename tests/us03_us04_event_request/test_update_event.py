@@ -8,8 +8,8 @@ from sqlalchemy import text
 
 import models
 from auth_testkit import PASSWORD, login
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 from main import app
 from test_create_event import full_request, stored
 

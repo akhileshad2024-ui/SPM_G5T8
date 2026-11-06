@@ -28,10 +28,11 @@ jobs:
         run: pip install -r backend/requirements.txt pytest httpx coverage
 
       # Unit tests only. They use an in-memory database and never touch Supabase,
-      # so no secrets or .env file are needed. "-s tests/unit" is needed because plain
-      # "python -m unittest discover" finds nothing: the tests live in tests/unit/.
+      # so no secrets or .env file are needed.
+      # The explicit top-level directory gives test packages names such as unit.safety,
+      # avoiding collisions with backend component packages such as safety/.
       - name: Run unit tests
-        run: python scripts/test_evidence.py run --kind unit --scope backend -- python -m unittest discover -s tests/unit -v
+        run: python scripts/test_evidence.py run --kind unit --scope backend -- python -m unittest discover -s tests/unit -t tests -v
 
       # Every Python test: the per-story folders (tests/us01_secure_login, tests/us02_rbac,
       # tests/us03_us04_event_request, tests/us13_event_status), tests/unit and tests/integration.

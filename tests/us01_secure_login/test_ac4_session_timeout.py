@@ -21,8 +21,8 @@ from auth_testkit import (
     set_cookie_header,
     token_claims,
 )
-from login import security
-from login.models import Role
+from auth import security
+from auth.models import Role
 
 
 def issue_session(db, role, clock, issued_ago, signed_in_ago=None):

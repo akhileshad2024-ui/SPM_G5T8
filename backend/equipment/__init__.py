@@ -1,0 +1,1 @@
+"""Equipment business component."""

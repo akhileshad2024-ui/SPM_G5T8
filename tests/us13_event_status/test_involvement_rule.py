@@ -1,5 +1,5 @@
 """
-US13 AC1/AC4 (and US02): who is involved in an event, in backend/event_access.py.
+US13 AC1/AC4 (and US02): who is involved in an event, in backend/event_requests/access.py.
 
 The rule is written twice: involved_events() filters a database query (GET /events) and
 is_involved() checks one loaded event (GET /events/{id}/history). These tests build every
@@ -14,8 +14,8 @@ import pytest
 
 import models
 from auth_testkit import get_user
-from event_access import involved_events, is_involved
-from login.models import Role
+from event_requests.access import involved_events, is_involved
+from auth.models import Role
 
 S = models.EventStatus
 

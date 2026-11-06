@@ -1,0 +1,217 @@
+"""
+Event review and clarification responses, saved (US07–US11).
+
+Same rules and messages as the frontend's lib/events/review/*.ts, so the page can check
+a step straight away and the server still refuses it if the page is bypassed:
+
+    assign      (US11)  the Event Coordinator Lead gives an unassigned, live event a coordinator from the
+                    coordinator accounts; who assigned it and when is recorded (models.EventAssignment)
+    start       (US07)  Submitted -> Under Review
+    clarify     (US08)  the assigned coordinator asks the organiser to clarify or amend:
+                        Under Review -> Pending Clarification
+    respond     (US09)  organiser records a reply without editing event details or status
+    resume      (US09)  assigned coordinator explicitly continues: Pending -> Under Review
+    decide      (US10)  the assigned coordinator approves (optional note) or rejects
+                        (reason of 10-1000 characters): Under Review -> Approved / Rejected
+
+Each step raises ReviewError (409: not allowed now, 422: bad text) instead of saving.
+Status changes go through event_status.change_status(), so they appear in the US13 history.
+Nothing here commits; the endpoint saves the step in one transaction.
+"""
+
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+import models
+from event_requests.status import SAFETY_STATUSES, change_status
+from auth.models import Role, User
+
+S = models.EventStatus
+
+MAX_NOTE_LENGTH = 1000
+MIN_REJECTION_REASON_LENGTH = 10
+
+# A coordinator can be assigned while the event is live: submitted and not yet closed.
+ASSIGNABLE_STATUSES = {S.submitted, S.under_review, S.pending_clarification, S.approved, S.confirmed, *SAFETY_STATUSES}
+
+KIND_LABEL = {"clarification": "Clarification", "amendment": "Amendment"}
+
+
+class ReviewError(Exception):
+    def __init__(self, status_code: int, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+        self.message = message
+
+
+def not_allowed(message: str) -> ReviewError:
+    return ReviewError(409, message)
+
+
+def note_error(text: str, label: str, required: bool = True, min_length: int = 1) -> Optional[str]:
+    """Same checks as noteError() in lib/events/review/shared.ts."""
+    trimmed = (text or "").strip()
+    if not trimmed:
+        return f"{label} is required." if required else None
+    if len(trimmed) < min_length:
+        return f"{label} must be at least {min_length} characters."
+    if len(trimmed) > MAX_NOTE_LENGTH:
+        return f"{label} must be {MAX_NOTE_LENGTH} characters or fewer."
+    return None
+
+
+def check_note(text: str, label: str, **kwargs) -> str:
+    """The trimmed text, or ReviewError(422) explaining what's wrong with it."""
+    error = note_error(text, label, **kwargs)
+    if error:
+        raise ReviewError(422, error)
+    return (text or "").strip()
+
+
+def coordinator_name(db: Session, event: models.Event) -> Optional[str]:
+    coordinator = db.get(User, event.coordinator_id) if event.coordinator_id else None
+    return coordinator.name if coordinator else None
+
+
+def check_decision_allowed(db: Session, event: models.Event, user: User) -> None:
+    """Same order and messages as reviewDecisionError() in lib/events/review/shared.ts."""
+    if event.status == S.submitted:
+        raise not_allowed("Start the review before making a decision on this request.")
+    if event.status == S.pending_clarification:
+        raise not_allowed("Waiting for the organiser to respond to your clarification request.")
+    if event.status != S.under_review:
+        raise not_allowed("A decision has already been made on this request.")
+    if event.coordinator_id is None:
+        raise not_allowed("Assign a coordinator before making a decision on this request.")
+    if event.coordinator_id != user.id:
+        raise not_allowed(f"Only the assigned coordinator ({coordinator_name(db, event)}) can make this decision.")
+
+
+def active_coordinators(db: Session) -> list[User]:
+    return (
+        db.query(User)
+        .filter(User.role == Role.coordinator, User.is_active.is_(True))
+        .order_by(User.name)
+        .all()
+    )
+
+
+def assign(db: Session, event: models.Event, user: User, coordinator_id: int, now: datetime) -> None:
+    """US11: the Lead assigns a coordinator; who assigned it and when is recorded.
+    Changing an existing coordinator is reassignment (US12, reassign() below)."""
+    coordinator = db.get(User, coordinator_id)
+    if coordinator is None or coordinator.role != Role.coordinator or not coordinator.is_active:
+        raise ReviewError(422, f"{coordinator.name if coordinator else 'That person'} is not an Event Coordinator.")
+    if event.status not in ASSIGNABLE_STATUSES:
+        raise not_allowed(f"A coordinator can't be assigned while the event is {event.status.value.replace('_', ' ')}.")
+    if event.coordinator_id is not None:
+        raise not_allowed(f"{coordinator_name(db, event)} is already coordinating this event.")
+    event.coordinator_id = coordinator.id
+    db.add(models.EventAssignment(event_id=event.id, coordinator_id=coordinator.id, assigned_by_id=user.id, assigned_at=now))
+
+
+def reassign(db: Session, event: models.Event, user: User, coordinator_id: int, reason: str, now: datetime) -> int:
+    """US12: the Lead moves an assigned event to another coordinator, with a reason.
+
+    Access follows event.coordinator_id (event_access.py), so changing it removes the previous
+    coordinator's access and grants the new one's in the same step (AC3). The reassignment is
+    added to the assignment history with the reason and the coordinator it replaced (AC2, AC5).
+    Returns the previous coordinator's id, so the caller can notify them (AC4).
+    """
+    if user.role != Role.lead:  # also checked by the route; kept here so the rule can't be bypassed
+        raise ReviewError(403, "Only the Event Coordinator Lead can reassign coordinators.")
+    coordinator = db.get(User, coordinator_id)
+    if coordinator is None or coordinator.role != Role.coordinator or not coordinator.is_active:
+        raise ReviewError(422, f"{coordinator.name if coordinator else 'That person'} is not an Event Coordinator.")
+    if event.status not in ASSIGNABLE_STATUSES:
+        raise not_allowed(f"A coordinator can't be reassigned while the event is {event.status.value.replace('_', ' ')}.")
+    if event.coordinator_id is None:
+        raise not_allowed("This event has no coordinator yet. Assign one instead.")
+    if event.coordinator_id == coordinator.id:
+        raise not_allowed(f"{coordinator.name} is already coordinating this event.")
+    text = check_note(reason, "Reassignment reason")
+    previous = event.coordinator_id
+    event.coordinator_id = coordinator.id
+    db.add(models.EventAssignment(event_id=event.id, coordinator_id=coordinator.id, assigned_by_id=user.id,
+                                  assigned_at=now, previous_coordinator_id=previous, reason=text))
+    return previous
+
+
+def assignment_history(db: Session, event: models.Event) -> list:
+    """US12-AC5: every assignment and reassignment of the event, oldest first, with names looked up."""
+    rows = (db.query(models.EventAssignment).filter(models.EventAssignment.event_id == event.id)
+            .order_by(models.EventAssignment.assigned_at, models.EventAssignment.id).all())
+    def name(user_id):
+        user = db.get(User, user_id) if user_id else None
+        return user.name if user else None
+
+    return [
+        {"coordinator": name(r.coordinator_id), "previousCoordinator": name(r.previous_coordinator_id),
+         "assignedBy": name(r.assigned_by_id), "assignedAt": r.assigned_at, "reason": r.reason}
+        for r in rows
+    ]
+
+
+def start_review(db: Session, event: models.Event, user: User, now: datetime) -> None:
+    """US07."""
+    if event.status != S.submitted:
+        raise not_allowed("Only newly submitted requests can be moved into review.")
+    change_status(db, event, S.under_review, user, now)
+
+
+def request_clarification(db: Session, event: models.Event, user: User, kind: str, message: str, now: datetime) -> None:
+    """US08: kept on the event (the latest request) and as the reason in the status history."""
+    check_decision_allowed(db, event, user)
+    label = KIND_LABEL[kind]
+    text = check_note(message, f"{label} message")
+    change_status(db, event, S.pending_clarification, user, now, reason=f"{label}: {text}")
+    previous = event.clarification or {}
+    history = previous.get("history", [])
+    if previous.get("response"):
+        history = [*history, {k: v for k, v in previous.items() if k != "history"}]
+    event.clarification = {"kind": kind, "message": text, "requestedBy": user.name, "requestedAt": iso(now),
+                           **({"history": history} if history else {})}
+
+
+def respond_to_clarification(event: models.Event, user: User, message: str, now: datetime) -> None:
+    """US09 AC2: retain a reply, not an edit to the submitted event details."""
+    if user.role != Role.organiser or event.organiser_id != user.id:
+        raise ReviewError(403, "Only the event organiser can respond.")
+    if event.status != S.pending_clarification or not event.clarification:
+        raise not_allowed("There is no outstanding clarification to respond to.")
+    if event.clarification.get("response"):
+        raise not_allowed("A response has already been recorded.")
+    # Reuse the existing review-note format/limit, not a new customer AC.
+    text = check_note(message, "Response")
+    # Assign a new JSON object so SQLAlchemy detects and persists the change.
+    event.clarification = {**event.clarification, "response": {
+        "message": text, "respondedBy": user.name, "respondedAt": iso(now),
+    }}
+
+
+def resume_review(db: Session, event: models.Event, user: User, now: datetime) -> None:
+    """US09 AC3: the assigned coordinator explicitly continues after a reply."""
+    if user.role != Role.coordinator or event.coordinator_id != user.id:
+        raise ReviewError(403, "Only the assigned coordinator can resume review.")
+    if event.status != S.pending_clarification or not (event.clarification or {}).get("response"):
+        raise not_allowed("A pending clarification response is required before resuming review.")
+    change_status(db, event, S.under_review, user, now)
+
+
+def decide(db: Session, event: models.Event, user: User, outcome: str, reason: str, now: datetime) -> None:
+    """US10: approve (optional note) or reject (reason required)."""
+    check_decision_allowed(db, event, user)
+    if outcome == "approved":
+        text = check_note(reason, "Approval note", required=False)
+        change_status(db, event, S.approved, user, now, reason=text or None)
+    else:
+        text = check_note(reason, "Rejection reason", min_length=MIN_REJECTION_REASON_LENGTH)
+        change_status(db, event, S.rejected, user, now, reason=text)
+    event.decision = {"outcome": outcome, "by": user.name, "at": iso(now), **({"reason": text} if text else {})}
+
+
+def iso(moment: datetime) -> str:
+    """'2026-10-10T08:30:00.000Z', the same form as the frontend's toISOString()."""
+    return moment.strftime("%Y-%m-%dT%H:%M:%S.") + f"{moment.microsecond // 1000:03d}Z"

@@ -8,7 +8,7 @@ from datetime import datetime
 import pytest
 
 import models
-from login.models import Role
+from auth.models import Role
 
 from test_status_history import add_user, create, history, move, opened, seed
 

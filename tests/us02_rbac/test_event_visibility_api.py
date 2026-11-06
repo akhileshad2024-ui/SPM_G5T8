@@ -2,7 +2,7 @@
 US02 — "can view only the events they are associated with or authorised to see" (backend).
 
 GET /events returns only the events the signed-in user is involved in; the rule lives in
-backend/event_access.py. One fixed set of events is seeded below, and each role's expected
+backend/event_requests/access.py. One fixed set of events is seeded below, and each role's expected
 list is written out by hand from the rule:
 
     organiser          their own events, drafts included
@@ -20,9 +20,9 @@ import pytest
 
 import models
 from auth_testkit import PASSWORD, get_user
-from event_access import involved_events, is_involved
-from login import security
-from login.models import Role, User
+from event_requests.access import involved_events, is_involved
+from auth import security
+from auth.models import Role, User
 
 S = models.EventStatus
 

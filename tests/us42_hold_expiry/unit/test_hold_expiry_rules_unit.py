@@ -1,5 +1,5 @@
 """
-US42 — Expire Tentative Venue Holds: the rules in backend/hold_expiry.py, one function at a time.
+US42 — Expire Tentative Venue Holds: the rules in backend/bookings/hold_expiry.py, one function at a time.
 No API, no database: bookings are plain objects with the fields the rules read.
 
 Criterion IDs follow the US42 card (AC1..AC4), as in the test names.
@@ -10,8 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import hold_expiry
-from booking_request import BookingRefused
+import bookings.hold_expiry as hold_expiry
+from bookings.requests import BookingRefused
 
 NOW = datetime(2027, 1, 1, 9, 0, tzinfo=timezone.utc)  # 17:00 in Singapore
 # Setup starts 09:30 Singapore time on 4 Jan 2027 = 01:30 UTC.

@@ -6,9 +6,9 @@ documented validity/impact choices. No fake evaluator or mocked service calls.
 from datetime import timedelta
 from unittest.mock import patch
 from tests.integration import test_us44_operational_safety_check_integration as base
-import equipment
+import equipment.service as equipment
 import models
-from login.models import Role
+from auth.models import Role
 
 
 class TestReassessmentWorkflows(base.US44TestCase):
@@ -193,7 +193,7 @@ class TestReassessmentWorkflows(base.US44TestCase):
         request_id = self.proposal(event_id)
         # Deliberate fault injection verifies transaction rollback, not a mocked
         # successful workflow or evaluator. The client re-raises server errors.
-        with patch("arrangement_reassessment.messaging.notify", side_effect=RuntimeError("injected notification failure")):
+        with patch('event_changes.reassessment.messaging.notify', side_effect=RuntimeError("injected notification failure")):
             with self.assertRaises(RuntimeError):
                 self.decision(event_id, request_id, {"equip": []})
         self.db.expire_all()

@@ -1,6 +1,6 @@
 """
-US01 unit tests for the lockout helpers in backend/login/auth.py (AC2, AC3) and
-the login request limits in backend/login/schemas.py.
+US01 unit tests for the lockout helpers in backend/auth/auth.py (AC2, AC3) and
+the login request limits in backend/auth/schemas.py.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -10,7 +10,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from login import auth, schemas, security
+from auth import auth, schemas, security
 
 NOW = datetime(2026, 10, 6, 9, 0, tzinfo=timezone.utc)
 

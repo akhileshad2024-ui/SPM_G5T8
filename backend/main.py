@@ -8,16 +8,16 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import date as Date, datetime, timezone
 from database import engine, Base, get_db
-from login import auth
-from login.models import Role, User
-from login.security import enforce_https, get_current_user, require_roles
-import equipment, messaging, mail_worker
-import event_drafts, event_submission, event_changes, event_updates, arrangement_reassessment
-import booking_request, event_confirmation, event_review, hold_expiry, models, registrations, safety_check, schemas, venue_bookings, venue_calendar, venue_search, venue_suitability, venue_unavailability, venue_reassessment
-from venue_audit import apply_update, change_action, creation_changes, record_change
-from event_access import involved_events, is_involved
-from event_fields import for_role
-from event_status import change_status, record_initial_status
+from auth import auth
+from auth.models import Role, User
+from auth.security import enforce_https, get_current_user, require_roles
+import equipment.service as equipment, notifications.service as messaging, mail_worker
+import event_requests.drafts as event_drafts, event_requests.submission as event_submission, event_changes.requests as event_changes, event_requests.updates as event_updates, event_changes.reassessment as arrangement_reassessment
+import bookings.requests as booking_request, event_review.confirmation as event_confirmation, event_review.service as event_review, bookings.hold_expiry as hold_expiry, models, registrations.service as registrations, safety.checks as safety_check, schemas, bookings.service as venue_bookings, venues.calendar as venue_calendar, venues.search as venue_search, venues.suitability as venue_suitability, venues.unavailability as venue_unavailability, bookings.reassessment as venue_reassessment
+from venues.audit import apply_update, change_action, creation_changes, record_change
+from event_requests.access import involved_events, is_involved
+from event_requests.fields import for_role
+from event_requests.status import change_status, record_initial_status
 
 Base.metadata.create_all(bind=engine)
 
@@ -48,7 +48,7 @@ app.middleware("http")(enforce_https)
 app.include_router(auth.router)
 app.include_router(equipment.router)
 app.include_router(messaging.router)
-from reassessment_routes import router as reassessment_router
+from event_changes.routes import router as reassessment_router
 app.include_router(reassessment_router)
 with Session(engine) as equipment_db:
     equipment.seed_catalogue(equipment_db)

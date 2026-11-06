@@ -1,0 +1,55 @@
+Started: 2026-11-06 21:46:30 SGT
+Commit: 5f62f2876e219896b4e4d10a8248f55195afc8db
+Scope: project / frontend
+Command: npm run test:coverage
+
+
+> connectsphere@0.1.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.2 /Users/user/Desktop/SPM_G5T8
+      Coverage enabled with v8
+
+Not implemented: navigation to another Document
+
+ Test Files  65 passed (65)
+      Tests  1014 passed (1014)
+   Start at  21:46:30
+   Duration  8.09s (environment 39%, tests 34%, setup 14%, transform 7%, import 3%, worker 3%)
+
+    Isolate  65 workers spawned · ~461ms startup each (spawn + environment, per file)
+             at least ~2.87s faster with isolate: false — reuses workers across files instead of one per file
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   84.07 |    78.98 |   83.55 |   84.25 |                   
+ .../registrations |   96.77 |       95 |     100 |     100 |                   
+  page.tsx         |   96.77 |       95 |     100 |     100 | 19                
+ components/queue  |       0 |        0 |       0 |       0 |                   
+  ...ilHistory.tsx |       0 |        0 |       0 |       0 | 1-35              
+  ...ilsEditor.tsx |       0 |        0 |       0 |       0 | 1-106             
+  ...Workspace.tsx |       0 |        0 |       0 |       0 | 1-121             
+  QueueList.tsx    |       0 |        0 |       0 |       0 | 1-51              
+  ...mentPanel.tsx |       0 |        0 |       0 |       0 | 1-62              
+ ...nts/queue/tabs |       0 |        0 |       0 |       0 |                   
+  ActivityTab.tsx  |       0 |        0 |       0 |       0 | 6-18              
+  EquipmentTab.tsx |       0 |        0 |       0 |       0 | 1-6               
+  ...rationTab.tsx |       0 |        0 |       0 |       0 | 1-44              
+  RequestTab.tsx   |       0 |        0 |       0 |       0 | 1-228             
+  VenueTab.tsx     |       0 |        0 |       0 |       0 | 1-526             
+ components/safety |       0 |        0 |       0 |       0 |                   
+  ...CheckCard.tsx |       0 |        0 |       0 |       0 | 1-122             
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 84.07% ( 2440/2902 )
+Branches     : 78.98% ( 2187/2769 )
+Functions    : 83.55% ( 874/1046 )
+Lines        : 84.25% ( 2033/2413 )
+================================================================================
+
+Ended: 2026-11-06 21:46:38 SGT
+Result: Pass

@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 
 import models
 from auth_testkit import PASSWORD, login
-from login import security
-from login.models import Role, User
+from auth import security
+from auth.models import Role, User
 from main import app
 
 

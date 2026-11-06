@@ -56,6 +56,18 @@ def save_record(folder, record, coverage_text=None):
     (folder / name).write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 
+def test_counts(output):
+    """Read runner summaries, never scenario names such as '4 failed attempts'."""
+    summaries = '\n'.join(line for line in output.splitlines() if re.match(
+        r'^\s*(?:=+ .* in |Tests\s+|\d+ (?:passed|failed|skipped)(?:\s*\(|\s*$|,))', line))
+    counts = {}
+    for field in ['passed', 'failed', 'skipped']:
+        matches = re.findall(rf'(?<!\w)(\d+) {field}\b', summaries)
+        if matches:
+            counts[field] = int(matches[-1])
+    return counts
+
+
 def run(args):
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
     preset = {
@@ -109,11 +121,8 @@ def run(args):
         subtests = re.findall(r'(\d+) subtests passed', text)
         if subtests:
             record['subtests_passed'] = int(subtests[-1])
-        # Unknown counts stay blank, rather than treating a process exit as zero failures.
-        for field, word in [('passed', 'passed'), ('failed', 'failed'), ('skipped', 'skipped')]:
-            matches = re.findall(rf'(?<!\w)(\d+) {word}\b', text)
-            if matches:
-                record[field] = int(matches[-1])
+        # Unknown counts stay blank; scenario titles are not test results.
+        record.update(test_counts(text))
         if not any(k in record for k in ['passed', 'failed', 'skipped']):
             ran = re.search(r'Ran (\d+) tests?', text)
             if ran and code == 0:

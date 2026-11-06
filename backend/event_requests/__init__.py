@@ -1,0 +1,1 @@
+"""Event requests business component."""

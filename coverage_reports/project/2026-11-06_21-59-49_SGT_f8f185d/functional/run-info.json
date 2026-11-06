@@ -1,0 +1,28 @@
+{
+  "record_id": "20261106T134702Z-75e48f1a",
+  "sprint": "Unrecorded",
+  "scope": "project",
+  "kind": "functional",
+  "executor": "",
+  "started_at": "2026-11-06T13:47:02.679108+00:00",
+  "timezone": "UTC (convert +08:00 for SGT)",
+  "commit": "5f62f2876e219896b4e4d10a8248f55195afc8db",
+  "dirty": true,
+  "result": "Pass",
+  "command": "npm run test:functional",
+  "source": "local execution",
+  "exit_code": 0,
+  "ended_at": "2026-11-06T13:57:01.335190+00:00",
+  "original_summary_counts": {
+    "passed": 237,
+    "failed": 4,
+    "skipped": 1
+  },
+  "summary_count_correction": {
+    "reason": "Old parser misread the passed login scenario title 4 failed attempts as a failed-test count. Original output and original counts are retained.",
+    "corrected_at": "2026-11-06T13:57:34.076936+00:00",
+    "parser_commit": "f8f185d"
+  },
+  "passed": 237,
+  "skipped": 1
+}

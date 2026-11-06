@@ -10,7 +10,7 @@ AC3: the previous coordinator loses access and the new one gains it .......... T
 AC4: outgoing and incoming coordinators and the organiser are notified ........ TestNotified
 AC5: the Lead can view the complete assignment history ........................ TestHistory
 
-The rules (backend/event_review.py) and the endpoint functions in backend/main.py are called directly on
+The rules (backend/event_review/service.py) and the endpoint functions in backend/main.py are called directly on
 a real in-memory SQLite database (never Supabase), reusing the US11/US43 set-up (lead_testcase.py).
 
 Run from the repo root:
@@ -24,12 +24,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lead_testcase import CLOSED, NOW, LeadTestCase, S
-import event_review
+import event_review.service as event_review
 import main
 import models
 import schemas
-from event_access import is_involved
-from login.models import Role
+from event_requests.access import is_involved
+from auth.models import Role
 
 REASON = "Priya is on leave for the next two weeks."
 

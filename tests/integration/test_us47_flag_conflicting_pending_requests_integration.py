@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_us22_submit_booking_request_integration import DAY, BookingApiTestCase
 import models
-from login.models import Role, User
+from auth.models import Role, User
 
 
 class US47TestCase(BookingApiTestCase):
